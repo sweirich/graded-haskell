@@ -11,11 +11,11 @@ This artifact substantiates the results claimed in Section 6.2 (Metatheory).
 The individual results can be found in the corresponding Coq files and theorem 
 statements.
 
-Lemma 6.1 (Regularity)      dqtt.v: Typing_regularity
-Lemma 6.2 (Substitution)    structural.v: substitution
-Lemma 6.3 (Weakening)       structural.v: weakening
-Theorem 6.4 (Preservation)  dqtt.v: preservation
-Theorem 6.5 (Progress)      dqtt.v: progress
+      Lemma 6.1 (Regularity)      dqtt.v: Typing_regularity
+      Lemma 6.2 (Substitution)    structural.v: substitution
+      Lemma 6.3 (Weakening)       structural.v: weakening
+      Theorem 6.4 (Preservation)  dqtt.v: preservation
+      Theorem 6.5 (Progress)      dqtt.v: progress  
 
 * System specification
 
@@ -53,11 +53,15 @@ with the following credentials:
 Then perform the following commands in a terminal window.
   
      cd ~ 
-     cd dependent-haskell/src
+     cd graded-haskell/src
      make clean
      make coq
-          
+
+NOTE: to access the latest version of the artifact, reviewers may wish to do a `git pull` 
+in the `graded-haskell` directory.
+
 NOTE: On 2019 MacBook Pro, the entire development takes < 4 minutes to compile. The file `dqtt_inf.v` (generated from LNgen) is the largest component of that time. 
+     
 
 Additional artifact description
 -------------------------------
