@@ -56,21 +56,21 @@ Contents
 
 The files that make up the Coq development include:
 
-- dqtt.ott     Specification of the entire system
-- dqtt_ott.v   Generated definition (from Ott, modified by hand)
-- dqtt_inf.v   Generated lemmas (from LNgen). 
-- tactics.v    General purpose tactics
-- metalib.v    metalib additions
+    - dqtt.ott     Specification of the entire system
+    - dqtt_ott.v   Generated definition (from Ott, modified by hand)
+    - dqtt_inf.v   Generated lemmas (from LNgen). 
+    - tactics.v    General purpose tactics
+    - metalib.v    metalib additions
 
-- beta.v       Axiomatization of beta-equivalence
-- usage_sig.v  Axiomatization of partially-ordered semiring
+    - beta.v       Axiomatization of beta-equivalence
+    - usage_sig.v  Axiomatization of partially-ordered semiring
 
-- usage.v      Lemmas about working with usages and with graded contexts (language independent)
-- dctx.v     
-- dctx_sub. v 
-- semimodule.v
+    - usage.v      Lemmas about working with usages and with graded contexts (language independent)
+    - dctx.v     
+    - dctx_sub. v 
+    - semimodule.v
 
-- structural.v  Substitution and Weakening (Lemmas 6.2 and 6.3)
-- dqtt.v        Regularity, Preservation and Progress (Lemma 6.1, Theorems 6.4 and 6.5)
+    - structural.v  Substitution and Weakening (Lemmas 6.2 and 6.3)
+    - dqtt.v        Regularity, Preservation and Progress (Lemma 6.1, Theorems 6.4 and 6.5)
 
 
