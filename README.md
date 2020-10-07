@@ -5,25 +5,26 @@ Complete claims made by the paper substantiated by this artifact
 ----------------------------------------------------------------
 
 This artifact substantiates the results claimed in Section 6.2 (Metatheory).
+No other results of the paper have been mechanically checked.
 
 * Key results
 
-The individual results can be found in the corresponding Coq files and theorem 
-statements.
+The individual results of this Section can be found in the corresponding Coq
+files and theorem statements. (All Coq files are in the `src` subdirectory.)
 
       Lemma 6.1 (Regularity)      dqtt.v: Typing_regularity
       Lemma 6.2 (Substitution)    structural.v: substitution
       Lemma 6.3 (Weakening)       structural.v: weakening
       Theorem 6.4 (Preservation)  dqtt.v: preservation
-      Theorem 6.5 (Progress)      dqtt.v: progress  
+      Theorem 6.5 (Progress)      dqtt.v: progress
 
 * System specification
 
 The full specification of the type system shown in Section 6.1 is in the file
-`dqtt_ott.v`. This file has been generated from the Ott specification `dqtt.ott`,
-but then slightly edited, as described below. For convenience, we also provide
-the file `spec.pdf` that contains a typeset version of the system, also
-generated from `dqtt.ott`.
+`dqtt_ott.v`. This file has been mechanically generated from the Ott
+specification `dqtt.ott`, but then slightly edited. For convenience, we also
+provide the file `spec.pdf` that contains a typeset version of the system,
+also generated from `dqtt.ott`.
 
 * Assumptions made in Coq development
 
@@ -36,7 +37,13 @@ describes the axiomatization of beta-equivalence as specified in Definition
 Download, installation, and sanity-testing instructions
 ---------------------------------------------------------
 
-The artifact is available as a virtual box available for download from ...
+The artifact is available as a [VirtualBox](https://www.virtualbox.org/) available for download from 
+
+http://www.seas.upenn.edu/~sweirich/popl21-paper408.ova
+
+After installing VirtualBox, the machine can be loaded via 
+
+     File > Import Appliance...
 
 The source code for the artifact is available from the public github repository:
 https://github.com/sweirich/graded-haskell
