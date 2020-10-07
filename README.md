@@ -51,13 +51,11 @@ https://github.com/sweirich/graded-haskell
 Evaluation instructions
 -----------------------
 
-To evaluate these claims, reviewers should log into the provided virtual box
-with the following credentials:
+To evaluate these claims, reviewers should import the provided virtual box
+file.  Once the machine has been booted, a Terminal can be started available
+using the icon at the top-left of the screen.
 
-     username: sweirich
-     password: popl2021
-
-Then perform the following commands in a terminal window.
+Then, to compile the development, perform the following commands in a terminal window.
   
      cd ~ 
      cd graded-haskell/src
@@ -67,8 +65,16 @@ Then perform the following commands in a terminal window.
 NOTE: to access the latest version of the artifact, reviewers may wish to do a `git pull` 
 in the `graded-haskell` directory.
 
-NOTE: On 2019 MacBook Pro, the entire development takes < 4 minutes to compile. The file `dqtt_inf.v` (generated from LNgen) is the largest component of that time. 
-     
+NOTE: On 2019 MacBook Pro, the entire development takes < 4 minutes to
+compile. The file `dqtt_inf.v` (generated from LNgen) is the largest component
+of that time.
+
+Note: reviwers can use the following credentials for administrator access on
+the virtual machine.
+
+     username: sweirich
+     password: popl2021
+
 
 Additional artifact description
 -------------------------------
