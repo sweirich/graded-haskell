@@ -1,11 +1,27 @@
 Artifact submission for POPL2021 paper 408
 ==========================================
 
+Download, installation, and sanity-testing instructions
+---------------------------------------------------------
+
+The artifact is available as a [VirtualBox](https://www.virtualbox.org/) available for download from 
+
+http://www.seas.upenn.edu/~sweirich/popl21-paper408.ova
+
+After starting VirtualBox, the machine can be loaded via 
+
+     File > Import Appliance...
+
+The source code for the artifact is available from the public github repository:
+https://github.com/sweirich/graded-haskell
+
 Complete claims made by the paper substantiated by this artifact
 ----------------------------------------------------------------
 
 This artifact substantiates the results claimed in Section 6.2 (Metatheory).
 No other results of the paper have been mechanically checked.
+
+For convenience, the [submitted version of the paper](https://github.com/sweirich/graded-haskell/blob/main/submitted-version.pdf) is available from the github repository.
 
 * Key results
 
@@ -34,25 +50,11 @@ semi-ring structure, as described in Section 2.1 of the paper. The second file
 describes the axiomatization of beta-equivalence as specified in Definition
 7.1.
 
-Download, installation, and sanity-testing instructions
----------------------------------------------------------
-
-The artifact is available as a [VirtualBox](https://www.virtualbox.org/) available for download from 
-
-http://www.seas.upenn.edu/~sweirich/popl21-paper408.ova
-
-After installing VirtualBox, the machine can be loaded via 
-
-     File > Import Appliance...
-
-The source code for the artifact is available from the public github repository:
-https://github.com/sweirich/graded-haskell
-
 Evaluation instructions
 -----------------------
 
 To evaluate these claims, reviewers should import the provided virtual box
-file.  Once the machine has been booted, a Terminal can be started available
+file.  Once the machine has been booted, a Terminal can be started
 using the icon at the top-left of the screen.
 
 Then, to compile the development, perform the following commands in a terminal window.
