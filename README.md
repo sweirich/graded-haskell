@@ -6,6 +6,10 @@ This repository includes Coq proofs for the results claimed in Section 6.2
 paper](https://github.com/sweirich/graded-haskell/blob/main/submitted-version.pdf),
 conditionally accepted to POPL 2021. 
 
+Artifact evaluators should read the file [ARTIFACT.md](https://github.com/sweirich/graded-haskell/blob/main/ARTIFACT.md).
+In particular, a virtual machine is available for download from 
+http://www.seas.upenn.edu/~sweirich/popl21-paper408.ova.
+
 * Key results
 
 The individual results can be found in the corresponding Coq files and theorem
