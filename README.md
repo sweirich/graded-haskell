@@ -62,7 +62,7 @@ The files that make up the Coq development include:
 
     - dqtt.ott     Specification of the entire system
     - dqtt_ott.v   Generated definition (from Ott, modified by hand)
-    - dqtt_inf.v   Generated lemmas (from LNgen). 
+    - dqtt_inf.v   Generated lemmas (from LNgen, modified by hand). 
     - tactics.v    General purpose tactics
     - metalib.v    metalib additions
 
@@ -78,3 +78,10 @@ The files that make up the Coq development include:
     - dqtt.v        Regularity, Preservation and Progress (Lemma 6.1, Theorems 6.4 and 6.5)
 
 
+Binding Representation
+----------------------
+This proof uses a Locally Nameless representation for binding, as supported by the [Ott locallynameless backend](https://fzn.fr/projects/ln_ott/) and [LNgen](https://www.cis.upenn.edu/~sweirich/papers/lngen/) tools.
+
+For background on this binding representation, please see: 
+* [Engineering Formal Metatheory](https://repository.upenn.edu/cis_papers/369/)
+* [DeepSpec Summer School 2017 Tutorial on Locally Nameless Representation](https://deepspec.org/event/dsss17/lecture_weirich.html) 
