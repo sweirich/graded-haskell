@@ -80,7 +80,7 @@ The files that make up the Coq development include:
 
 Binding Representation
 ----------------------
-This proof uses a Locally Nameless representation for binding, as supported by the [Ott locallynameless backend](https://fzn.fr/projects/ln_ott/) and [LNgen](https://www.cis.upenn.edu/~sweirich/papers/lngen/) tools.
+This proof uses a Locally Nameless representation for binding, as supported by the [Ott locallynameless backend](https://fzn.fr/projects/ln_ott/) and [LNgen](https://repository.upenn.edu/cis_reports/933/) tools.
 
 For background on this binding representation, please see: 
 * [Engineering Formal Metatheory](https://repository.upenn.edu/cis_papers/369/)
