@@ -1,10 +1,12 @@
 A Graded Dependent Type System
 ==============================
 
-This repository includes Coq proofs for the results claimed in Section 6.2
-(Metatheory) of [this
-paper](https://github.com/sweirich/graded-haskell/blob/main/submitted-version.pdf),
-conditionally accepted to POPL 2021. 
+This repository includes Coq proofs for the results claimed in Section 7.2 of the 
+paper "A graded dependent type system with a usage-aware semantics", by
+Pritam Choudhury, Harley Eades III, Richard A. Eisenberg and Stephanie Weirich.
+This paper has been conditionally accepted to POPL 2021.
+
+The [extended version](ttps://github.com/sweirich/graded-haskell/blob/main/extended-version.pdf), of the paper is available from this site.
 
 Artifact evaluators should read the file [ARTIFACT.md](https://github.com/sweirich/graded-haskell/blob/main/ARTIFACT.md).
 In particular, a virtual machine is available for download from 
@@ -15,11 +17,11 @@ http://www.seas.upenn.edu/~sweirich/popl21-paper408.ova.
 The individual results can be found in the corresponding Coq files and theorem
 statements. (All Coq files are in the `src` subdirectory.)
 
-      Lemma 6.1 (Regularity)      dqtt.v: Typing_regularity
-      Lemma 6.2 (Substitution)    structural.v: substitution
-      Lemma 6.3 (Weakening)       structural.v: weakening
-      Theorem 6.4 (Preservation)  dqtt.v: preservation
-      Theorem 6.5 (Progress)      dqtt.v: progress
+      Lemma 7.1 (Regularity)      dqtt.v: Typing_regularity
+      Lemma 7.2 (Substitution)    structural.v: substitution
+      Lemma 7.3 (Weakening)       structural.v: weakening
+      Theorem 7.4 (Preservation)  dqtt.v: preservation
+      Theorem 7.5 (Progress)      dqtt.v: progress
 
 * System specification
 

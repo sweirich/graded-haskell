@@ -1,6 +1,11 @@
 Artifact submission for POPL2021 paper 408
 ==========================================
 
+This repository includes Coq proofs for the results claimed in Section 6.2
+(Metatheory) of [this
+paper](https://github.com/sweirich/graded-haskell/blob/main/submitted-version.pdf),
+conditionally accepted to POPL 2021. 
+
 Download, installation, and sanity-testing instructions
 ---------------------------------------------------------
 
