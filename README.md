@@ -25,7 +25,7 @@ statements. (All Coq files are in the `src` subdirectory.)
 
 * System specification
 
-The full specification of the type system shown in Section 6.1 is in the file
+The full specification of the type system shown in Section 7.1 is in the file
 `dqtt_ott.v`. This file has been mechanically generated from the Ott
 specification `dqtt.ott`, but then slightly edited. For convenience, we also
 provide the file
@@ -38,7 +38,7 @@ The axioms that our development relies on are in the files `usage_sig.v`
 and `beta.v`.  The first file is an axiomatization of the partially-ordered
 semi-ring structure, as described in Section 2.1 of the paper. The second file
 describes the axiomatization of beta-equivalence as specified in Definition
-7.1.
+9.1.
 
 Installation and Compilation Instructions
 ------------------------------------------
