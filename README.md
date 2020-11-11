@@ -6,11 +6,7 @@ paper "A graded dependent type system with a usage-aware semantics", by
 Pritam Choudhury, Harley Eades III, Richard A. Eisenberg and Stephanie Weirich.
 This paper has been conditionally accepted to POPL 2021.
 
-The [extended version](https://github.com/sweirich/graded-haskell/blob/main/extended-version.pdf) of the paper is available from this site.
-
-Artifact evaluators should read the file [ARTIFACT.md](https://github.com/sweirich/graded-haskell/blob/main/ARTIFACT.md).
-In particular, a virtual machine is available for download from 
-http://www.seas.upenn.edu/~sweirich/popl21-paper408.ova.
+The extended version of the paper is available from [arXiv](https://arxiv.org/abs/2011.04070).
 
 * Key results
 
