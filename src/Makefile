@@ -10,11 +10,12 @@ SPEC = dqtt.ott
 SPECFILE = spec.tex
 RULESFILE = dqtt-rules.tex
 
-spec.pdf: $(SPEC) $(SPECFILE)
+../spec.pdf: $(SPEC) $(SPECFILE)
 	ott -o $(RULESFILE) \
 					-tex_wrap false \
 					-tex_show_meta false $(SPEC)
 	pdflatex -interaction nonstopmode $(SPECFILE)
+	mv spec.pdf ..
 
 $(RULESFILE): $(SPEC)
 	ott $(OTTIFLAGS) -o $(RULESFILE) \

@@ -31,3 +31,8 @@ lia.cache
 nia.cache
 nlia.cache
 nra.cache
+*~
+*.aux
+*.log
+*-rules.tex
+*.conf
