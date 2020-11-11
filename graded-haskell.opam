@@ -1,0 +1,20 @@
+opam-version: "2.0"
+name: "graded-haskell"
+version: "0.1"
+synopsis: "Preservation and Progress for GraD language"
+description: """
+Longer description
+"""
+maintainer: "Stephanie Weirich <sweirich@seas.upenn.edu>"
+authors: "Stephanie Weirich <sweirich@seas.upenn.edu>"
+license: "MIT"
+tags: "org:plclub"
+homepage: "https://github.com/sweirich/graded-haskell"
+bug-reports: "https://github.com/sweirich/graded-haskell/issues"
+dev-repo: "git+https://github.com/sweirich/graded-haskell/issues"
+depends: [ "coq" {>= "8.10"} "coq-metalib" { >= "coq8.10" } ]
+build: [
+  ["cd src"]
+  [make]
+]
+install: [make "install"]

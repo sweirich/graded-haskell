@@ -44,6 +44,7 @@ This development has been tested with The Coq Proof Assistant, version 8.11.1
 
 To compile this code with Coq, you also need to install a copy of the Metalib
 library.  This library is available from https://github.com/plclub/metalib
+at the `coq8.10` tag.
 
 The `src/` directory includes a Coq specification of a dependently typed
 calculus with type-in-type, dependent functions, unit, products and sums.
@@ -52,6 +53,13 @@ Once Coq and metalib have been installed, the files in the `src/` directory
 can be compiled using 
 
     make coq
+    
+You may also be able to install via OPAM:
+
+    opam switch create ./ OCAML_VERSION
+    opam repo add coq-released https://coq.inria.fr/opam/released
+    opam install coq coq-ott ott
+    opam pin add coq-metalib https://github.com/plclub/metalib.git
 
 Contents
 --------
