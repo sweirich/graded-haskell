@@ -80,9 +80,6 @@ coq: $(COQMKFILENAME) $(VFILES)
 	@$(MAKE) -f CoqSrc.mk $*.vo
 
 
-%_inf.v: $(OTT_LOC)/%.ott Makefile
-	$(LNGEN) --coq-no-proofs --coq $*_inf.v --coq-ott $*_ott $(OTT_LOC)/$*.ott 
-
 $(COQMKFILENAME): Makefile $(shell ls *.v | grep -v _ott.v | grep -v _inf.v)
 	{ echo "-R . $(LIBNAME) " ; ls *.v ; } > _CoqProject && coq_makefile -arg '-w -variable-collision,-meta-collision,-require-in-module' -f _CoqProject -o $(COQMKFILENAME)
 
@@ -94,6 +91,4 @@ clean: coqclean
 	@rm -f *~
 	@rm -f *.log *.aux *.fls *.fdb_latexmk
 
-METALIB.FIX_%:
-	sed -i -e 's/Metalib.Metatheory./Metalib.Metatheory. Require Export Qtt.usage_sig./g' $*.v
-	sed '1d' $*.v > __TMP__; mv __TMP__ $*.v
+
