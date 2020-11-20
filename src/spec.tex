@@ -26,37 +26,49 @@ This document is created directly from the definitions in the file
 {\texttt{dqtt.ott}}, with minor modifications as listed below.
 
 This document is intended to specify, in a readable form, the subject of the
-proofs in Section 6.2 of POPL paper 408 as well as explain the slight differences
-between the ott source file, this rendering, the POPL 408 submission, and the
-generated Coq files \texttt{dqtt.v} and \texttt{dqtt\_inf.v}.
+proofs in Section 7.2 of the POPL paper ``A Graded Dependent Type SYstem with
+a Usage-Aware Semantics'' as well as explain the slight differences between
+the ott source file ({\texttt{dqtt.ott}}), this rendering, the POPL publication, and the
+generated Coq files \texttt{dqtt\_ott.v} and \texttt{dqtt\_inf.v}.
 
 The reason for these slight differences is due to the restrictions of the Ott
 locally nameless backend and the LNgen theory generation tool. 
 \begin{enumerate}
 \item All parts of the syntax must be defined concretely in the Ott source file. 
-\item All syntactic forms must bind at most one variable in each term.
+\item All bound variables need to be explicitly determined
+\item All syntactic forms must bind at most one variable at a time.
 \end{enumerate}
 
-The first limitation is simple to accommodate through minor edits of the
-outputs of Ott and LNgen.
+The first limitation is simple to accommodate through minor manual edits of
+the outputs of Ott and LNgen. These edits allow us to parameterize the
+development on an arbitrary semiring (see \texttt{usage\_sig.v}) instead of
+working with a specific, concrete semiring. 
 
-The second limitation causes difficulty for the formalization of tensor
-products. The usual pattern matching elimination rule binds two variables, one
-for each component of the tuple.
-Therefore, compared to the syntax shown in the paper, we replace
-the pattern matching elimination form for $\Sigma$ types with a slightly more
-general, but less familiar, form.
+The second limitation affects our generation of the typing rules for pattern
+matching elimination forms, i.e. \textsc{T-UnitE}, \textsc{T-LetBox} and
+\textsc{T-Case}. In these rules, we need to substitute in for the scrutinee
+$y$ the result type $B$. Therefore, we need to inform Ott that $y$ should be
+bound in $B$. We do so with an additional annotation (written
+$\ottkw{@} \lambda y. B$) on the corresponding terms. For simplicity, in the
+paper, we elide this annotation.
 
-Instead, we use an elimination form called ``spread'' of the
-form
+The third limitation causes difficulty for the formalization of the
+elimination rule for tensor products. The usual pattern matching elimination
+syntactic form binds two variables, one for each component of the tuple. This
+is the form that is used in the POPL publication. To accommodate Ott, in this
+version we replace the pattern matching elimination form for $\Sigma$ types
+with a slightly more general, but less familiar, form.
+
+We call this syntactic form ``spread'' and it has the following grammar.
 \[
- \ottkw{spread}\,  \ottnt{a} \, \ottkw{to}\,  \ottmv{x} \, \ottkw{in}\,  \ottnt{b}
+ \ottkw{spread}\,  \ottnt{a} \, \ottkw{to}\,  \ottmv{x} \, \ottkw{in}\,  \ottnt{b}\, \ottkw{@}\, \ottnt{B}
 \]
 This syntactic form binds the variable $x$ (corresponding to the first
 component of the product) in the body $b$. The body $b$ must itself be a
-function, where the argument is the second component of the tuple.
+function, where the argument is the second component of the tuple. By 
+refactoring in this way, we observe Ott's restriction to single binding. 
 
-In other words, we can encode an elimination of an argument $a$
+Using this syntax, we can encode an elimination of an argument $a$
 of type $ \Sigma  \ottmv{x} \!\!:^ \ottnt{q} \!\! \ottnt{A} . \ottnt{B} $, that uses
 the usual pattern matching syntax
 \[ 
@@ -66,7 +78,17 @@ the usual pattern matching syntax
 using the term
 \[
    \ottkw{spread}\,  \ottnt{a} \, \ottkw{to}\,  \ottmv{x} \, \ottkw{in}\,  \lambda \ottmv{y} \!:^ \ottnt{q} \! \ottnt{A} . \ottnt{b}
+   \ottkw{@}\, \lambda \ottmv{y} \!\:^\ottnt{q}\! \ottnt{A} . \ottnt{B}
 \]
+
+Even though $\ottkw{spread}$ solves the issue with single binding in the
+syntax of the term, there is still the issue of generating its appropriate
+elimination rule via Ott. Unfortunately, Ott Ott cannot express the correct
+typing rule for $\ottkw{spread}$ because the typing rule requires a
+substitution for both variables.  Therefore we modify the generated Coq
+definition to include the appropriate substitution. For clarity, this document
+includes the corresponding change in the typeset rule \textsc{T-Spread}.
+
 
 \section{Grammar}
 
@@ -81,11 +103,6 @@ using the term
 \section{Step relation}
 \ottdefnsJOp{} 
 \section{Typing relation}
-
-Another issue with $\Sigma$ types is that Ott cannot express the complete
-typing rule for $\ottkw{spread}$.  Therefore we need to modify the generate
-Coq definition to include the appropriate substitution. This document includes the 
-corresponding change in the typeset rule \textsc{T-Spread}.
 
 \newcommand{\ottdruleTXXSpreadAlt}[1]{\ottdrule[#1]{%
 \ottpremise{\ottnt{A}  \ottsym{=}   \Sigma  \ottmv{x} \!\!:^ \ottnt{q} \!\! \ottnt{A_{{\mathrm{1}}}} . \ottnt{A_{{\mathrm{2}}}} }%

@@ -35,7 +35,7 @@ tm, a, b, A , B , v , w :: 'a_' ::= {{ com terms and types }}
   | unit         ::   :: TmUnit
 
   | let unit = a in b @ B ::   :: letunitB
-   {{ tex \ottkw{let}\, [[unit]]\,=\,[[a]]\ \ottkw{in}\ [[b]] }}
+   {{ tex \ottkw{let}\, [[unit]]\,=\,[[a]]\ \ottkw{in}\ [[b]]\, @\, [[B]] }}
 
 
   | Pi x : q A . B    ::    :: Pi
@@ -52,7 +52,7 @@ tm, a, b, A , B , v , w :: 'a_' ::= {{ com terms and types }}
 
   | let box x = a in b @ B   ::   :: LetBoxB 
      (+ bind x in b +)
-   {{ tex \ottkw{let}\, \ottkw{box}\,[[x]]\,=\,[[a]]\ \ottkw{in}\ [[b]] }}
+   {{ tex \ottkw{let}\, \ottkw{box}\,[[x]]\,=\,[[a]]\ \ottkw{in}\ [[b]]\, @\, [[B]] }}
 
   | ( A )       :: M  :: Paren {{ coq ([[A]]) }}
 
@@ -82,7 +82,7 @@ tm, a, b, A , B , v , w :: 'a_' ::= {{ com terms and types }}
    | inj2 a              ::   :: Inj2
    {{ tex \ottkw{inj}_2\, [[a]] }}
    | case q a of b1 ; b2 @ B  ::  :: Case
-   {{ tex \ottkw{case}_[[q]]\, [[a]]\, \ottkw{of}\, [[b1]] ; [[b2]] }}
+   {{ tex \ottkw{case}_[[q]]\, [[a]]\, \ottkw{of}\, [[b1]] ; [[b2]]\, @\, [[B]] }}
 
    | Sigma x : q A . B ::  :: Sigma
      (+ bind x in B +)
@@ -92,7 +92,7 @@ tm, a, b, A , B , v , w :: 'a_' ::= {{ com terms and types }}
 
    | spread a to x in b @ B ::  :: Spread
       (+ bind x in b +)
-       {{ tex \ottkw{spread}\, [[a]]\, \ottkw{to}\, [[x]]\, \ottkw{in}\, [[b]] }}
+       {{ tex \ottkw{spread}\, [[a]]\, \ottkw{to}\, [[x]]\, \ottkw{in}\, [[b]]\, @\, [[B]] }}
 
 substitutions
   single a x     :: subst_tm
