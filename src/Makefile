@@ -79,6 +79,9 @@ coq: $(COQMKFILENAME) $(VFILES)
 %.vo: %.v
 	@$(MAKE) -f CoqSrc.mk $*.vo
 
+%_inf.v: $(OTT_LOC)/%.ott Makefile
+	$(LNGEN) --coq $*_inf.v --coq-ott $*_ott $(OTT_LOC)/$*.ott 
+
 
 $(COQMKFILENAME): Makefile $(shell ls *.v | grep -v _ott.v | grep -v _inf.v)
 	{ echo "-R . $(LIBNAME) " ; ls *.v ; } > _CoqProject && coq_makefile -arg '-w -variable-collision,-meta-collision,-require-in-module' -f _CoqProject -o $(COQMKFILENAME)
