@@ -1,0 +1,790 @@
+metavar tmvar, x, y, f ::=
+  {{ repr-locally-nameless }}
+  {{ com variables }}
+  {{ lex alphanum }}
+
+indexvar index, i ::=
+  {{ tex \mathit{[[index]]} }} {{ com indices }} {{ coq nat }}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% GRAMMAR
+
+grammar
+
+usage, q , r , s :: 'q_' ::=   {{ coq usage }}
+  | m                         :: M :: Var   {{ coq qvar [[m]] }}
+  | 0                         :: M :: Zero  {{ coq 0 }}
+  | 1                         :: M :: One   {{ coq 1 }}
+  | q1 + q2                   :: M :: Plus  {{ coq qplus [[q1]] [[q2]] }}
+  | q1 * q2                   :: M :: Mul   {{ coq qmul [[q1]] [[q2]] }}
+  | ( q )                     :: M :: Paren {{ coq ([[q]]) }}
+  | 2                         :: M :: q_Two   {{ coq 2 }} 
+  | 3                         :: M :: q_Three {{ coq 3 }}
+  | 4                         :: M :: q_Four  {{ coq 4 }}
+  | 5                         :: M :: q_Five  {{ coq 5 }}
+  | 6                         :: M :: q_Six   {{ coq 6 }}
+  | 7                         :: M :: q_Seven {{ coq 7 }}
+  | 8                         :: M :: q_Eight {{ coq 8 }}
+  | omega                     :: M :: q_Omega {{ coq omega }} {{tex \omega }}
+  | (# q #)                   :: M :: q_SParen {{ tex [[ q ]] }} {{ coq ([[q]]) }}
+  | top                       :: M :: q_top  {{ tex \top }} {{ coq top }}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  | aff                       :: M :: Aff  {{ coq Aff }}
+  | rel                       :: M :: Rel  {{ coq Rel }}
+  | unr                       :: M :: Unr  {{ coq Unr }}
+  | lin                       :: M :: Lin  {{ coq Lin }}
+  | irr                       :: M :: Irr  {{ coq Irr }}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  | q { r / m }               :: M :: Subst {{ coq qsubst [[r]][[m]][[q]] }}
+  | Private                   :: M :: Private
+  {{tex \mathsf{Private} }} {{ coq Private }}
+  | Public                    :: M :: Public
+  {{tex \mathsf{Public} }}  {{ coq Public }}
+
+
+tm, a, b, A , B , v , w :: 'a_' ::= {{ com terms and types }}
+
+  | Unit         ::   :: TyUnit
+  | unit         ::   :: TmUnit
+
+  | let unit = a in b @ B ::   :: letunitB
+   {{ tex \ottkw{let}\, [[unit]]\,=\,[[a]]\ \ottkw{in}\ [[b]] }}
+
+
+  | Pi x : q A . B    ::    :: Pi
+    (+ bind x in B +)
+	 {{ tex \Pi [[x]]\!:^[[q]]\![[A]].[[B]] }}
+  | \ x : q A . a         ::   :: Lam
+     (+ bind x in a +)
+     {{ tex \lambda[[x]]\!:^[[q]]\![[A]].[[a]] }}
+
+  | a b                  ::   :: App
+
+  | [ q ] A              ::   :: Box
+    {{ tex \Box_{[[q]]} [[A]] }}
+
+  | let box x = a in b @ B   ::   :: LetBoxB 
+     (+ bind x in b +)
+   {{ tex \ottkw{let}\, \ottkw{box}\,[[x]]\,=\,[[a]]\ \ottkw{in}\ [[b]] }}
+
+  | ( A )       :: M  :: Paren {{ coq ([[A]]) }}
+
+  | type        ::    :: Type
+
+  | x           ::    :: Var
+
+   %% standard substitution, using open
+   | a { b / x }      :: S :: Subst
+     {{ coq (open_tm_wrt_tm [[x a]] [[b]]) }}
+
+   %% Ott parsing precedence is hard
+   | (# a #)          :: S :: SecretParen
+     {{ coq [[a]] }} {{ tex [[a]] }}
+     {{ com parsing precedence is hard }}
+
+   | box q a ::   :: box
+     {{ tex [[box]]_[[q]]\,[[a]] }}
+
+   | let x = a in b       ::   :: Let
+     (+ bind x in b +)
+
+   | A1 + A2              ::   :: Sum
+    {{ tex [[A1]] \oplus [[A2]] }}
+   | inj1 a              ::   :: Inj1
+   {{ tex \ottkw{inj}_1\, [[a]] }}
+   | inj2 a              ::   :: Inj2
+   {{ tex \ottkw{inj}_2\, [[a]] }}
+   | case q a of b1 ; b2 @ B  ::  :: Case
+   {{ tex \ottkw{case}_[[q]]\, [[a]]\, \ottkw{of}\, [[b1]] ; [[b2]] }}
+
+   | Sigma x : q A . B ::  :: Sigma
+     (+ bind x in B +)
+	 {{ tex \Sigma [[x]]\!\!:^[[q]]\!\![[A]].[[B]] }}
+
+   | ( a , b )            ::     :: Tensor
+
+   | spread a to x in b @ B ::  :: Spread
+      (+ bind x in b +)
+       {{ tex \ottkw{spread}\, [[a]]\, \ottkw{to}\, [[x]]\, \ottkw{in}\, [[b]] }}
+
+   | ( x : A ) & B        ::      :: With
+      (+ bind x in B +)
+   | &( a , b )            ::     :: Pair
+
+   | prj1 a               ::      :: Prj1
+     {{ tex \ottkw{prj}_1\, [[a]] }}
+   | prj2 a               ::      :: Prj2
+     {{ tex \ottkw{prj}_2\, [[a]] }}
+
+
+
+substitutions
+  single a x     :: subst_tm
+
+freevars
+  a x   :: fv_tm
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%  This part is not handled by LNgen
+
+grammar
+
+ sort :: '' ::= {{ com binding classifier }}
+   | Tm A             ::   :: Tm
+   | Def a A          ::   :: Def
+
+context, G {{ tex \Gamma }} :: 'ctx_' ::= {{ com contexts }}
+                                          {{ coq list ( atom * (usage * sort ) ) }}
+   | empty           ::    :: Empty   {{ coq nil }}
+
+   | x : q A         ::    :: One     {{ coq ([[x]]~([[q]],Tm [[A]]))}}
+	 {{ tex [[x]]\!\!:^{[[q]]}\!\![[A]] }}
+
+   | x : q a of A    ::    :: OneDef  {{ coq ([[x]]~([[q]],Def [[a]] [[A]]))}}
+	 {{ tex [[x]]\!\!:^{[[q]]}\!\![[a]]\!\![[A]] }}
+
+
+   | G ++ G'         :: M  :: Append  {{ coq ([[G']]++[[G]])}}
+     {{ tex [[G]], [[G']] }}
+
+   | ( G )           :: M  :: Paren       {{ coq ([[G]])}}
+   | (# G #)         :: M  :: SecretParen {{ coq [[G]]}} {{ tex [[G]]}}
+   | q * G1          :: M  :: Mult        {{ coq (ctx_mul [[q]] [[G1]])}}
+	{{ tex [[q]]\![[*]]\![[G1]] }}
+   | G1 + G2         :: M  :: Plus        {{ coq (ctx_plus [[G1]] [[G2]]) }}
+
+   | G { a / x }     :: M  :: Subst       {{ coq (substG [[a]][[x]][[G]] }} 
+   | q * D           :: M  :: MultD       {{ coq (add_usage [[q]] [[D]]) }}
+
+D {{ tex \Delta }} :: 'd_' ::= {{ com contexts }}
+                                          {{ coq list ( atom * sort )  }}
+   | empty           ::    :: Empty   {{ coq nil }}
+
+   | x : A         ::    :: OneT     {{ coq ([[x]] ~ Tm[[A]]) }}
+	 {{ tex [[x]]\!\!:\!\![[A]] }}
+   | x : a of A    ::    :: OneDef  {{ coq ([[x]]~(Def [[a]] [[A]]))}}
+	 {{ tex [[x]]\!\!:\!\![[a]]\!\![[A]] }}
+
+   | D ++ D'         :: M  :: Append  {{ coq ([[D']]++[[D]])}}
+     {{ tex [[D]], [[D']] }}
+
+   | ( D )           :: M  :: Paren       {{ coq ([[D]]) }}
+   | (# D #)         :: M  :: SecretParen {{ coq [[D]] }} {{ tex [[D]] }}
+
+   | ungrade G       :: M  :: Ungrade     {{ coq (ungrade [[G]]) }} {{ tex \lfloor[[G]]\rfloor }}
+
+   | D { a / x }     :: M  :: Subst       {{ coq (substD [[a]][[x]][[D]] }} 
+
+heap, H  :: 'heap_' ::= {{ com heap }} {{ coq list ( atom * ( usage * (context * tm * tm )) ) }}
+   | empty           ::    :: Empty   {{ coq nil }}
+   
+   | x : q a of A in G    ::    :: One     {{ coq [[x]] ~ ([[q]], ([[G]], [[a]], [[A]])) }}
+         {{ tex [[x]] \overset{[[q]]}{\mapsto} {[[G]]\vdash [[a]] : [[A]]} }}
+
+   | x : q a in G    ::    :: One2     {{ coq [[x]] ~ ([[q]], ([[G]], [[a]], a_Type)) }}
+	 {{ tex [[x]] \stackrel{[[q]]}{\mapsto} \![[a]] \in [[G]] }}
+
+   | H ++ H'         :: M  :: Append  {{ coq ([[H']] ++ [[H]]) }}
+     {{ tex [[H]], [[H']] }}
+
+   | ( H )           :: M  :: Paren       {{ coq ([[H]]) }} {{ tex [[H]] }}
+
+qlist, Q {{tex \mathbf{u} }} , R {{ tex \mathbf{v} }} :: 'qlist_' ::= {{ com qlist }} {{ coq list usage }}
+   | empty           ::     :: Empty {{ coq nil }} {{ tex \_ }}
+   | one q           ::     :: One {{ coq ([[q]] :: nil) }} {{ tex  [[q]]  }}
+   | Q ++ Q'         :: M   :: Append {{ coq ([[Q']]++[[Q]]) }} {{ tex [[Q]] \mathop{\diamond} [[Q']] }}
+   | Q + Q'          :: M   :: Plus {{ tex [[Q]] + [[Q']] }}
+    {{ coq (oplus [[Q]][[Q']]) }}
+   | zero H          :: M   :: HeapQ  {{ tex \mathbf{0}^{|[[H]]|} }}
+   {{ coq (ozero [[H]]) }}
+   | zero G          :: M   :: CtxQ  {{ tex \mathbf{0}^{|[[G]]|} }}
+   {{ coq (ozero [[G]]) }}
+   | zero n          :: M   :: ZeroN 
+   {{ tex \mathbf{0}^{[[n]]}    }}
+   {{ coq (List.repeat 0 [[n]]) }}
+   | zeros           :: M   :: Zeros {{ tex \mathbf{0} }} 
+   {{ coq (ozero nil) }}
+   {{ com vector of zeros with unspecified length }}
+   | ( Q )           :: M   :: Paren {{ coq ([[Q]]) }} {{ tex [[Q]] }}
+   | uses H          :: M   :: UsageH {{ coq (Qs [[H]]) }}
+                                      {{ tex \ncoverline{[[H]]} }}
+   | uses G          :: M   :: UsageG {{ coq (Qs [[G]]) }}
+                                      {{ tex \ncoverline{[[G]]} }}
+
+supp, S :: 'supp_' ::= {{ com support }} {{ coq atoms }} {{coq-universe Type }}
+   | empty         :: M  :: Empty {{ tex \emptyset }} {{ coq empty }}
+   | singleton x   :: M  :: Singleton {{ tex \{ [[x]] \} }} {{ coq (AtomSetImpl.singleton [[x]]) }}
+   | dom H         :: M  :: Domain {{ tex [[dom]]\, [[H]] }} {{ coq dom [[H]] }}
+   | fv a          :: M  :: FreeVariable {{ tex \,\text{fv}\, [[a]] }} {{ coq fv_tm_tm [[a]] }}
+   | S union S'    :: M  :: Union {{ tex [[S]] \cup [[S']] }} {{ coq ([[S]]\u[[S']]) }}
+   | ( S )         :: M  :: Paren {{ tex [[ S ]] }} {{ coq ([[S]]) }}
+
+
+
+n :: '' ::= {{ com natural number }} {{ coq nat }}
+  | length G         :: M   :: LengthG 
+    {{ coq (length[[G]]) }}
+    {{ tex |[[G]]| }}
+  | length H         :: M   :: LengthH
+    {{ coq (length[[H]]) }}
+    {{ tex |[[H]]| }}
+    
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%  Terminals  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+grammar
+
+terminals :: 'terminals_' ::=
+  | <->               ::   :: iso           {{ tex \leftrightarrow }}
+  | <=>               ::   :: lrarrow       {{ tex \Leftrightarrow }}
+  | -->               ::   :: step          {{ tex \longrightarrow }}
+  | min               ::   :: min           {{ tex \mathsf{min} }}
+  | ==                ::   :: definitional  {{ tex \equiv }}
+  | all               ::   :: forall     {{ tex \forall }}
+  | in                ::   :: in         {{ tex \mathsf{in} }}
+  | notin             ::   :: notin      {{ tex \not\in }}
+  | <=                ::   :: check      {{ tex \leq }}
+  | =>                ::   :: infer      {{ tex \Rightarrow }}
+  | =>*               ::   :: minfer      {{ tex \Rightarrow^{\ast} }}
+  | ->                ::   :: arrow      {{ tex \to }}
+  | /\                ::   :: ilam       {{ tex \mathrm{\Lambda} }}   % Swag
+  | <-|               ::   :: mapsfrom   {{ tex \mapsfrom }}
+  | []                ::   :: box        {{ tex \Box }}
+  | |-                ::   :: entails    {{ tex \vdash }}
+  | |-e               ::   :: entailsE   {{ tex \vdash }}
+  | |--e              ::   :: entailsEE  {{ tex \vdash }}
+  | |-$               ::   :: entailsC   {{ tex \vdash_{C} }}
+  | -|                ::   :: produces   {{ tex \dashv }}
+  | |=                ::   :: hs_entails {{ tex \vDash }}
+  | |==               ::   :: hs_entaill {{ tex \vDash }}
+  | /=                ::   :: neq        {{ tex \neq }}
+  | |>                ::   :: cast       {{ tex \triangleright }}
+  | ok                ::   :: ok         {{ tex \ \mathsf{ok} }}
+  | _                 ::   :: blank      {{ tex \_ }}
+  | ~>                ::   :: produce    {{ tex \leadsto }}
+  | ~>*               ::   :: multistep  {{ tex \leadsto^{\ast} }}
+  | ~>h               ::   :: steph      {{ tex \leadsto }}
+  | empty             ::   :: empty      {{ tex \varnothing }}
+  | hole              ::   :: hole       {{ tex \circ }}
+  | fv                ::   :: fv         {{ tex \mathsf{fv}\! }}
+  | dom               ::   :: dom        {{ tex \mathsf{dom} }}
+  | ~                 ::   :: twiddle    {{ tex \sim }}
+  | ~~                ::   :: compatible {{ tex \asymp }}
+  | '|'               ::   :: bar        {{ tex | }}
+  | o                 ::   :: bullet     {{ tex \bullet }}
+  | fst               ::   :: fst
+  | snd               ::   :: snd
+  | |=>|              ::   :: erasesto   {{ tex \mathrel{|\Rightarrow|} }}
+  | |-=               ::   :: turneq     {{ tex \vdash_{=} }}
+  | refl2             ::   :: refl2      {{ tex \mathbf{refl_2}  }}
+  | ++                ::   :: concat     {{ tex \mathop{++} }}
+  | *                 ::   :: times      {{ tex \cdot }}
+  | Box               ::   :: Box        {{ tex \ottkw{Box} }}
+  | =beta             ::   :: betaeq     {{ tex =_{\beta} }}
+  | ;                 ::   :: semi       {{ tex \mathsf{;} }}
+  | Pi                ::   :: Pi         {{ tex \Pi }}
+  | inj               ::   :: inj        {{ tex \ottkw{inj} }}
+
+formula :: 'formula_' ::=
+  | judgement                ::   :: judgement
+  | x : q A in G               ::   :: inG
+    {{ coq binds [[x]] (Tm [[q]] [[A]]) [[G]] }}
+
+  | x notin fv a             ::   :: fresh
+    {{ coq [[x]] \notin fv_tm_tm_tm [[a]] }}
+  | x notin dom G            ::   :: notInGx
+    {{ coq ~ AtomSetImpl.In [[x]] (dom [[G]]) }}
+  | x notin dom D            ::   :: notInDx
+    {{ coq ~ AtomSetImpl.In [[x]] (dom [[D]]) }}
+  | c notin dom D            ::   :: notcInDx
+    {{ coq ~ AtomSetImpl.In [[c]] (dom [[D]]) }}
+  | x notin dom H            ::   :: notInHx
+    {{ coq ~ AtomSetImpl.In [[x]] (dom [[H]]) }}
+
+  | x fresh for S            ::   :: freshForH
+%    {{ coq [[x]]=Atom.fresh (AtomSetImpl.elements [[S]]) }}
+    {{ coq [[x]] `notin` [[S]] }}
+    {{ tex [[x]]\ \mathit{fresh for}\ [[S]] }}
+  | a = b                    ::   :: equal
+    {{ coq [[a]]=[[b]] }}
+
+  | G1 = G2                  ::   :: equalctx
+    {{ coq ([[G1]] = [[G2]]) }}
+
+  | D1 = D2                  ::   :: equalD
+    {{ coq ([[D1]] = [[D2]]) }}
+
+
+  | q1 = q2              ::   :: equalrho
+    {{ coq ([[q1]] = [[q2]]) }}
+
+  | q1 <= q2              ::   :: subrho
+    {{ coq ([[q1]] <= [[q2]]) }}
+
+  | forall q . formula       ::   :: AllQ
+    {{ coq forall [[q]], [[formula]] }}
+
+  | True                     ::   :: True
+    {{ coq True }}
+  | False                    ::   :: False
+    {{ coq False }}
+  | not formula              ::   :: not
+    {{ coq not ([[formula]]) }}
+  | formula1 /\ formula2     ::   :: and
+    {{ coq [[formula1]] /\ [[formula2]] }}
+  | formula1 \/ formula2     ::   :: or
+    {{ coq [[formula1]] \/ [[formula2]] }}
+  | formula1 implies formula2     ::   :: implies
+    {{ coq [[formula1]] -> [[formula2]] }}
+
+  | formula1 iff formula2     ::   :: iff
+    {{ coq [[formula1]] <-> [[formula2]] }}
+
+  | ( formula )              ::   :: Paren
+    {{ coq ([[formula]]) }}
+
+  | uniq G                   ::   :: uniq
+    {{ coq uniq [[G]] }} {{ tex }}
+
+  | uniq H                   ::   :: uniqH
+    {{ coq uniq [[H]] }} {{ tex }}
+
+
+  | [ formula ] ::    :: Suppress
+    {{ tex \suppress{[[formula]]} }}
+	 {{ coq [[formula]] }}
+
+  | nolc A                  :: M :: nolcA
+    {{ tex }}
+    {{ coq True }}
+
+  | nolc C                  :: M :: nolcC
+    {{ tex }}
+    {{ coq True }}
+
+
+  | ctx D G :: M :: ctx
+    {{ coq ctx [[D]][[G]] }}
+    {{ tex [[D]]\vdash[[G]] }}
+
+  | G1 <= G2 :: M :: ctx_sub_fake
+    {{ coq ctx_sub nil [[G1]] [[G2]] }}
+
+  | D ; G1 <= G2 :: M :: ctx_sub
+    {{ coq ctx_sub [[D]] [[G1]] [[G2]] }}
+
+  | H1 <= H2 :: M :: subHeap
+    {{ tex [[H1]] \leq [[H2]] }}
+    {{ coq ctx_sub (ungrade [[H1]]) [[H1]] [[H2]] }}
+
+  | D ; H1 <= H2 :: M :: subHeapD
+    {{ tex [[D]] \vdash [[H1]] \leq [[H2]] }}
+    {{ coq ctx_sub [[D]] [[H1]] [[H2]] }}
+
+  | D1 { A }  == D2 { B }  :: M :: Beta
+    {{ coq Beta (subst_def [[D1]] [[A]]) (subst_def [[D2]] [[B]]) }}
+
+  | |- a ~>* b ::  :: multistep
+
+embed {{ coq 
+
+(* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% *)
+
+Parameter Beta : tm -> tm -> Prop.
+
+Local Open Scope usage_scope.
+
+Fixpoint  subst_def (D1 : D) (tm : tm) := 
+  match D1 with
+  | nil => tm
+  | (x , Tm A) :: D2  => subst_def D2 tm
+  | (x , Def a A) :: D2 => subst_def D2 (subst_tm_tm a x tm)
+end. 
+
+
+Fixpoint close_tm_wrt_tm_rec (n1 : nat) (x1 : tmvar) (a1 : tm) {struct a1} : tm :=
+  match a1 with
+    | a_TyUnit => a_TyUnit
+    | a_TmUnit => a_TmUnit
+    | a_letunitB a2 b1 B1 => a_letunitB (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1) (close_tm_wrt_tm_rec n1 x1 B1)
+    | a_Pi q1 A1 B1 => a_Pi q1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 B1)
+    | a_Lam q1 A1 a2 => a_Lam q1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 a2)
+    | a_App a2 b1 => a_App (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1)
+    | a_Box q1 A1 => a_Box q1 (close_tm_wrt_tm_rec n1 x1 A1)
+    | a_LetBoxB a2 b1 B1 => a_LetBoxB (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec (S n1) x1 b1) (close_tm_wrt_tm_rec n1 x1 B1)
+    | a_Type => a_Type
+    | a_Var_f x2 => if (x1 == x2) then (a_Var_b n1) else (a_Var_f x2)
+    | a_Var_b n2 => if (lt_ge_dec n2 n1) then (a_Var_b n2) else (a_Var_b (S n2))
+    | a_box q1 a2 => a_box q1 (close_tm_wrt_tm_rec n1 x1 a2)
+    | a_Let a2 b1 => a_Let (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec (S n1) x1 b1)
+    | a_Sum A1 A2 => a_Sum (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec n1 x1 A2)
+    | a_Inj1 a2 => a_Inj1 (close_tm_wrt_tm_rec n1 x1 a2)
+    | a_Inj2 a2 => a_Inj2 (close_tm_wrt_tm_rec n1 x1 a2)
+    | a_Case q1 a2 b1 b2 B1 => a_Case q1 (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1) (close_tm_wrt_tm_rec n1 x1 b2) (close_tm_wrt_tm_rec n1 x1 B1)
+    | a_Sigma q1 A1 B1 => a_Sigma q1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 B1)
+    | a_Tensor a2 b1 => a_Tensor (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1)
+    | a_Spread a2 b1 B1 => a_Spread (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec (S n1) x1 b1) (close_tm_wrt_tm_rec n1 x1 B1)
+    | a_With A1 B1 => a_With (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 B1)
+    | a_Pair a2 b1 => a_Pair (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1)
+    | a_Prj1 a2 => a_Prj1 (close_tm_wrt_tm_rec n1 x1 a2)
+    | a_Prj2 a2 => a_Prj2 (close_tm_wrt_tm_rec n1 x1 a2)
+  end.
+
+Definition close_tm_wrt_tm x1 a1 := close_tm_wrt_tm_rec 0 x1 a1.
+
+
+}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+defns
+JOp :: '' ::= 
+
+defn
+
+|- a ~> a' ::     :: Step :: 'S_' {{ com small-step }} 
+ {{ tex [[a]] \leadsto [[a']] }} by
+
+|- a ~> a'
+------------------------------- :: AppCong
+|- a b ~> a' b 
+
+
+------------------------------- :: Beta
+|- (\x:q A.a) b ~> a { b / x }
+
+
+|- a ~> a'
+---------------------------------- :: UnitCong
+|- let unit = a in b @ B ~> let unit = a' in b @ B 
+
+
+---------------------------------- :: UnitBeta
+|- let unit = unit in b @ B ~> b
+
+
+|- a ~> a'
+-------------------------------------------------- :: BoxCong
+|- let box x = a in b @ B ~> let box x = a' in b @ B
+
+
+--------------------------------------- :: BoxBeta
+|- let box x = box q a in b @ B ~> b { a / x }
+  
+
+|- a ~> a'
+------------------ :: CaseCong
+|- case q a of b1 ; b2 @ B ~> case q a' of b1 ; b2 @ B
+
+
+------------------------------------------- :: Case1Beta
+|- case q (inj1 a) of b1 ; b2 @ B ~> b1 a 
+
+
+------------------------------------------- :: Case2Beta
+|- case q (inj2 a) of b1 ; b2 @ B ~> b2 a 
+
+
+|- a ~> a'
+----------------------------------------------------- :: SpreadCong
+|- spread a to x in b @ B ~> spread a' to x in b @ B
+
+
+------------------------------------------------ :: SpreadBeta
+|- spread (a0,a1) to x in b @ B ~> b {a0 / x} a1
+
+
+-------------------------- :: Prj1Beta
+|- prj1 &( a , b ) ~>  a
+
+
+-------------------------- :: Prj2Beta
+|- prj2 &( a , b ) ~>  b
+
+
+|- a ~> a'
+-------------------------- :: Prj1Cong
+|- prj1 a ~>  prj1 a'
+
+
+|- a ~> a'
+-------------------------- :: Prj2Cong
+|- prj2 a  ~>  prj2 a'
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Dependent only
+
+
+defns 
+JTyping :: '' ::=
+
+defn 
+D ; G |-- a : A ::  :: Typing :: 'T_' {{ com Typing }}
+{{ tex [[D]];[[G]] \vdash[[a]]:[[A]] }}
+ by
+
+
+D; G1 |-- a : A
+D; G1 <= G2
+---------------- :: sub
+D; G2 |-- a : A
+
+
+------------------- :: type 
+empty ; empty |-- type : type
+
+x notin dom D
+D; G |-- A : type                    
+------------------------------ :: var
+D ++ x: A; (# 0 * G #) ++ x:1 A |-- x : A 
+
+x notin dom D
+D; G |-- a : A                     
+-------------------------------------------------- :: def
+D ++ x: a of A; (# 0 * G #) ++ x:1 a of A |-- x : A 
+
+x notin dom D
+D; G1 |-- a : B
+D; G2 |-- A : type    
+---------------------------------- :: weak
+D ++ x :A ; G1 ++ x:0 A |-- a : B
+
+x notin dom D
+D; G1 |-- b : B
+D; G2 |-- a : A
+------------------------------------------- :: weak_def
+D ++ x : a of A ; G1 ++ x:0 a of A |-- b : B
+
+
+D; G1 |-- A : type
+D ++ x:A ; G2 ++ x:r A |-- B : type               
+----------------------------- :: pi       
+D; G1 + G2 |-- Pi x:q A. B : type
+                                       
+
+D ++ x: A; G1 ++ x:q A |-- a : B
+D ; G2 |-- A : type         
+--------------------------------- :: lam
+D ; G1 |-- \x:q A.a : Pi x:q A. B
+
+D; G1 |-- a : Pi x:q A.B
+D; G2 |-- b : A 
+----------------------------------- :: app
+D; G1 + (# q * G2 #) |-- a b :  B { b / x }
+
+
+D; G1 |-- a : A     
+D; G2 |-- B : type
+D { A } == D { B }
+------------------- :: conv
+D; G1 |-- a : B
+
+------------------- :: unit
+empty ; empty |-- unit : Unit
+
+------------------------------ :: Unit
+empty ; empty |-- Unit : type
+
+D; G1 |-- a : Unit
+B1 = B { unit / y }
+D; G2 |-- b : B1
+D ++ y : Unit ; G3 ++ y : r Unit |-- B : type 
+--------------------------------------------------------------------- :: UnitE
+D; G1 + G2 |-- let unit = a in  b @ (\y: r Unit. B) : B { a / y }
+
+
+D; G |-- A : type
+----------------------------- :: Box
+D; G |-- [q] A : type
+
+D; G |-- a : A
+------------------------------------- :: box
+D; q * G |-- box q a : [q] A
+
+D; G1 |-- a : [q]A
+D ++ x:A; G2 ++ x:q A |-- b : B { box q x / y }
+D ++ y:[q] A; G3 ++ y:r [q] A  |-- B : type
+------------------------------------------------------- :: letbox
+D; G1 + G2 |-- let box x = a in b @ (\y:r [q] A. B) : B { a / y }
+
+D ; G1 |-- A1 : type
+D ; G2 |-- A2 : type
+------------------------------- :: sum
+D ; G1 + G2 |-- A1 + A2 : type
+
+
+D ; G |-- a : A1
+D ; G1 |-- A2 : type
+----------------------------- :: inj1
+D ; G |-- inj1 a : A1 + A2
+
+D ; G |-- a : A2
+D ; G1 |-- A1 : type
+----------------------------- :: inj2
+D ; G |-- inj2 a : A1 + A2
+
+1 <= q
+D ; G1 |-- a  : A1 + A2 
+B1 = (# B { inj1 x / y } #)
+B2 = (# B { inj2 x / y } #)
+D ; G2 |-- b1 : Pi x : q A1 . B1
+D ; G2 |-- b2 : Pi x : q A2 . B2
+D ++ y : A1 + A2 ; G3 ++ y : r A1 + A2 |-- B : type
+------------------------------------------------------ :: case
+D ; (# q * G1 #) + G2 |-- case q a of b1 ; b2 @ (\y:r A1 + A2.B) :  B { a / y }
+
+D; G1 |-- A : type
+D ++ x:A ; G2 ++ x:r A |-- B : type               
+------------------------------------- :: Sigma       
+D; G1 + G2 |-- Sigma x:q A. B : type
+
+
+D; G1 |-- a : A 
+D; G2 |-- b : B { a / x }
+D ++ x:A ; G3 ++ x:r A |-- B : type               
+-------------------------------------------- :: Tensor 
+D; (# q * G1 #) + G2 |-- (a , b) : Sigma x:q A. B
+
+%% Ott cannot express that the third premise should read "B { (x,y)/z }". So we 
+%% modify the its output in dqtt_ott.v to include this substitution.
+
+A = Sigma x:q A1.A2
+D ; G1 |-- a  : A
+D ++ x:A1 ; G2 ++ x:q A1 |-- b : Pi y : 1 A2 .  B 
+D ++ z : A ; G3 ++ z : r A |-- B : type
+------------------------------------------------------------------------- :: Spread
+D ;  G1 + G2 |-- spread a to x in b @ (\z:r A.B) :  B { a / z }
+
+
+
+D; G1 |-- A : type
+D ++ x:A ; G2 ++ x:r A |-- B : type              
+------------------------------------- :: With    
+D; G1 + G2 |-- (x : A) & B : type
+
+
+D; G |-- a : A 
+D; G  |-- b : B { a / x }
+D ++ x:A ; G2 ++ x:r A |-- B : type               
+-------------------------------------------- :: Pair
+D; G |-- &(a , b) : (x: A) & B
+
+D ; G |-- a : (x:A) & B
+------------------------ :: Prj1
+D ; G |-- prj1 a : A
+
+
+D ; G |-- a : (x:A) & B
+------------------------------------ :: Prj2
+D ; G |-- prj2 a : B { prj1 a / x }
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+defns
+ JCompat :: '' ::=
+
+defn
+ H |- D ; G :: :: Compatibility :: 'Compat_'
+  {{ com Compatibility }}
+  {{ tex [[H]] \vdash [[D]]; [[G]] }}
+by
+
+ ------------------ :: Empty
+ empty |- empty; empty
+
+ H |- D; G1 + (q * G2)
+ D; G2 |-- a : A
+ x notin dom H
+ ctx D G1
+ ----------------------------------------------------------------- :: ConsDef
+ H ++ x :q a of A in G2 |- D ++ x : a of A; G1 ++ x :q a of A
+
+defns
+  JRed :: '' ::=
+
+defn [ H ] a => S , r [ H' ; Q' ; G ] b :: :: SmallStep :: 'Small_' {{ com Small-step Reduction }}
+ {{ tex [ [[H]] ]\, [[a]] \Rightarrow_{[[S]]}^{[[r]]} [ [[H']]\, ;\, [[Q']]\, ;\, [[G]] ]\, [[b]] }}
+ by
+
+  uniq (H1 ++ (x :(r + q) a of A in G ++ H2))
+  1 <= q
+   --------------------------------------------------------------------------------------------- :: Var
+  [H1 ++ (x :(r + q) a of A in G ++ H2)]x => S , r [H1 ++ (x :r a of A in G ++ H2); zero H1 ++ (one q ++ zero H2); empty]a
+
+  [H]a => S union (fv b) , r [H';Q';G]a'
+  ------------------------------ :: AppL
+  [H]a b => S , r[H';Q';G]a' b
+
+   uniq G
+   x fresh for dom H union (fv b union S)
+   a' = a { x / y }
+  --------------------------------------------------------------------------- :: AppBeta
+  [H](\y:q A.a)b => S ,r [H ++ x : (# r * q #) b of A in G;zero H ++ one 0;x :(# r * q #) b of A]a'
+
+  [H]a => S  union (fv b) , r [H';Q';G]a'
+  ---------------------------------------------------------- :: UnitL
+  [H]let unit = a in b @ B => S , r [H';Q';G]let unit = a' in b @ B
+
+  --------------------------------------------- ::UnitE
+  [H]let unit = unit in b @ B => S , r [H;zero H;empty]b  
+
+  [H]a => S union (fv b) , r [H';Q';G]a'
+  ------------------------------------------------------------ :: LetBoxL
+  [H]let box x = a in b @ B => S ,r [H';Q';G]let box x = a' in b @ B 
+
+   uniq G
+   x fresh for (dom H union (fv b union S))
+   b' = b { x / y }
+-------------------------------------------------------------------------- :: LetBoxBeta
+  [H]let box y = box q a in b @ B => S , r [H ++ x :(# r * q #) a of A in G;zero H ++ one 0;x :(r * q) a of A]b' 
+
+
+  [H]a => S union (fv b1 union fv b2) , r [H';Q';G]a'
+  ---------------------------------------------------------------- :: CaseL
+  [H]case q a of b1 ; b2 @ B => S , r [H';Q';G] case q a' of b1 ; b2 @ B
+
+
+
+  ---------------------------------------------------------------- :: Case1
+  [H]case q (inj1 a) of b1 ; b2 @ B => S , r [H;zero H;empty] b1 a
+
+  ---------------------------------------------------------------- :: Case2
+  [H]case q (inj2 a) of b1 ; b2 @ B => S , r [H;zero H;empty] b2 a
+
+
+  [H1]a => S , r [H';Q';G]a'
+   H1 <= H2
+  --------------------- :: Sub
+  [H2]a => S , r [H';Q';G]a'
+
+  [H]a => S union (fv b) ,r  [H';Q';G]a'
+  ----------------------------------------------------------------- :: SpreadL
+  [H]spread a to y in b @ B =>  S , r [H';Q';G] spread a' to y in b @ B
+
+  x fresh for (dom H union (fv b union S))
+  b' = b { x / y }
+  ------------------------------------------------------------------------------ :: Spread
+  [H]spread (a1,a2) to y in b @ B => S , r [H ++ x:q a1 of A1 in G; zero H ++ one 0; x:q a1 of A1](b' a2)
+
+
+  [H] a => S , r [H';Q';G]a'
+  ----------------------------------------------------------------- :: Prj1L
+  [H] prj1 a => S , r [H';Q';G] prj1 a'
+
+  [H] a => S , r [H';Q';G]a'
+  ----------------------------------------------------------------- :: Prj2L
+  [H] prj2 a => S , r [H';Q';G] prj2 a'
+
+  ---------------------------------------------------------------- :: Prj1
+  [H] prj1 &(a,b) => S , r [H;zero H;empty] a
+
+  ---------------------------------------------------------------- :: Prj2
+  [H] prj2 &(a,b) => S , r [H;zero H;empty] b

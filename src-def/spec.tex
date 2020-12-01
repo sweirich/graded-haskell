@@ -1,0 +1,122 @@
+\documentclass{article}
+
+\usepackage{ottalt}
+\usepackage{mathpartir}
+\usepackage{supertabular}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{color}
+
+
+%% Show admissible premises in rules
+%% This should be false in main body of text and true in the appendix.
+\newif\ifadmissible
+\newcommand\suppress[1]{\ifadmissible{#1}\else{}\fi}
+\inputott{dqtt-rules}
+
+\title{System Specification}
+
+\admissiblefalse
+\begin{document}
+\maketitle
+
+This document is created directly from the definitions in the file
+{\texttt{dqtt.ott}}, with minor modifications listed below.
+
+It is intended to specify, in a readable form, the syntactic type soundness
+proof.
+
+Note: there is one change here from the syntax shown in the paper. We replace
+the pattern matching elimination form for $\Sigma$ types with a slightly more
+general, but less familiar, form.
+
+The reason for this change is that the Ott and LNgen tools limit language
+specifications to single binding only. This prevents us from the usual
+definition of the pattern matching elimination form for
+$\Sigma$-types. Instead, we use an elimination form called ``spread'' of the
+form
+\[
+ \ottkw{spread}\,  \ottnt{a} \, \ottkw{to}\,  \ottmv{x} \, \ottkw{in}\,  \ottnt{b}
+\]
+This syntactic form binds the variable $x$ (corresponding to the first
+component of the product) in the body $b$. The body $b$ must itself be a
+function, where the argument is the second component of the tuple.
+
+In other words, we can encode an elimination of an argument $a$
+of type $ \Sigma  \ottmv{x} \!\!:^ \ottnt{q} \!\! \ottnt{A} . \ottnt{B} $, that uses
+the usual pattern matching syntax
+\[ 
+     \ottkw{let}\, (\ottmv{x},\ottmv{y}) \,=\, \ottnt{a} \ \ottkw{in}\  \ottnt{b} 
+\] 
+
+by using the term
+\[
+   \ottkw{spread}\,  \ottnt{a} \, \ottkw{to}\,  \ottmv{x} \, \ottkw{in}\,  \lambda \ottmv{y} \!:^ \ottnt{q} \! \ottnt{A} . \ottnt{b}
+\]
+
+\section{Grammar}
+
+\ottgrammartabular{
+\ottusage\ottinterrule
+\otttm\ottinterrule
+\ottcontext\ottinterrule
+\ottD\ottafterlastrule
+}
+
+
+\section{Step relation}
+\ottdefnsJOp{} 
+\section{Typing relation}
+
+Another issue with $\Sigma$ types is that Ott cannot express the complete
+typing rule for $\ottkw{spread}$.  Therefore we need to modify the generate
+Coq definition to include the appropriate substitution. This document includes the 
+corresponding change in the typeset rule \textsc{T-Spread}.
+
+\newcommand{\ottdruleTXXSpreadAlt}[1]{\ottdrule[#1]{%
+\ottpremise{\ottnt{A}  \ottsym{=}   \Sigma  \ottmv{x} \!\!:^ \ottnt{q} \!\! \ottnt{A_{{\mathrm{1}}}} . \ottnt{A_{{\mathrm{2}}}} }%
+\ottpremise{ \Delta ; \Gamma_{{\mathrm{1}}}  \vdash \ottnt{a} : \ottnt{A} }%
+\ottpremise{  \Delta ,   \ottmv{x} \!\!:\!\! \ottnt{A_{{\mathrm{1}}}}   ;  \Gamma_{{\mathrm{2}}} ,   \ottmv{x} \!\!:^{ \ottnt{q} }\!\! \ottnt{A_{{\mathrm{1}}}}    \vdash \ottnt{b} :  \Pi  \ottmv{y} \!:^ \ottsym{1} \! \ottnt{A_{{\mathrm{2}}}} . \ottnt{B} \ottsym{\{}  (\ottmv{x},\ottmv{y})  \ottsym{/}  \ottmv{z}  \ottsym{\}} }%
+\ottpremise{  \Delta ,   \ottmv{z} \!\!:\!\! \ottnt{A}   ;  \Gamma_{{\mathrm{3}}} ,   \ottmv{z} \!\!:^{ \ottnt{r} }\!\! \ottnt{A}    \vdash \ottnt{B} : \ottkw{type} }%
+}{
+ \Delta ; \Gamma_{{\mathrm{1}}}  \ottsym{+}  \Gamma_{{\mathrm{2}}}  \vdash  \ottkw{spread}\,  \ottnt{a} \, \ottkw{to}\,  \ottmv{x} \, \ottkw{in}\,  \ottnt{b}  : \ottnt{B}  \ottsym{\{}  \ottnt{a}  \ottsym{/}  \ottmv{z}  \ottsym{\}} }{%
+{\ottdrulename{T\_Spread}}{}%
+}}
+
+
+\begin{ottdefnblock}[#1]{$ \Delta ; \Gamma  \vdash \ottnt{a} : \ottnt{A} $}{\ottcom{Typing}}
+\ottusedrule{\ottdruleTXXsub{}}
+\ottusedrule{\ottdruleTXXtype{}}
+\ottusedrule{\ottdruleTXXvar{}}
+\ottusedrule{\ottdruleTXXweak{}}
+\ottusedrule{\ottdruleTXXdef{}}
+\ottusedrule{\ottdruleTXXweakXXdef{}}
+\ottusedrule{\ottdruleTXXpi{}}
+\ottusedrule{\ottdruleTXXlam{}}
+\ottusedrule{\ottdruleTXXapp{}}
+\ottusedrule{\ottdruleTXXconv{}}
+\ottusedrule{\ottdruleTXXunit{}}
+\ottusedrule{\ottdruleTXXUnit{}}
+\ottusedrule{\ottdruleTXXUnitE{}}
+\ottusedrule{\ottdruleTXXBox{}}
+\ottusedrule{\ottdruleTXXbox{}}
+\ottusedrule{\ottdruleTXXletbox{}}
+\ottusedrule{\ottdruleTXXsum{}}
+\ottusedrule{\ottdruleTXXinjOne{}}
+\ottusedrule{\ottdruleTXXinjTwo{}}
+\ottusedrule{\ottdruleTXXcase{}}
+\ottusedrule{\ottdruleTXXSigma{}}
+\ottusedrule{\ottdruleTXXTensor{}}
+\ottusedrule{\ottdruleTXXSpreadAlt{}}
+\ottusedrule{\ottdruleTXXWith{}}
+\ottusedrule{\ottdruleTXXPair{}}
+\ottusedrule{\ottdruleTXXPrjOne{}}
+\ottusedrule{\ottdruleTXXPrjTwo{}}
+\end{ottdefnblock}
+
+
+
+
+\end{document}
