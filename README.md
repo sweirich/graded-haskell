@@ -36,6 +36,10 @@ semi-ring structure, as described in Section 2.1 of the paper. The second file
 describes the axiomatization of beta-equivalence as specified in Definition
 9.1.
 
+* Version with definitions
+
+The directory `src-def` extends the system with definitions in the context as described in Section 8.1 of the paper and reproves Lemmas 7.1--7.5. It does not include any of the new results of that section (Lemmas 8.1--8.4).
+
 Installation and Compilation Instructions
 ------------------------------------------
 
