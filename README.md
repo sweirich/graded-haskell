@@ -84,8 +84,8 @@ The files that make up the Coq development include:
     - dctx_sub. v 
     - semimodule.v
 
-    - structural.v  Substitution and Weakening (Lemmas 6.2 and 6.3)
-    - dqtt.v        Regularity, Preservation and Progress (Lemma 6.1, Theorems 6.4 and 6.5)
+    - structural.v  Substitution and Weakening (Lemmas 7.2 and 7.3)
+    - dqtt.v        Regularity, Preservation and Progress (Lemma 7.1, Theorems 7.4 and 7.5)
 
 
 Binding Representation
