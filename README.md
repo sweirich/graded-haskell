@@ -1,14 +1,15 @@
 A Graded Dependent Type System
 ==============================
 
-This repository includes Coq proofs for the results claimed in Section 7.2 of the 
-paper "A graded dependent type system with a usage-aware semantics", by
-Pritam Choudhury, Harley Eades III, Richard A. Eisenberg and Stephanie Weirich.
-This paper will appear in POPL 2021 and is avaiable [here](https://github.com/sweirich/graded-haskell/blob/main/popl21-choudhury.pdf).
+"A graded dependent type system with a usage-aware semantics", by
+Pritam Choudhury, Harley Eades III, Richard A. Eisenberg and Stephanie Weirich will appear in POPL 2021 and a preprint is available [here](https://github.com/sweirich/graded-haskell/blob/main/popl21-choudhury.pdf).
 
 The extended version of the paper is available from [arXiv](https://arxiv.org/abs/2011.04070).
 
 * Key results
+
+This repository includes Coq proofs for the results claimed in Section 7.2 of the 
+paper.
 
 The individual results can be found in the corresponding Coq files and theorem
 statements. (All Coq files are in the `src` subdirectory.)
