@@ -42,49 +42,51 @@ You may also be able to install via OPAM:
 Contents
 --------
 
-grade_sig.v          - Abstract lattice of grades
+* System specification and utilities
 
-Qualitative_ott.v    - Generated from Ott, using typing.patch
-Qualitative_inf.v    - Generated from LNgen
-metalib.v            - Potential additions to LNgen
-tactics.v
-labels.v             - Properties of context functions
+      grade_sig.v          - Abstract lattice of grades
+
+      Qualitative_ott.v    - Generated from Ott, using typing.patch
+      Qualitative_inf.v    - Generated from LNgen
+      metalib.v            - Potential additions to LNgen
+      tactics.v
+      labels.v             - Properties of context functions
 
 * Structural lemmas 
 
-uniq.v               - Judgements use uniq contexts
-narrowing.v          - Narrowing lemmas
-weakening.v          - Weakening lemmas
-pumping.v            - Can raise context vars up to level of judgment
-subst.v              - Substitution lemmas for Grade/GEq/DefEq/Par
+      uniq.v               - Judgements use uniq contexts
+      narrowing.v          - Narrowing lemmas
+      weakening.v          - Weakening lemmas
+      pumping.v            - Can raise context vars up to level of judgment
+      subst.v              - Substitution lemmas for Grade/GEq/DefEq/Par
 
 * Judgement specific lemmas
 
-grade.v              - Step relation preserves Grade
-geq.v                - Properties of CEq / GEq 
-                           equivalence relation
-                           respects step
-                           implies Grade
-defeq.v              - Properties of DefEq
-                           implies grade
-                           contains GEq
-                           additional substitution lemmas
+      grade.v              - Step relation preserves Grade
+      geq.v                - Properties of CEq / GEq 
+                                 equivalence relation
+                                 respects step
+                                 implies Grade
+      defeq.v              - Properties of DefEq
+                                 implies grade
+                                 contains GEq
+                                 additional substitution lemmas
 
 * Preservation
 
-typing_ctx_fv.v      - Free variables are in domain of typing judgement
-typing.v             - Main Preservation lemma
+      typing_ctx_fv.v      - Free variables are in domain of typing judgement
+      typing.v             - Main Preservation lemma
 
 * Progress
 
-par.v                - Properaties of Par relation
-confluence.v         - Parallel reduction is confluent
-consist.v            - Definitional Equality is consistent
-progress.v           - Main Progress lemma
+      par.v                - Properaties of Par relation
+      confluence.v         - Parallel reduction is confluent
+      consist.v            - Definitional Equality is consistent
+      progress.v           - Main Progress lemma
 
-strong_exists.v      - Derive projections of strong Sigmas from weak Sigmas
+      strong_exists.v      - Derive projections of strong Sigmas from weak Sigmas
 
-=============================================================
+
 
 
 

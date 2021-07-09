@@ -11,8 +11,8 @@ annotated by some label drawn from an algebraic structure.
 "A Graded Dependent Type System with a usage-aware semantics", by Pritam
 Choudhury, Harley Eades III, Richard A. Eisenberg and Stephanie Weirich.
 Published in POPL 2021 and available 
-[here](https://dl.acm.org/doi/10.1145/3434331).
-(with a local copy [here](https://github.com/sweirich/graded-haskell/blob/main/popl21-choudhury.pdf).
+[here](https://dl.acm.org/doi/10.1145/3434331)
+(with a local copy [here](https://github.com/sweirich/graded-haskell/blob/main/popl21-choudhury.pdf)).
 
 Pritam's [POPL 2021 video](https://www.youtube.com/watch?v=yrwtXrey7mE) about this work (30 minutes).
 
