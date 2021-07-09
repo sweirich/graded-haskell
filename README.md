@@ -25,7 +25,7 @@ unspecified definitional equivalence.
 -----------
 
 "A Dependent Dependency Calculus", draft paper by Pritam
-Choudhury, Harley Eades III, Richard A. Eisenberg and Stephanie Weirich.
+Choudhury, Harley Eades III, and Stephanie Weirich.
 
 The draft paper is [available](ddc.pdf).
 
