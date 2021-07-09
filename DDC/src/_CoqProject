@@ -1,0 +1,22 @@
+-R . Qual 
+Qualitative_inf.v
+Qualitative_ott.v
+confluence.v
+consist.v
+defeq.v
+geq.v
+grade.v
+grade_sig.v
+labels.v
+metalib.v
+narrowing.v
+par.v
+progress.v
+pumping.v
+strong_exists.v
+subst.v
+tactics.v
+typing.v
+typing_ctx_fv.v
+uniq.v
+weakening.v

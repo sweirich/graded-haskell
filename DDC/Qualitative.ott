@@ -1,0 +1,1481 @@
+metavar tmvar, x, y, z, f, g, n ::=
+  {{ repr-locally-nameless }}
+  {{ com variables }}
+  {{ lex alphanum }}
+
+metavar qualityvar, m ::=
+  {{ coq atom }}
+  {{ com qualities }}
+  {{ lex alphanum }}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% GRAMMAR
+
+grammar
+
+grade, psi {{ tex \ell }} , phi {{ tex k }} :: 'q_' ::=   {{ coq grade }}
+  | RTime                         :: M :: R  {{ tex { \color{black}{R} } }} {{ coq q_R }}
+  | CTime                         :: M :: C  {{ tex { \color{black}{C} } }} {{ coq q_C }}
+  | High                          :: M :: H  {{ tex { \color{black}{H} } }} {{ coq q_H }}
+  | Middle                        :: M :: M  {{ tex { \color{black}{M} } }} {{ coq q_M }}
+  | Low                           :: M :: L  {{ tex { \color{black}{L} } }} {{ coq q_L }}
+  | top                           :: M :: Top {{ tex { \color{black}{\top} } }} {{ coq q_Top }}
+  | bot                           :: M :: Bot {{ tex { \color{black}{\bot} } }} {{ coq q_Bot }}
+  | psi1 \/ psi2                  :: M :: Join {{ tex [[psi1]] \vee [[psi2]] }} {{ coq (q_join [[psi1]] [[psi2]]) }}
+  | psi1 /\ psi2                  :: M :: Meet {{ tex [[psi1]] \wedge [[psi2]] }} {{ coq (q_meet [[psi1]] [[psi2]]) }}
+  | ( psi )                       :: M :: paren {{ tex [[ psi ]] }} 
+                                                {{ coq ([[psi]]) }}
+
+tm, a , b , c , A , B , C , u , v , s , t :: 'a_' ::= {{ com terms and types }}
+
+  | Unit         ::   :: TyUnit
+  | unit         ::   :: TmUnit
+
+  | Pi x : psi A . B    ::    :: Pi
+    (+ bind x in B +)
+    {{ tex \Pi [[x]]\!:^{[[psi]]}\![[A]].[[B]] }}
+
+  | \ psi x . a            ::    :: Abs
+    (+ bind x in a +)
+    {{ tex \lambda^{[[psi]]} [[x]] . [[a]] }}
+
+  | a psi b                  ::   :: App
+    {{ tex [[a]] \; [[b]]^{[[psi]]} }}
+    
+  | ( A )       :: M  :: Paren {{ coq ([[A]]) }}
+
+  | type        ::    :: Type {{ tex \textbf{Type} }}
+
+  | x           ::    :: Var
+
+   %% standard substitution, using open
+   | a { b / x }      :: S :: Subst
+     {{ coq (open_tm_wrt_tm [[x a]] [[b]]) }}
+
+   %% Ott parsing precedence is hard
+   | (# a #)          :: S :: SecretParen
+     {{ coq [[a]] }} {{ tex [[a]] }}
+     {{ com parsing precedence is hard }}
+
+   | A1 + A2              ::   :: Sum
+    {{ tex [[A1]] + [[A2]] }}
+   | inj1 a              ::   :: Inj1
+    {{ tex \ottkw{inj}_1\, [[a]] }}
+   | inj2 a              ::   :: Inj2
+    {{ tex \ottkw{inj}_2\, [[a]] }}
+   | case psi a of b1 ; b2  ::  :: Case
+    {{ tex \ottkw{case}_{[[psi]]}\, [[a]]\, \ottkw{of}\, [[b1]] ; [[b2]] }}
+
+   | case a of b1 ; b2      ::   :: UCase
+    {{ tex \ottkw{case} \, [[a]]\, \ottkw{of}\, [[b1]] ; [[b2]] }}
+
+   | Sigma x : psi A . B ::  :: WSigma
+     (+ bind x in B +)
+%     {{ tex  ([[x]]\!\!:^{[[psi]]}\!\![[A]]) \otimes [[B]] }}
+     {{ tex \Sigma [[x]]\!\!:^{[[psi]]}\!\![[A]].[[B]] }}
+   | ( a psi , b )            ::     :: WPair
+%     {{ tex ([[a]]^{[[psi]]} \otimes [[b]]) }}
+
+     {{ tex ([[a]]^{[[psi]]}, [[b]]) }}
+
+   | let ( x psi , ) = a in b ::    :: LetPair
+     (+ bind x in b +)
+     {{ tex [[let]]\, ([[x]]^{[[psi]]}, ) = [[a]] \, [[in]]\, [[b]] }}
+
+   | x : psi A && B ::  :: SSigma
+     (+ bind x in B +)
+     {{ tex ([[x]]\!\!:^{[[psi]]}\!\![[A]]) \, \& \, [[B]] }}
+
+   | ( a psi & b )            ::     :: SPair
+     {{ tex ([[a]]^{[[psi]]} \, \& \, [[b]]) }}
+   | fst psi a                ::     :: Proj1
+%     {{ tex \ottkw{fst}^{[[psi]]}\;[[a]] }}
+     {{ tex \pi_1^{[[psi]]}\;[[a]] }}
+   | snd psi a                ::     :: Proj2
+%     {{ tex \ottkw{snd}^{[[psi]]} [[a]] }}
+     {{ tex \pi_2^{[[psi]]} [[a]] }}
+   
+substitutions
+  single a x     :: subst_tm
+
+freevars
+  a x   :: fv_tm
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%  This part is not handled by LNgen
+
+grammar
+
+
+context, W {{ tex \Omega }} :: 'ctx_' ::= {{ com contexts }}
+                                          {{ coq list ( atom * (grade * tm) ) }}
+   | empty           ::    :: Empty       {{ coq nil }}
+
+   | x : psi A       ::    :: One         {{ coq ([[x]]~([[psi]],[[A]]))}}
+                                          {{ tex [[x]]\! :^{[[psi]]}\![[A]] }}
+   | W ++ W'         :: M  :: Append      {{ coq ([[W']]++[[W]])}}
+                                          {{ tex [[W]], [[W']] }}
+
+   | ( W )           :: M  :: Paren       {{ coq ([[W]]) }}
+   | (# W #)         :: M  :: SecretParen {{ coq [[W]]}} {{ tex [[W]]}}
+   | W { a / x }     :: M  :: Subst       {{ coq (subst_ctx [[a]][[x]][[W]] }}
+%   | phi \/ W        :: M  :: Join_l      {{ coq (join_ctx_l [[phi]] [[W]]) }}
+%   | W \/ phi        :: M  :: Join_r      {{ coq (join_ctx_r [[W]] [[phi]]) }}
+   | phi /\ W        :: M  :: Meet_l      {{ coq (meet_ctx_l [[phi]] [[W]]) }}
+%   | W /\ phi        :: M  :: Meet_r      {{ coq (meet_ctx_r [[W]] [[phi]]) }}
+
+
+econtext, P {{ tex \Phi }} :: 'ectx_' ::= {{ com erased contexts }}
+                                          {{ coq list ( atom * grade ) }}
+  | empty             ::  M   :: Empty    {{ coq nil }}
+  | | W |             ::  M   :: Erased   {{ tex | [[ W ]] | }}
+                                          {{ coq (labels [[W]]) }}
+  | x : psi           ::  M   :: One      {{ tex [[x]] \! : [[ psi ]] }}
+                                          {{ coq ([[x]]~[[psi]])}}
+  | P ++ P'           ::  M   :: Append   {{ tex [[P]] , [[P']] }} {{ coq ([[P']]++[[P]]) }}
+  | (# P #)           ::  M   :: SecretParen {{ tex [[ P ]] }} {{ coq [[P]] }}
+  | ( P )             ::  M   :: Paren {{ tex ([[ P ]]) }} {{ coq ([[P]]) }}
+  
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%  Terminals  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+grammar
+
+terminals :: 'terminals_' ::=
+  | <->               ::   :: iso           {{ tex \leftrightarrow }}
+  | <=>               ::   :: lrarrow       {{ tex \Leftrightarrow }}
+  | -->               ::   :: step          {{ tex \longrightarrow }}
+  | min               ::   :: min           {{ tex \mathsf{min} }}
+  | ==                ::   :: definitional  {{ tex \equiv }}
+  | all               ::   :: forall     {{ tex \forall }}
+  | in                ::   :: in         {{ tex \ottkw{in} }}
+  | let               ::   :: let        {{ tex \ottkw{let} }}
+  | bind              ::   :: bind       {{ tex \ottkw{bind} }}
+  | notin             ::   :: notin      {{ tex \not\in }}
+  | <=                ::   :: check      {{ tex \leq }}
+  | =>                ::   :: infer      {{ tex \Rightarrow }}
+  | =>*               ::   :: minfer      {{ tex \Rightarrow^{\ast} }}
+  | ->                ::   :: arrow      {{ tex \to }}
+  | <-|               ::   :: mapsfrom   {{ tex \mapsfrom }}
+  | []                ::   :: box        {{ tex \Box }}
+  | |-                ::   :: entails    {{ tex \vdash }}
+  | |-e               ::   :: entailsE   {{ tex \vdash }}
+  | |--e              ::   :: entailsEE  {{ tex \vdash }}
+  | |-$               ::   :: entailsC   {{ tex \vdash_{C} }}
+  | -|                ::   :: produces   {{ tex \dashv }}
+  | |=                ::   :: hs_entails {{ tex \vDash }}
+  | |==               ::   :: hs_entaill {{ tex \vDash }}
+  | /=                ::   :: neq        {{ tex \neq }}
+  | |>                ::   :: cast       {{ tex \triangleright }}
+  | ok                ::   :: ok         {{ tex \ \mathsf{ok} }}
+  | _                 ::   :: blank      {{ tex \_ }}
+  | ~>                ::   :: produce    {{ tex \leadsto }}
+  | ~>*               ::   :: multistep  {{ tex \leadsto^{\ast} }}
+  | ~>h               ::   :: steph      {{ tex \leadsto }}
+  | empty             ::   :: empty      {{ tex \varnothing }}
+  | hole              ::   :: hole       {{ tex \circ }}
+  | fv                ::   :: fv         {{ tex \mathsf{fv}\! }}
+  | dom               ::   :: dom        {{ tex \mathsf{dom} }}
+  | ~                 ::   :: twiddle    {{ tex \sim }}
+  | ~~                ::   :: compatible {{ tex \asymp }}
+  | '|'               ::   :: bar        {{ tex | }}
+  | o                 ::   :: bullet     {{ tex \bullet }}
+  | fst               ::   :: fst
+  | snd               ::   :: snd
+  | |=>|              ::   :: erasesto   {{ tex \mathrel{|\Rightarrow|} }}
+  | |-=               ::   :: turneq     {{ tex \vdash_{=} }}
+  | refl2             ::   :: refl2      {{ tex \mathbf{refl_2}  }}
+  | ++                ::   :: concat     {{ tex \mathop{++} }}
+  | *                 ::   :: times      {{ tex \cdot }}
+  | Box               ::   :: Box        {{ tex \ottkw{Box} }}
+  | =beta             ::   :: betaeq     {{ tex =_{\beta} }}
+  | ;                 ::   :: semi       {{ tex \mathsf{;} }}
+  | Pi                ::   :: Pi         {{ tex \Pi }}
+  | inj               ::   :: inj        {{ tex \ottkw{inj} }}
+  | case              ::   :: case       {{ tex \ottkw{case} }}
+  | /\                ::   :: meet       {{ tex \wedge }}
+  | \/                ::   :: join       {{ tex \vee }}
+
+
+formula :: 'formula_' ::=
+  | judgement                ::   :: judgement
+
+  | x : psi in P               ::   :: inP
+    {{ coq binds [[x]] [[psi]] [[P]] }}
+
+  | x : psi A in W               ::   :: inW
+    {{ tex [[x]]\! :^{[[psi]]}\![[A]] \in [[ W ]] }}
+    {{ coq binds [[x]] ([[psi]], [[A]]) [[W]] }}
+  | x in fv a             ::   :: used
+    {{ coq [[x]] `in` fv_tm_tm_tm [[a]] }}
+    {{ tex [[x]]\ [[in]]\ [[fv]]\ [[a]] }}
+  | x notin fv a             ::   :: fresh
+    {{ coq [[x]] `notin` fv_tm_tm_tm [[a]] }}
+  | x notin dom W            ::   :: notInGx
+    {{ coq ~ AtomSetImpl.In [[x]] (dom [[W]]) }}
+  | x notin dom D            ::   :: notInDx
+    {{ coq ~ AtomSetImpl.In [[x]] (dom [[D]]) }}
+  | x notin dom P            ::   :: notInPx
+    {{ coq ~ AtomSetImpl.In [[x]] (dom [[P]]) }}
+  | x notin dom H            ::   :: notInHX
+    {{ coq ~ AtomSetImpl.In [[x]] (dom [[H]]) }}
+    {{ tex [[ x ]] \notin [[ dom ]] \: [[ H ]] }}
+  | a = b                    ::   :: equal
+    {{ coq [[a]]=[[b]] }}
+  | a = psi b                ::   :: equalQ
+    {{ tex [[ a ]] =_{[[ psi ]]} [[ b ]] }}
+
+  | W1 = W2                  ::   :: equalctx
+    {{ coq ([[W1]] = [[W2]]) }}
+
+  | D1 = D2                  ::   :: equalD
+    {{ coq ([[D1]] = [[D2]]) }}
+
+  | psi1 <= psi2              ::   :: subrho
+    {{ coq ([[psi1]] <= [[psi2]]) }}
+  | psi1 < psi2               ::   :: ltrho
+    {{ coq ([[psi1]] < [[psi2]]) }}
+
+
+  | True                     ::   :: True
+    {{ coq True }}
+  | False                    ::   :: False
+    {{ coq False }}
+  | not formula              ::   :: not
+    {{ coq not ([[formula]]) }}
+    {{ tex \neg [[formula]] }}
+  | formula1 /\ formula2     ::   :: and
+    {{ coq [[formula1]] /\ [[formula2]] }}
+  | formula1 \/ formula2     ::   :: or
+    {{ coq [[formula1]] \/ [[formula2]] }}
+  | formula1 implies formula2     ::   :: implies
+    {{ coq [[formula1]] -> [[formula2]] }}
+    {{ tex [[formula1]]\ [[implies]]\ [[formula2]] }}
+  | formula1 iff formula2     ::   :: iff
+    {{ coq [[formula1]] <-> [[formula2]] }}
+
+  | ( formula )              ::   :: Paren
+    {{ coq ([[formula]]) }}
+
+  | uniq W                   ::   :: uniqW
+    {{ coq uniq [[W]] }} {{ tex }}
+
+  | uniq P                   ::   :: uniqP
+    {{ coq uniq [[P]] }} {{ tex }}
+
+  | [ formula ] ::    :: Suppress
+    {{ tex \suppress{[[formula]]} }}
+         {{ coq [[formula]] }}
+
+  | nolc A                  :: M :: nolcA
+    {{ tex }}
+    {{ coq True }}
+
+  | nolc C                  :: M :: nolcC
+    {{ tex }}
+    {{ coq True }}
+
+
+  | ctx D W :: M :: ctx
+    {{ coq ctx [[D]][[W]] }}
+    {{ tex [[D]]\vdash[[W]] }}
+
+  | |- a ~>* b ::  :: multistep
+
+  | W |- a : A :: :: Typ {{ tex [[W]] \vdash[[a]]:[[A]] }}
+
+
+embed {{ coq 
+
+(* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% *)
+
+Local Open Scope grade_scope.
+
+Definition labels : context -> econtext :=
+  map (fun '(u , s) => u).
+
+Definition subst_ctx (a : tm) (x:var) : context -> context :=
+  map (fun '(g, A) => (g, (subst_tm_tm a x A))).
+
+Definition join_ctx_l (psi : grade) : context -> context :=    
+  map (fun '(g, A) => (psi * g, A)).
+
+Definition join_ctx_r (psi : grade) : context -> context :=
+  map (fun '(g, A) => (g * psi, A)).
+
+Definition meet_ctx_l (psi : grade) : context -> context :=
+  map (fun '(g, A) => (psi + g, A)).
+
+Definition meet_ctx_r (psi : grade) : context -> context :=
+  map (fun '(g, A) => (g + psi, A)).
+      
+
+Fixpoint close_tm_wrt_tm_rec (n1 : nat) (x1 : tmvar) (a1 : tm) {struct a1} : tm :=
+  match a1 with
+    | a_TyUnit => a_TyUnit
+    | a_TmUnit => a_TmUnit
+    | a_Pi psi1 A1 B1 => a_Pi psi1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 B1)
+    | a_Abs psi1 a2 => a_Abs psi1 (close_tm_wrt_tm_rec (S n1) x1 a2)
+    | a_App a2 psi1 b1 => a_App (close_tm_wrt_tm_rec n1 x1 a2) psi1 (close_tm_wrt_tm_rec n1 x1 b1)
+    | a_Type => a_Type
+    | a_Var_f x2 => if (x1 == x2) then (a_Var_b n1) else (a_Var_f x2)
+    | a_Var_b n2 => if (lt_ge_dec n2 n1) then (a_Var_b n2) else (a_Var_b (S n2))
+    | a_Sum A1 A2 => a_Sum (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec n1 x1 A2)
+    | a_Inj1 a2 => a_Inj1 (close_tm_wrt_tm_rec n1 x1 a2)
+    | a_Inj2 a2 => a_Inj2 (close_tm_wrt_tm_rec n1 x1 a2)
+    | a_Case psi1 a2 b1 b2 => a_Case psi1 (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1) (close_tm_wrt_tm_rec n1 x1 b2)
+    | a_UCase a2 b1 b2 => a_UCase (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1) (close_tm_wrt_tm_rec n1 x1 b2)
+    | a_WSigma psi1 A1 B1 => a_WSigma psi1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 B1)
+    | a_WPair a2 psi1 b1 => a_WPair (close_tm_wrt_tm_rec n1 x1 a2) psi1 (close_tm_wrt_tm_rec n1 x1 b1)
+    | a_LetPair psi1 a2 b1 => a_LetPair psi1 (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec (S n1) x1 b1)
+    | a_SSigma psi1 A1 B1 => a_SSigma psi1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 B1)
+    | a_SPair a2 psi1 b1 => a_SPair (close_tm_wrt_tm_rec n1 x1 a2) psi1 (close_tm_wrt_tm_rec n1 x1 b1)
+    | a_Proj1 psi1 a2 => a_Proj1 psi1 (close_tm_wrt_tm_rec n1 x1 a2)
+    | a_Proj2 psi1 a2 => a_Proj2 psi1 (close_tm_wrt_tm_rec n1 x1 a2)
+  end.
+
+Definition close_tm_wrt_tm x1 a1 := close_tm_wrt_tm_rec 0 x1 a1.
+
+}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Common for the two systems 
+
+defns
+JOp :: '' ::= 
+
+defn
+
+|- a ~> a' ::     :: Step :: 'S_' {{ com small-step }} 
+ {{ tex [[a]] \leadsto [[a']] }} by
+
+|- a ~> a'
+------------------------------- :: AppCong
+|- a psi b ~> a' psi b 
+
+
+------------------------------- :: Beta
+|- (\ psi x. a) psi b   ~>  a { b / x } 
+
+
+|- a ~> a'
+------------------ :: CaseCong
+|- case psi a of b1 ; b2 ~> case psi a' of b1 ; b2
+
+
+------------------------------------------- :: Case1Beta
+|- case psi (inj1 a) of b1 ; b2 ~> b1 psi a 
+
+
+------------------------------------------- :: Case2Beta
+|- case psi (inj2 a) of b1 ; b2 ~> b2 psi a 
+
+
+ |- a ~> a'
+--------------------------------------------------------- :: Proj1Cong
+ |- fst psi a ~> fst psi a'
+
+
+ |- a ~> a'
+--------------------------------------------------------- :: Proj2Cong
+ |- snd psi a ~> snd psi a'
+
+
+--------------------------------------------------------- :: Proj1Beta
+ |- fst psi (a1 psi & a2) ~> a1
+
+--------------------------------------------------------- :: Proj2Beta
+ |- snd psi (a1 psi & a2) ~> a2
+
+
+ |- a ~> a'
+--------------------------------------------------------- :: LetPairCong
+ |- let (x psi , ) = a in b ~> let (x psi , ) = a' in b
+
+
+---------------------------------------------------------- :: LetPairBeta
+ |- let (x psi , ) = (a1 psi, a2) in b ~> b {a1/x} bot a2
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%Dependent Types
+
+defns 
+  Jsub :: '' ::=
+
+defn 
+  P1 <= P2  ::   :: P_sub :: 'P_' {{ com Context sub }}
+by
+
+----------------- :: Empty
+  empty <= empty
+
+  psi1 <= psi2
+  P1 <= P2
+  x notin dom P1
+  x notin dom P2
+---------------------------------- :: Cons
+  P1 ++ x:psi1 <= P2 ++ x : psi2
+
+defns 
+  Wsub :: '' ::=
+
+defn 
+  W1 <= W2  ::   :: ctx_sub :: 'CS_' {{ com Context sub }}
+by
+
+----------------- :: Empty
+  empty <= empty
+
+  psi1 <= psi2
+  W1 <= W2
+  x notin dom W1
+  x notin dom W2
+  nolc A
+------------------------------------ :: ConsTm
+  W1 ++ x:psi1 A <= W2 ++ x : psi2 A
+
+defns 
+   JGrade :: '' ::= 
+
+defn 
+  P |- psi a ::   :: Grade :: 'G_' {{ com Observable variables are bounded by their grades }}
+{{ tex [[P]] \vdash_{[[psi]]} [[a]] }}
+
+by
+
+uniq P
+--------------- :: Type
+P |- psi type 
+
+uniq P
+psi0 <= psi
+x : psi0 in P 
+----------------------------- :: Var
+P |- psi x 
+
+% functions
+
+P |- psi A 
+P ++ x : psi |- psi B 
+--------------------------------- :: Pi
+P |- psi Pi x :psi0 A. B
+
+P ++ x :psi0 |- psi b
+------------------------------------------ :: Abs
+P |- psi \ psi0 x . b 
+
+P |- psi b 
+P |- psi a 
+psi0 <= psi
+------------------------------------------- :: AppRel
+P |- psi b psi0 a 
+
+P |- psi b 
+not (psi0 <= psi)
+------------------------------------------- :: AppIrrel
+P |- psi b psi0 a 
+
+% weak sigmas
+
+P |- psi A 
+P ++ x : psi |- psi B 
+---------------------------------------- :: WSigma
+P |- psi Sigma x : psi0 A . B 
+
+P |- psi a 
+P |- psi b 
+psi0 <= psi
+------------------------------------------ :: WPairRel
+P |- psi (a psi0, b) 
+
+
+P |- psi b 
+not (psi0 <= psi)
+------------------------------------------ :: WPairIrrel
+P |- psi (a psi0, b) 
+
+
+P |- psi a 
+(P ++ x :psi0 ) |- psi c
+------------------------------------------------------------- :: LetPair
+P |- psi let (x psi0 , ) = a in c 
+
+
+% strong sigmas
+
+P |- psi A 
+P ++ x : psi |- psi B 
+---------------------------------------- :: SSigma
+P |- psi x : psi0 A && B
+
+P |- psi a
+P |- psi b 
+psi0 <= psi
+------------------------------------------ :: SPairRel
+P |- psi (a psi0 & b) 
+
+P |- psi b 
+not (psi0 <= psi)
+------------------------------------------ :: SPairIrrel
+P |- psi (a psi0 & b) 
+
+
+P |- psi a 
+psi0 <= psi
+----------------------------------- :: Proj1
+P |- psi fst psi0 a 
+
+P |- psi a 
+----------------------------------- :: Proj2
+P |- psi snd psi0 a 
+
+% sums
+
+P |- psi A 
+P |- psi B 
+---------------- :: Sum
+P |- psi A + B
+
+P |- psi a1 
+-------------------------------- :: Inj1
+P |- psi inj1 a1
+
+P |- psi a2 
+--------------------------------- :: Inj2
+P |- psi inj2 a2
+
+P |- psi a 
+P |- psi b1
+P |- psi b2
+psi0 <= psi
+----------------------------------------------- :: Case
+P |- psi case psi0 a of b1; b2 
+
+
+% unit
+
+uniq P
+-------------------------- :: TyUnit
+P |- psi Unit
+
+uniq P
+-------------------------- :: TmUnit
+P |- psi unit
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+defns
+   JGEq :: '' ::=
+
+defn 
+P |- psi psi0 a ~~ b ::  :: CEq :: 'CEq_' {{ com Syntactic equality at [[psi]] is guarded by [[psi0]] }}
+ {{ tex [[ P ]] \vdash^{[[psi0]]}_{[[psi]]} [[ a ]] \sim [[ b ]]  }}
+
+by
+
+psi0 <= psi
+P |- psi a1 ~~ a2
+-------------------------------- :: Leq
+P |- psi psi0 a1 ~~ a2
+
+not (psi0 <= psi)
+uniq P
+-------------------------------- :: Nleq
+P |- psi psi0 a1 ~~ a2
+  
+defn
+ P |- psi a ~~ b :: :: GEq :: 'GEq_' {{ com Syntactic Graded Equality }}
+ {{ tex [[ P ]] \vdash [[ a ]] \sim_{[[ psi ]]} [[ b ]]  }}
+
+by
+
+uniq P
+x : psi0 in P 
+psi0 <= psi
+------------------------------------------ :: Var
+P |- psi x ~~ x
+
+uniq P
+---------------------------- :: Type
+P |- psi type ~~ type
+
+% functions
+
+P |- psi A1 ~~ A2
+P ++ x : psi |- psi B1 ~~ B2
+------------------------------------------------- :: Pi
+P |- psi Pi x :psi0 A1. B1 ~~ Pi x :psi0 A2. B2
+
+P ++ x : psi0 |- psi b1 ~~ b2
+------------------------------------- :: Abs
+P |- psi \ psi0 x . b1 ~~ \ psi0 x . b2
+
+P |- psi b1 ~~ b2
+P |- psi psi0 a1 ~~ a2
+-------------------------------- :: App
+P |- psi b1 psi0 a1 ~~ b2 psi0 a2
+
+% weak sigmas
+
+P |- psi A1 ~~ A2
+P ++ x : psi |- psi B1 ~~ B2
+------------------------------------------------ :: WSigma
+P |- psi Sigma x :psi0 A1. B1 ~~ Sigma x :psi0 A2. B2
+
+P |- psi psi0 a1 ~~ a2
+P |- psi b1 ~~ b2
+----------------------------------------------- :: WPair
+P |- psi (a1 psi0, b1) ~~ (a2 psi0, b2)
+
+P |- psi a1 ~~ a2
+(# P ++ x :psi0 #)|- psi b1 ~~ b2
+--------------------------------------------------------------- :: LetPair
+P |- psi let (x psi0 , ) = a1 in b1 ~~ let (x psi0 , ) = a2 in b2
+
+% strong sigmas
+
+P |- psi A1 ~~ A2
+P ++ x : psi |- psi B1 ~~ B2
+----------------------------------------- :: SSigma
+P |- psi x :psi0 A1 && B1 ~~ x :psi0 A2 && B2
+
+
+P |- psi psi0 a1 ~~ a2
+P |- psi b1 ~~ b2
+---------------------------------------- :: SPair
+P |- psi (a1 psi0 & b1) ~~ (a2 psi0 & b2)
+
+P |- psi a1 ~~ a2
+psi0 <= psi
+------------------------------------------ :: Proj1
+P |- psi fst psi0 a1 ~~ fst psi0 a2
+
+P |- psi a1 ~~ a2
+------------------------------- :: Proj2
+P |- psi snd psi0 a1 ~~ snd psi0 a2
+
+% sums
+
+P |- psi A1 ~~ A1'
+P |- psi A2 ~~ A2'
+--------------------------------------- :: Sum
+P |- psi A1 + A2 ~~ A1' + A2'
+
+P |- psi a1 ~~ a1'
+----------------------------------- :: Inj1
+P |- psi inj1 a1 ~~ inj1 a1'
+
+P |- psi a2 ~~ a2'
+------------------------------------ :: Inj2
+P |- psi inj2 a2 ~~ inj2 a2'
+
+P |- psi a ~~ a'
+P |- psi b1 ~~ b1'
+P |- psi b2 ~~ b2'
+psi0 <= psi
+---------------------------------------------------- :: Case
+P |- psi case psi0 a of b1; b2 ~~ case psi0 a' of b1';b2'
+
+% unit
+
+uniq P
+---------------------------- :: TyUnit
+P |- psi Unit ~~ Unit
+
+uniq P
+---------------------------- :: TmUnit
+P |- psi unit ~~ unit
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+defns
+   JUnTyDefEq :: '' ::=
+
+defn
+ P |- psi a == b :: :: DefEq :: 'Eq_' {{ com UnTyped Definitional Equality }}
+ {{ tex [[ P ]] \vdash [[ a ]] \equiv_{[[ psi ]]} [[ b ]]  }}
+
+by
+
+P |- psi a
+-------------------- :: Refl
+P |- psi a == a
+
+P |- psi a == b
+P |- psi b == c
+--------------------- :: Trans
+P |- psi a == c
+
+P |- psi a == b
+--------------------- :: Sym
+P |- psi b == a
+
+P |- psi a
+|- a ~> b
+P |- psi b 
+--------------------- :: Beta
+P |- psi a == b
+
+%% functions
+
+P |- psi A1 == A2
+P ++ x : psi |- psi B1 == B2
+------------------------------------------------- :: Pi
+P |- psi Pi x :psi0 A1. B1 == Pi x :psi0 A2. B2
+
+P ++ x : psi0 |- psi b1 == b2
+------------------------------------- :: Abs
+P |- psi \ psi0 x . b1 == \ psi0 x . b2
+
+P |- psi b1 == b2
+P |- psi a1 == a2
+psi0 <= psi
+-------------------------------- :: AppRel
+P |- psi b1 psi0 a1 == b2 psi0 a2
+
+P |- psi b1 == b2
+not (psi0 <= psi)
+% P |- (psi0 \/ psi) a1 
+% P |- (psi0 \/ psi) a2 
+-------------------------------- :: AppIrrel
+P |- psi b1 psi0 a1 == b2 psi0 a2
+
+P |- psi Pi x :psi0 A1. B1 == Pi x :psi0 A2. B2
+------------------------------------------- :: PiFst
+P |- psi A1 == A2
+
+P |- psi Pi x :psi0 A1. B1 == Pi x :psi0 A2. B2
+P |- psi a1 == a2
+-------------------------------------------- :: PiSnd
+P |- psi B1 {a1 / x} == B2 {a2 / x}
+
+% P |- psi Pi x :psi0 A1. B1 == Pi x :psi0 A2. B2
+% P |- psi a1 == a2
+% psi0 <= psi
+% -------------------------------------------- :: PiSndRel
+% P |- psi B1 {a1 / x} == B2 {a2 / x}
+
+% P |- psi Pi x :psi0 A1. B1 == Pi x :psi0 A2. B2
+% not (psi0 <= psi)
+% P |- psi0 \/ psi a1
+% P |- psi0 \/ psi a2
+% -------------------------------------------- :: PiSndIrrel
+% P |- psi B1 {a1 / x} == B2 {a2 / x}
+
+
+%% weak sigmas
+
+P |- psi A1 == A2
+P ++ x : psi |- psi B1 == B2
+------------------------------------------------ :: WSigma
+P |- psi Sigma x :psi0 A1. B1 == Sigma x :psi0 A2. B2
+
+P |- psi Sigma x :psi0 A1. B1 == Sigma x :psi0 A2. B2
+------------------------------------------------- :: WSigmaFst
+P |- psi A1 == A2
+
+P |- psi Sigma x :psi0 A1. B1 == Sigma x :psi0 A2. B2
+P |- psi a
+--------------------------------------------------- :: WSigmaSnd
+P |- psi B1 {a/x} == B2 {a/x}
+
+% WSigmaSndRel / WSigmaSndIrrel ??
+
+P |- psi a1 == a2
+P |- psi b1 == b2
+psi0 <= psi
+----------------------------------------------- :: WPairRel
+P |- psi (a1 psi0, b1) == (a2 psi0, b2)
+
+P |- psi b1 == b2
+not (psi0 <= psi)
+% P |- (psi0 \/ psi) a1 
+% P |- (psi0 \/ psi) a2 
+---------------------------------------------- :: WPairIrrel
+P |- psi (a1 psi0, b1) == (a2 psi0, b2)
+
+P |- psi a1 == a2
+(# P ++ x :psi0  #) |- psi b1 == b2
+--------------------------------------------------------------- :: LetPair
+P |- psi let (x psi0 , ) = a1 in b1 == let (x psi0 ,) = a2 in b2
+
+%% strong sigmas
+
+P |- psi A1 == A2
+P ++ x : psi |- psi B1 == B2
+----------------------------------------- :: SSigma
+P |- psi x :psi0 A1 && B1 == x :psi0 A2 && B2
+
+P |- psi x :psi0 A1 && B1 == x :psi0 A2 && B2
+------------------------------------------ :: SSigmaFst
+P |- psi A1 == A2
+
+P |- psi x :psi0 A1 && B1 == x :psi0 A2 && B2
+P |- psi a1 == a2
+-------------------------------------------- :: SSigmaSnd
+P |- psi B1 {a1/x} == B2 {a2/x}
+
+% WSigmaSndRel / WSigmaSndIrrel ??
+
+psi0 <= psi
+P |- psi a1 == a2
+P |- psi b1 == b2
+---------------------------------------- :: SPairRel
+P |- psi (a1 psi0 & b1) == (a2 psi0 & b2)
+
+not (psi0 <= psi)
+% P |- (psi0 \/ psi) a1 
+% P |- (psi0 \/ psi) a2 
+P |- psi b1 == b2
+---------------------------------------------- :: SPairIrrel
+P |- psi (a1 psi0 & b1) == (a2 psi0 & b2)
+
+
+P |- psi a1 == a2
+psi0 <= psi
+------------------------------------------ :: Proj1
+P |- psi fst psi0 a1 == fst psi0 a2
+
+P |- psi a1 == a2
+------------------------------- :: Proj2
+P |- psi snd psi0 a1 == snd psi0 a2
+
+%% sums
+
+P |- psi A1 == A1'
+P |- psi A2 == A2'
+--------------------------------------- :: Sum
+P |- psi A1 + A2 == A1' + A2'
+
+P |- psi A1 + A2 == A1' + A2'
+----------------------------------- :: SumFst
+P |- psi A1 == A1'
+
+P |- psi A1 + A2 == A1' + A2'
+---------------------------------- :: SumSnd
+P |- psi A2 == A2'
+
+P |- psi a1 == a1'
+----------------------------------- :: Inj1
+P |- psi inj1 a1 == inj1 a1'
+
+P |- psi a2 == a2'
+------------------------------------ :: Inj2
+P |- psi inj2 a2 == inj2 a2'
+
+P |- psi a == a'
+P |- psi b1 == b1'
+P |- psi b2 == b2'
+psi0 <= psi
+---------------------------------------------------- :: Case
+P |- psi case psi0 a of b1; b2 == case psi0 a' of b1';b2'
+
+%% unit
+
+uniq P
+--------------------------- :: TyUnit
+P |- psi Unit == Unit
+
+uniq P
+------------------------- :: TmUnit
+P |- psi unit == unit
+
+nolc (\top x.b1)
+nolc (\top x.b2)
+P ++ x : psi |- phi b1 == b2
+not (psi <= phi)
+--------------------------------------- :: SubstIrrel
+P |- phi b1 {a1/x} == b2 {a2/x} 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+defns 
+JTyping :: '' ::=
+
+defn 
+  W |-- psi a : A ::  :: Typing :: 'T_' {{ com Typing }}
+{{ tex [[W]] \vdash [[a]]:^{[[psi]]} [[A]] }}
+
+%% morally, psi will either be RTime or CTime in this judgement. It should never be Top.
+%% If it needs to be top, it should be squashed instead.
+
+ by
+
+uniq W
+psi <= CTime
+-------------------------- :: Type
+W |-- psi type : type
+
+W |-- psi a : A
+|CTime /\ W| |- CTime A == B 
+CTime /\ W |-- CTime B : type
+------------------------------- :: Conv
+W |-- psi a : B
+
+uniq W
+psi0 <= psi
+x : psi0 A in W
+psi <= CTime
+--------------------------------------------- :: Var
+W |-- psi x : A
+
+%% functions
+
+W |-- psi A : type
+W ++ x : psi A |-- psi B : type
+--------------------------------------- :: Pi
+W |-- psi Pi x :psi0 A. B : type
+
+W ++ x : psi0  \/ psi A |-- psi b : B
+CTime /\ W |-- CTime (Pi x:psi0 A. B) : type
+------------------------------------------ :: Abs
+W |-- psi \ psi0 x . b : Pi x :psi0 A . B
+
+W |-- psi b : Pi x :psi0 A . B
+W |-- psi0 \/ psi a : A
+psi0 <= CTime
+------------------------------------------- :: App
+W |-- psi b psi0 a : B {a/x}
+
+W |-- psi b : Pi x :psi0 A . B
+CTime /\ W |-- CTime a : A
+CTime < psi0
+% not psi0 <= CTime
+------------------------------------------- :: AppIrrel
+W |-- psi b psi0 a : B {a/x}
+
+
+%% weak sigmas
+
+W |-- psi A : type
+W ++ x : psi A |-- psi B : type
+---------------------------------------- :: WSigma
+W |-- psi Sigma x :psi0 A . B : type
+
+CTime /\ W |-- CTime (Sigma x :psi0 A. B) : type
+W |-- psi0 \/ psi a : A
+W |-- psi b : B {a/x}
+psi0  <= CTime
+------------------------------------------ :: WPair
+W |-- psi  (a psi0, b) : Sigma x :psi0 A. B
+
+CTime /\ W |-- CTime (Sigma x :psi0 A. B) : type
+CTime /\ W |-- CTime a : A
+CTime < psi0
+% not psi0 <= CTime
+W |-- psi b : B {a/x}
+------------------------------------------ :: WPairIrrel
+W |-- psi  (a psi0, b) : Sigma x :psi0 A. B
+
+
+
+%++ z :psi1 Sigma x :psi0 A. B
+CTime /\ W |-- CTime (Pi y : psi B. C) : type
+W |-- psi a : (Sigma x :psi0 A . B)
+(# W ++ x :psi0 \/ psi A #)  |-- psi c : (Pi y : phi B. C)
+%  needs this substitution above C {(x psi0, y)/z}
+%  and this one below C {a/z}
+------------------------------------------------------------- :: LetPair
+W |-- psi let (x psi0 , ) = a in c : C 
+
+%% strong sigmas
+%% We don't allow the first component to be I b/c then fst doesn't make sense.
+
+W |-- psi A : type
+W ++ x : psi A |-- psi B : type
+---------------------------------------- :: SSigma
+W |-- psi x :psi0 A && B : type
+
+CTime /\ W |-- CTime x:psi0 A && B : type
+W |-- psi0 \/ psi a : A
+W |-- psi b : B {a/x}
+psi0 <= CTime
+------------------------------------------ :: SPair
+W |-- psi (a psi0 & b) : x :psi0 A && B
+
+%% No SPairI 
+
+W |-- psi a : x :psi0 A && B
+psi0 <= psi
+----------------------------------- :: Proj1
+W |-- psi fst psi0 a : A
+
+W |-- psi a : x :psi0 A && B
+psi0 <= CTime 
+----------------------------------- :: Proj2
+W |-- psi snd psi0 a : B {fst psi0 a / x}
+
+%% sums
+
+W |-- psi A : type
+W |-- psi B : type
+----------------------- :: Sum
+W |-- psi A + B : type
+
+W |-- psi a1 : A1
+CTime /\ W |-- CTime A2 : type
+-------------------------------- :: Inj1
+W |-- psi inj1 a1 : A1 + A2
+
+W |-- psi a2 : A2
+CTime /\ W |-- CTime A1 : type
+--------------------------------- :: Inj2
+W |-- psi inj2 a2 : A1 + A2
+
+((CTime /\ W) ++ z :CTime A1 + A2) |-- CTime  B : type
+W |-- psi a : A1 + A2
+B1 = (# B {inj1 x / z} #)
+B2 = (# B {inj2 y / z} #)
+W |-- psi b1 : Pi x :psi0 A1. B1
+W |-- psi b2 : Pi y :psi0 A2. B2
+psi0 <= psi
+----------------------------------------------- :: Case
+W |-- psi case psi0 a of b1; b2 : B {a/z}
+
+%% unit
+
+uniq W
+psi <= CTime
+-------------------------- :: TmUnit
+W |-- psi Unit : type
+
+uniq W
+psi <= CTime
+-------------------------- :: TyUnit
+W |-- psi unit : Unit
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+defns
+   JCTyping :: '' ::=
+
+defn 
+W |--> psi a : A ::    :: CTyping :: 'CT_'
+{{ tex [[W]][[|-->]] [[a]]:^{[[psi]]} [[A]] }}
+by
+
+
+W |-- psi a : A 
+psi <= CTime
+------------------- :: Leq
+W |--> psi a : A
+
+CTime /\ W |-- CTime a : A 
+CTime < psi
+-------------------------- :: Top
+W |--> psi a : A
+
+
+defns 
+   JCtx :: '' ::=
+
+defn
+|- W ::     :: Ctx :: 'Ctx_' 
+by
+
+------------- :: Empty
+|- empty
+
+
+|- W
+CTime /\ W |-- CTime A : type
+x notin dom W
+------------------------- :: Cons
+|- W ++ x :psi0 A
+
+
+
+defns
+   JValueType :: '' ::=
+
+defn
+ValueType A ::   :: ValueType :: 'ValueType_'
+{{ com Types with head forms (erased language) }}
+{{ tex \mathsf{ValueType}\ [[A]] }}
+by
+
+------- :: Type
+ValueType type
+
+
+------- :: Unit
+ValueType Unit
+
+---------------------------- :: Pi
+ValueType Pi x : psi A . B
+
+---------------------------- :: WSigma
+ValueType Sigma x : psi A . B
+
+---------------------------  :: SSigma
+ValueType x : psi A && B  
+
+--------------------------- :: Sum
+ValueType A + B
+
+defns
+   JConsistent :: '' ::=
+
+defn
+   Consistent a b ::  :: Consistent :: 'Consistent_a_'
+   {{ com Types do not differ in their heads }}
+  {{ tex \suppress{\mathsf{Consistent}\ [[a]] \ [[b]] } }}
+by
+
+---------------------- :: Type
+Consistent type type
+
+---------------------- :: Unit
+Consistent Unit Unit
+
+--------------------------------------------------- :: Pi
+Consistent (Pi x : psi A . B) (Pi x : psi A'. B')
+
+--------------------------------------------------- :: WSigma
+Consistent (Sigma x : psi A . B) (Sigma x : psi A'. B')
+
+--------------------------------------------------- :: SSigma
+Consistent (# x : psi A && B #) (# x : psi A' && B' #)
+
+--------------------------------------------------- :: Sum
+Consistent (A + B) (A' + B')
+
+not ValueType a 
+---------------------- :: Step_R
+Consistent a b 
+
+not ValueType b 
+---------------------- :: Step_L
+Consistent a b 
+
+defns
+   JPar :: '' ::=
+defn
+ P |- psi  a => b :: :: Par :: 'Par_' {{ com Parallel Reduction }}
+ {{ tex [[P]] [[|-]]  [[ a ]] \Rightarrow_{[[ psi ]]} [[ b ]]  }}
+by
+
+P |- psi a
+-------------------- :: Refl
+P |- psi a => a
+
+P |- psi  A1 => A2
+P ++ x : psi |- psi  B1 => B2
+---------------------------------------------- :: Pi
+P |- psi  Pi x :psi1 A1. B1 => Pi x :psi1 A2. B2
+
+P |- psi  a => (\ psi0 x. a')
+P |- psi  b => b'
+psi0 <= psi
+----------------------------- :: AppBetaRel
+P |- psi  a psi0 b => a' { b' / x }
+
+P |- psi  a => (\ psi0 x. a')
+not (psi0 <= psi)
+----------------------------- :: AppBetaIrrel
+P |- psi  a psi0 b => a' { b' / x }
+
+
+P |- psi a => a'
+P |- psi b => b'
+psi0 <= psi
+----------------------------- :: AppRel
+P |- psi  a psi0 b => a' psi0  b'
+
+P |- psi  a => a'
+not (psi0 <= psi)
+----------------------------- :: AppIrrel
+P |- psi  a psi0 b => a' psi0  b'
+
+
+P ++ x: psi0 |- psi  b1 => b2
+------------------------------------- :: Abs
+P |- psi  \ psi0 x . b1 => \ psi0 x . b2
+
+P |- psi  A1 => A2
+P ++ x : psi |- psi  B1 => B2
+------------------------------------------------ :: WSigma
+P |- psi  Sigma x :psi1 A1. B1 => Sigma x :psi1 A2. B2
+
+P |- psi  a1 => a2
+P |- psi  b1 => b2
+psi0 <= psi
+----------------------------------------------- :: WPairRel
+P |- psi  (a1 psi0, b1) => (a2 psi0, b2)
+
+P |- psi  b1 => b2
+not (psi0 <= psi)
+----------------------------------------------- :: WPairIrrel
+P |- psi  (a1 psi0, b1) => (a2 psi0, b2)
+
+
+
+P |- psi  a1 => (a1' psi0, a2')
+P ++ x : psi0 |- psi  b1 => b2 {x/x}
+--------------------------------------------------------------- :: WPairBeta
+P |- psi let (x psi0 , ) = a1 in b1 => b2 { a1' / x } bot a2'
+
+P |- psi  a1 => a2
+P ++ x : psi0 |- psi  b1 => b2 
+------------------------------------------------------------------------ :: LetPair
+P |- psi  let (x psi0 , ) = a1 in b1 => let (x psi0 , ) = a2 in b2
+
+P |- psi  A1 => A2
+P ++ x : psi |- psi  B1 => B2
+----------------------------------------- :: SSigma
+P |- psi  x :psi1 A1 && B1 => x :psi1 A2 && B2
+
+P |- psi a1 => a2
+P |- psi  b1 => b2
+psi0 <= psi
+---------------------------------------- :: SPairRel
+P |- psi  (a1 psi0 & b1) => (a2 psi0 & b2)
+
+P |- psi  b1 => b2
+not (psi0 <= psi)
+---------------------------------------- :: SPairIrrel
+P |- psi  (a1 psi0 & b1) => (a2 psi0 & b2)
+
+
+P |- psi  a1 => (a1' psi0 & a2)
+psi0 <= psi
+------------------------------------------ :: Proj1Beta
+P |- psi  fst psi0 a1 => a1'
+
+P |- psi  a1 => a2
+psi0 <= psi
+------------------------------------------ :: Proj1
+P |- psi  fst psi0 a1 => fst psi0 a2
+
+P |- psi  a1 => (a1' psi0 & a2)
+------------------------------- :: Proj2Beta
+P |- psi  snd psi0 a1 => a2
+
+
+P |- psi  a1 => a2
+------------------------------- :: Proj2
+P |- psi  snd psi0 a1 => snd psi0 a2
+
+
+P |- psi  A1 => A1'
+P |- psi  A2 => A2'
+--------------------------------------- :: Sum
+P |- psi  A1 + A2 => A1' + A2'
+
+P |- psi  a1 => a1'
+----------------------------------- :: Inj1
+P |- psi  inj1 a1 => inj1 a1'
+
+P |- psi  a2 => a2'
+------------------------------------ :: Inj2
+P |- psi  inj2 a2 => inj2 a2'
+
+P |- psi a => inj1 a'
+P |- psi  b1 => b1'
+P |- psi  b2 => b2'
+psi0 <= psi
+---------------------------------------------------- :: CaseBeta1
+P |- psi  case psi0 a of b1; b2 => b1' psi0 a'
+
+P |- psi a => inj2 a'
+P |- psi  b1 => b1'
+P |- psi  b2 => b2'
+psi0 <= psi
+---------------------------------------------------- :: CaseBeta2
+P |- psi  case psi0 a of b1; b2 => b2' psi0 a'
+
+P |- psi a => a'
+P |- psi  b1 => b1'
+P |- psi  b2 => b2'
+psi0 <= psi
+---------------------------------------------------- :: Case
+P |- psi  case psi0 a of b1; b2 => case psi0 a' of b1';b2'
+
+
+defns
+   JMultiPar :: '' ::=
+defn
+P |- psi  a =>* b  ::   :: MultiPar :: 'MP_'
+{{ tex [[P]] [[|-]] [[a]] [[=>*]]_{[[psi]]} [[b]] }}
+{{ com multistep parallel reduction }}
+by
+
+P |- psi a 
+------------------------- :: Refl
+P |- psi a =>* a
+
+P |- psi  a =>  b 
+P |- psi  b =>*  a' 
+-------------------------- :: Step
+P |- psi  a =>*  a' 
+
+defns
+   JJoins :: '' ::=
+defn
+P |- psi  a <=> b  ::   :: Joins :: ''
+{{ tex [[P]][[|-]] [[a]] [[<=>]]_{[[psi]]}  [[b]] }}
+{{ com parallel reduction to a common term }}
+by
+
+P |- psi  a1 =>* b1 
+P |- psi  a2 =>* b2
+P |- psi  b1 ~~ b2 
+-------------------------- :: join
+P |- psi  a1 <=> a2 
+
+defns
+   JValue :: '' ::=
+
+defn
+Value A ::   :: Value :: 'V_'
+{{ com Types with head forms (erased language) }}
+{{ tex \mathsf{ValueType}\ [[A]] }}
+by
+
+ValueType a
+------- :: ValueType
+Value a
+
+
+---------- :: TmUnit
+Value unit
+
+---------------------------- :: Abs
+Value \ psi x . a
+
+---------------------------- :: WPair
+Value ( a psi , b ) 
+
+---------------------------  :: SPair
+Value ( a psi & b )  
+
+--------------------------- :: Inj1
+Value inj1 a
+
+--------------------------- :: Inj2
+Value inj2 a
+
+
+defns 
+   JCGrade :: '' ::=
+
+defn
+ P |- psi phi a :: :: CGrade :: 'CG_' {{ com Guarded Grade }}
+ {{ tex [[ P ]] \vdash_{[[ psi ]]} [[ a ]]  }}
+
+by
+   phi0 <= phi
+   P |- phi a
+  --------------------- :: Leq 
+   P |- phi phi0 a
+
+   not (phi0 <= phi)
+  --------------------- :: Nleq 
+   P |- phi phi0 a
+
+
+defns
+   JCDefEq :: '' ::=
+
+defn
+ P |- psi phi a == b :: :: CDefEq :: 'CDefEq_' {{ com UnTyped Definitional Equality }}
+ {{ tex [[ P ]] \vdash [[ a ]] \equiv_{[[ psi ]]} [[ b ]]  }}
+
+by
+   phi0 <= phi
+   P |- phi a == b 
+  --------------------- :: Leq 
+   P |- phi phi0 a == b
+
+   not (phi0 <= phi)
+  --------------------- :: Nleq 
+   P |- phi phi0 a == b
+
+defns
+  JCPar :: '' ::=
+
+defn 
+P |- psi psi0 a => b ::  :: CPar :: 'CPar_' {{ com Parallel reduction at [[psi]] is guarded by [[psi0]] }}
+ {{ tex [[ P ]] \vdash^{[[psi0]]}_{[[psi]]} [[ a ]] [[=>]] [[ b ]]  }}
+
+by
+
+psi0 <= psi
+P |- psi a1 => a2
+-------------------------------- :: Leq
+P |- psi psi0 a1 => a2
+
+not (psi0 <= psi)
+uniq P
+-------------------------------- :: Nleq
+P |- psi psi0 a1 => a2
+
+defns 
+  JCMultiPar :: '' ::=
+defn 
+P |- psi psi0 a =>* b ::   :: CMultiPar :: 'CMP_'
+{{ tex [[P]] [[|-]]_{[[psi]]}^{[[psi0]]} [[a]] [[=>*]] [[b]] }}
+{{ com }}
+
+by
+
+psi0 <= psi
+P |- psi a1 =>* a2
+-------------------------------- :: Leq
+P |- psi psi0 a1 =>* a2
+
+not (psi0 <= psi)
+uniq P
+-------------------------------- :: Nleq
+P |- psi psi0 a1 =>* a2
+
+
+defns 
+  JCJoins :: '' ::=
+defn 
+P |- psi psi0 a <=> b ::   :: CJoins :: 'CJ_'
+{{ tex [[P]] [[|-]]_{[[psi]]}^{[[psi0]]} [[a]] [[<=>]] [[b]] }}
+{{ com }}
+
+by
+
+psi0 <= psi
+P |- psi a1 <=> a2
+-------------------------------- :: Leq
+P |- psi psi0 a1 <=> a2
+
+not (psi0 <= psi)
+uniq P
+-------------------------------- :: Nleq
+P |- psi psi0 a1 <=> a2
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+

@@ -1,0 +1,109 @@
+\documentclass{article}
+
+\usepackage{ottalt}
+\usepackage{mathpartir}
+\usepackage{supertabular}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{color}
+
+
+%% Show admissible premises in rules
+%% This should be false in main body of text and true in the appendix.
+\newif\ifadmissible
+\newcommand\suppress[1]{\ifadmissible{#1}\else{}\fi}
+\inputott{qualitative-rules}
+
+\title{System Specification}
+
+\admissiblefalse
+\begin{document}
+\maketitle
+
+This document is created directly from the definitions in the file
+{\texttt{Qualitative.ott}}, with minor modifications as listed below.
+
+This document is intended to specify, in a readable form, the subject of the
+proofs of the submitted paper as well as explain the slight differences
+between this rendering, the submission, and the generated Coq files
+\texttt{Qualitative\_ott.v} and \texttt{Qualitative\_inf.v}.
+
+The reason for these slight differences is partly due to the restrictions of
+the Ott locally nameless backend and the LNgen theory generation tool.
+\begin{enumerate}
+\item All parts of the syntax must be defined concretely in the Ott source file. 
+\item All bound variables need to be explicitly determined
+\item All syntactic forms must bind at most one variable at a time.
+\end{enumerate}
+
+The first limitation is simply to accommodate through minor manual edits of
+the outputs of Ott and LNgen. These edits allow us to parameterize the
+development on an arbitrary semiring (see \texttt{grade\_sig.v}) instead of
+working with a specific, concrete semiring. 
+
+The second limitation affects our generation of the typing rules for pattern
+matching elimination forms, i.e. \textsc{T-Case} and \textsc{T-LetPair}
+In these rules, we need to substitute in for the scrutinee
+$y$ the result type $B$. 
+
+The third limitation causes difficulty for the formalization of the
+elimination rule for products. The usual pattern matching elimination
+syntactic form binds two variables, one for each component of the tuple. This
+is the form that is used in the submission. To accommodate Ott, in the
+mechanization we replace the pattern matching elimination form for $\Sigma$
+types with a slightly more general, but less familiar, form.
+
+Other differences between the paper and this specification are due to the
+avoidance of mutually recursive inductive definitions. While guarded equality
+and extended equality are mutually defined, as in the paper, others, such as
+the conditional typing judgement, has been inlined into the typing rules. As a
+result, rules such as \textsc{T-AppC} in the paper appear as two rules
+(\rref{T-AppRel,T-AppIrrel}).
+
+\section{System Specification}
+
+\subsection{Grammar}
+
+\ottgrammartabular{
+\otttm\ottinterrule
+\ottcontext\ottafterlastrule
+}
+
+\subsection{Operational semantics}
+
+\drules[ValueType]{}{Values that are types}{Type,Pi,WSigma,Sum,Unit}
+\drules[V]{}{Values}{ValueType,TmUnit,WPair,InjOne,InjTwo}
+
+\drules[S]{$[[|- a ~> a']]$}{Small-step operational semantics}{AppCong,Beta,CaseCong,CaseOneBeta,CaseTwoBeta,
+  LetPairCong,LetPairBeta}
+
+\subsection{Definitional equality}
+
+\drules[Eq]{$[[P |- psi a == b ]]$}{Definitional Equality}{Refl,Sym,Trans,SubstIrrel,Beta,Pi,Abs,AppRel,AppIrrel,PiFst,PiSnd,
+    WSigma,WSigmaFst,WSigmaSnd,WPairRel,WPairIrrel,LetPair,
+    Sum,SumFst,SumSnd,InjOne,InjTwo,Case,TyUnit,TmUnit}
+
+
+\drules[G]{$[[P |- phi a ]]$}{Grading}{Type,Var,Pi,Abs,AppRel,AppIrrel,WSigma,WPairRel,WPairIrrel,LetPair,
+                             Sum,InjOne,InjTwo,Case,TyUnit,TmUnit}
+
+\subsection{Type Systems}
+
+\drules[T]{$[[W |-- psi a : A]]$}{Typing}{Type,Conv,Var,Pi,Abs,App,AppIrrel,WSigma,WPair,WPairIrrel,LetPair,
+              Sum,InjOne,InjTwo,CaseC,TmUnit,TyUnit}
+
+\subsection{Auxiliary Judgements}
+
+\drules[CEq]{$[[P |- psi psi0 a ~~ b]]$}{Conditional Syntactic Equality}{Leq,Nleq}
+\drules[GEq]{$[[P |- psi a ~~ b]]$}{Guarded Syntactic Equality}{Type,Var,Pi,Abs,App,WSigma,WPair,LetPair,Sum,InjOne,InjTwo,Case,TyUnit,TmUnit}
+\drules[Par]{$[[P |- psi a => b ]]$}{Parallel reduction}{Refl,Pi,AppBetaRel,AppBetaIrrel,AppRel,AppIrrel,Abs,WSigma,WPairRel,WPairIrrel,WPairBeta,LetPair,
+  Sum,InjOne,InjTwo,CaseBetaOne,CaseBetaTwo,Case}
+\drules[MP]{$[[P |- psi a =>* b ]]$}{Parallel reduction, reflexive transitive closure}
+   {Refl,Step}
+\drules[]{$[[P |-psi a <=> b]]$}{Joinability}
+   {join}
+
+
+\end{document}

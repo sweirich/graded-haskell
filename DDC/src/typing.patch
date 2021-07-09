@@ -1,0 +1,23 @@
+666,675c666,670
+<  | T_LetPair : forall (L:vars) (W:context) (psi psi0:grade) (a c C B A:tm),
+<       ( forall x , x \notin  L  ->
+<               Typing ((x ~ (q_C, a_WSigma psi0 A B)) ++ meet_ctx_l q_C W) q_C (open_tm_wrt_tm C (a_Var_f x)) a_Type)  ->
+<       Typing W psi a (a_WSigma psi0 A B) ->
+<       ( forall x , x \notin  L  ->
+<         forall y,  y \notin L \u {{x}} ->
+<               Typing ((x ~ ((q_join psi0 psi), A)) ++ W) psi (open_tm_wrt_tm c (a_Var_f x))
+<                    (a_Pi q_Bot (open_tm_wrt_tm B (a_Var_f x))
+<                           (close_tm_wrt_tm y (open_tm_wrt_tm C (a_WPair (a_Var_f x) psi0 (a_Var_f y)))))) ->
+<       (Typing W psi (a_LetPair psi0 a c)  (open_tm_wrt_tm C a))
+---
+>  | T_LetPair : forall (L:vars) (W:context) (psi psi0:grade) (a c C B A:tm) (phi:grade),
+>       ( forall x , x \notin  L  -> Typing  (meet_ctx_l   q_C    W )   q_C   ( (a_Pi psi  ( open_tm_wrt_tm B (a_Var_f x) )  C) )  a_Type )  ->
+>      Typing W psi a  ( (a_WSigma psi0 A B) )  ->
+>       ( forall x , x \notin  L  -> Typing   (  ( x ~(  (q_join  psi0   psi )  , A ))  ++ W )   psi  ( open_tm_wrt_tm c (a_Var_f x) )   ( (a_Pi phi  ( open_tm_wrt_tm B (a_Var_f x) )  C) )  )  ->
+>       ( forall y , y \notin  L  -> Typing W psi (a_LetPair psi0 a c)  ( open_tm_wrt_tm C (a_Var_f y) )  ) 
+706,707c701,702
+<  | T_Case : forall (L:vars) (W:context) (psi psi0:grade) (a b1 b2 B:tm) (A1 A2 B1 B2:tm),
+<       ( forall z, z \notin    L ->  Typing  (  (  ( z ~(  q_C  , (a_Sum A1 A2) ))  ++  (  (meet_ctx_l   q_C    W )  )  )  )   q_C  (open_tm_wrt_tm B (a_Var_f z)) a_Type) ->
+---
+>  | T_Case : forall (L:vars) (W:context) (psi psi0:grade) (a b1 b2 B:tm) (z:tmvar) (A1 A2 B1 B2:tm),
+>      Typing  (  (  ( z ~(  q_C  , (a_Sum A1 A2) ))  ++  (  (meet_ctx_l   q_C    W )  )  )  )   q_C  B a_Type ->
