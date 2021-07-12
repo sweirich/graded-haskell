@@ -8,7 +8,7 @@ annotated by some label drawn from an algebraic structure.
 [GraD](GraD/)
 -------------
 
-"A Graded Dependent Type System with a usage-aware semantics", by Pritam
+"A Graded Dependent Type System with a Usage-Aware Semantics", by Pritam
 Choudhury, Harley Eades III, Richard A. Eisenberg and Stephanie Weirich.
 Published in POPL 2021 and available 
 [here](https://dl.acm.org/doi/10.1145/3434331)
