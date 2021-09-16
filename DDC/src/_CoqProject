@@ -13,6 +13,7 @@ narrowing.v
 par.v
 progress.v
 pumping.v
+sort_sig.v
 strong_exists.v
 subst.v
 tactics.v

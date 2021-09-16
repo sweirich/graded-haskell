@@ -24,7 +24,8 @@ Arguments ctx_sub_uniq {_} {_}.
 
 Lemma Grade_uniq : forall P psi a, Grade P psi a -> uniq P.
 Proof. intros; induction H; eauto. 
-       pick fresh x; repeat spec x. inversion H1; auto.
+       pick fresh x; repeat spec x.
+       match goal with [ H2 : uniq ([_] ++ _) |- _ ] => inversion H2; auto end.
 Qed.
 
 Lemma CEq_GEq_uniq : 
@@ -35,7 +36,7 @@ Lemma CEq_GEq_uniq :
 Proof. 
   eapply CEq_GEq_mutual.
   all: intros; eauto.
-  pick fresh x; spec x; solve_uniq.
+  all: try (pick fresh x; spec x; solve_uniq).
   (* eauto using Grade_uniq. *)
 Qed.
 

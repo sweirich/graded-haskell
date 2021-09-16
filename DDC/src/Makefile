@@ -83,12 +83,11 @@ coq: $(COQMKFILENAME) $(VFILES)
 	@$(MAKE) -f CoqSrc.mk $*.vo
 
 
-%_ott.v: $(OTT_LOC)/%.ott Makefile typing.patch
+%_ott.v: $(OTT_LOC)/%.ott typing.patch
 	ott $(OTTIFLAGS)  $(OTTOFLAGS) -coq_lngen true -coq_expand_list_types true
-	make METALIB.FIX_$*_ott
-	make PATCH_TYPING_$*_ott
+#	make PATCH_TYPING_$*_ott
 
-%_inf.v: $(OTT_LOC)/%.ott Makefile 
+%_inf.v: $(OTT_LOC)/%.ott  
 	$(LNGEN) --coq-no-proofs --coq $*_inf.v --coq-ott $*_ott $(OTT_LOC)/$*.ott 
 	make GRADE.FIX_$*_inf
 
@@ -107,14 +106,10 @@ clean: coqclean
 	@rm -f *~
 	@rm -f *.log *.aux *.fls *.fdb_latexmk
 
-METALIB.FIX_%:
-	sed -i -e 's/Metalib.Metatheory./Metalib.Metatheory. Require Export Metalib.LibLNgen. Require Export Qual.grade_sig. /g' $*.v
-	sed '1d' $*.v > __TMP__; mv __TMP__ $*.v
-
 PATCH_TYPING_%:
 	patch -R $*.v < typing.patch
 
 # delete lines from _inf.v file corresponding to "grade".  Need to update this 
 # when .ott file is changed
 GRADE.FIX_%:
-	sed '76,80d' $*.v | sed '18,29d' > __TMP__; mv __TMP__ $*.v
+	sed '88,97d' $*.v | sed '18,41d' > __TMP__; mv __TMP__ $*.v

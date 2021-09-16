@@ -12,24 +12,37 @@ Open Scope grade_scope.
 Ltac pumping_ih := 
     match goal with 
       [ H3 : forall P3 x0 psi1 P4, 
-           [(?y, ?psi2)] ++ ?P2 ++ [(?x, ?psi0)] ++ ?P1 ~= P3 ++ [(x0, psi1)] ++ P4 -> _ |-  _ ] => 
+           [(?y, ?psi2)] ++ ?P2 ++ [(?x, ?psi0)] ++ ?P1 = P3 ++ [(x0, psi1)] ++ P4 -> _ |-  _ ] => 
       specialize (H3 ([(y, psi2)] ++ P2) x psi0 P1 ltac:(simpl_env; eauto) _ ltac:(eassumption)); simpl_env in H3 end.
 
-Lemma Grade_pumping_middle : forall P2 x psi0 P1 psi b, 
-  Grade (P2 ++ x ~ psi0 ++ P1) psi b -> forall psi1, psi1 <= psi -> Grade (P2 ++ x ~ psi0 * psi1 ++ P1) psi b.
+
+Lemma CGrade_Grade_pumping_middle : 
+  (forall P psi phi0 b1 ,
+  CGrade P psi phi0 b1  ->  forall P2 x psi0 P1, 
+        P = P2 ++ [(x,psi0)] ++ P1 
+       -> forall psi1, psi1 <= psi -> CGrade (P2 ++ [(x,psi0 * psi1)] ++ P1) psi phi0 b1) /\
+  (forall P psi b1,
+  Grade P psi b1  -> forall P2 x psi0 P1, 
+        P = P2 ++ [(x,psi0)] ++ P1 
+       -> forall psi1, psi1 <= psi -> Grade (P2 ++ [(x,psi0 * psi1)] ++ P1) psi b1 ).
 Proof. 
-  intros P2 x psi0 P1 psi b H.
-  dependent induction H; intros; eauto.
+  apply CGrade_Grade_mutual.
+  all: intros; subst; eauto. 
   all: try solve [econstructor; eauto using helper_uniq].
   all: try solve [fresh_apply_Grade y; auto; repeat spec y; pumping_ih; eauto].
   - destruct (x == x0).
   ++ subst. 
-     apply binds_mid_eq in H1; auto. 
+     apply binds_mid_eq in b; auto. 
      subst.
-     eapply G_Var with (psi0 := psi0 * psi2); eauto using helper_uniq.
+     eapply G_Var with (psi0 := psi1 * psi2); eauto using helper_uniq.
      eapply join_lub; eauto.
-  ++ eapply G_Var with (psi0 := psi1); eauto using helper_uniq.
-     apply binds_remove_mid in H1; eauto.
+  ++ eapply G_Var with (psi0 := psi0); eauto using helper_uniq.
+Qed.
+
+Lemma Grade_pumping_middle : forall P2 x psi0 P1 psi b, 
+  Grade (P2 ++ x ~ psi0 ++ P1) psi b -> forall psi1, psi1 <= psi -> Grade (P2 ++ x ~ psi0 * psi1 ++ P1) psi b.
+Proof. 
+  intros. eapply CGrade_Grade_pumping_middle; eauto.
 Qed.
 
 Lemma Grade_pumping : forall psi y psi0 psi1 P a, psi <= psi1  ->
@@ -121,12 +134,17 @@ Qed.
 
 (* -------------- defeq --------------- *)
 
-Lemma DefEq_pumping_middle : forall P psi b1 b2,
+Lemma CDefEq_DefEq_pumping_middle : 
+(forall P psi phi b1 b2,
+  CDefEq P psi phi b1 b2 -> forall P2 x psi0 P1, 
+        P = P2 ++ [(x,psi0)] ++ P1 
+       -> forall psi1, psi1 <= psi -> CDefEq (P2 ++ [(x,psi0 * psi1)] ++ P1) psi phi b1 b2) /\
+forall P psi b1 b2,
   DefEq P psi b1 b2 -> forall P2 x psi0 P1, 
         P = P2 ++ [(x,psi0)] ++ P1 
        -> forall psi1, psi1 <= psi -> DefEq (P2 ++ [(x,psi0 * psi1)] ++ P1) psi b1 b2.
 Proof with  eauto 3 using Grade_pumping_middle, helper_uniq.  
-  induction 1.
+  apply CDefEq_DefEq_mutual.
   all: intros; subst...
 
   (* Pi / Abs / WSigma / SSigma / LetPair *)
@@ -138,12 +156,12 @@ Proof with  eauto 3 using Grade_pumping_middle, helper_uniq.
 
   eapply Eq_Trans...
   eapply Eq_Beta...
-  eapply Eq_AppRel...
+  eapply Eq_App...
   eapply Eq_PiSnd...
   eapply Eq_WSigmaSnd...
-  eapply Eq_WPairRel...
+  eapply Eq_WPair...
   eapply Eq_SSigmaSnd...
-  eapply Eq_SPairRel...
+  eapply Eq_SPair...
   eapply Eq_Sum...
   eapply Eq_Case...
 
@@ -154,6 +172,12 @@ Proof with  eauto 3 using Grade_pumping_middle, helper_uniq.
   
 Qed.
 
+Lemma DefEq_pumping_middle : 
+forall P psi b1 b2,
+  DefEq P psi b1 b2 -> forall P2 x psi0 P1, 
+        P = P2 ++ [(x,psi0)] ++ P1 
+       -> forall psi1, psi1 <= psi -> DefEq (P2 ++ [(x,psi0 * psi1)] ++ P1) psi b1 b2.
+Proof. apply CDefEq_DefEq_pumping_middle. Qed.
 
 Lemma DefEq_pumping : forall P1 x psi0 psi1 psi b1 b2,
   DefEq ([(x,psi0)] ++ P1)  psi b1 b2 -> 
@@ -161,7 +185,7 @@ Lemma DefEq_pumping : forall P1 x psi0 psi1 psi b1 b2,
   DefEq ([(x,psi0 * psi1)] ++ P1) psi b1 b2.
 Proof. 
   intros.
-  eapply DefEq_pumping_middle with (P2 := nil); eauto.
+  eapply CDefEq_DefEq_pumping_middle with (P2 := nil); eauto.
 Qed.
 
 (* --------------- typing ------------ *)

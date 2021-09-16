@@ -36,9 +36,9 @@ Fixpoint close_tm_wrt_tm_rec (n1 : nat) (x1 : tmvar) (a1 : tm) {struct a1} : tm 
     | a_TyUnit => a_TyUnit
     | a_TmUnit => a_TmUnit
     | a_Pi psi1 A1 B1 => a_Pi psi1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 B1)
-    | a_Abs psi1 a2 => a_Abs psi1 (close_tm_wrt_tm_rec (S n1) x1 a2)
+    | a_Abs psi1 A1 a2 => a_Abs psi1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 a2)
     | a_App a2 psi1 b1 => a_App (close_tm_wrt_tm_rec n1 x1 a2) psi1 (close_tm_wrt_tm_rec n1 x1 b1)
-    | a_Type => a_Type
+    | a_Type sort1 => a_Type sort1
     | a_Var_f x2 => if (x1 == x2) then (a_Var_b n1) else (a_Var_f x2)
     | a_Var_b n2 => if (lt_ge_dec n2 n1) then (a_Var_b n2) else (a_Var_b (S n2))
     | a_Sum A1 A2 => a_Sum (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec n1 x1 A2)
@@ -66,9 +66,9 @@ Fixpoint size_tm (a1 : tm) {struct a1} : nat :=
     | a_TyUnit => 1
     | a_TmUnit => 1
     | a_Pi psi1 A1 B1 => 1 + (size_grade psi1) + (size_tm A1) + (size_tm B1)
-    | a_Abs psi1 a2 => 1 + (size_grade psi1) + (size_tm a2)
+    | a_Abs psi1 A1 a2 => 1 + (size_grade psi1) + (size_tm A1) + (size_tm a2)
     | a_App a2 psi1 b1 => 1 + (size_tm a2) + (size_grade psi1) + (size_tm b1)
-    | a_Type => 1
+    | a_Type sort1 => 1 + (size_sort sort1)
     | a_Var_f x1 => 1
     | a_Var_b n1 => 1
     | a_Sum A1 A2 => 1 + (size_tm A1) + (size_tm A2)
@@ -100,15 +100,16 @@ Inductive degree_tm_wrt_tm : nat -> tm -> Prop :=
     degree_tm_wrt_tm n1 A1 ->
     degree_tm_wrt_tm (S n1) B1 ->
     degree_tm_wrt_tm n1 (a_Pi psi1 A1 B1)
-  | degree_wrt_tm_a_Abs : forall n1 psi1 a1,
+  | degree_wrt_tm_a_Abs : forall n1 psi1 A1 a1,
+    degree_tm_wrt_tm n1 A1 ->
     degree_tm_wrt_tm (S n1) a1 ->
-    degree_tm_wrt_tm n1 (a_Abs psi1 a1)
+    degree_tm_wrt_tm n1 (a_Abs psi1 A1 a1)
   | degree_wrt_tm_a_App : forall n1 a1 psi1 b1,
     degree_tm_wrt_tm n1 a1 ->
     degree_tm_wrt_tm n1 b1 ->
     degree_tm_wrt_tm n1 (a_App a1 psi1 b1)
-  | degree_wrt_tm_a_Type : forall n1,
-    degree_tm_wrt_tm n1 (a_Type)
+  | degree_wrt_tm_a_Type : forall n1 sort1,
+    degree_tm_wrt_tm n1 (a_Type sort1)
   | degree_wrt_tm_a_Var_f : forall n1 x1,
     degree_tm_wrt_tm n1 (a_Var_f x1)
   | degree_wrt_tm_a_Var_b : forall n1 n2,
@@ -182,15 +183,16 @@ Inductive lc_set_tm : tm -> Set :=
     lc_set_tm A1 ->
     (forall x1 : tmvar, lc_set_tm (open_tm_wrt_tm B1 (a_Var_f x1))) ->
     lc_set_tm (a_Pi psi1 A1 B1)
-  | lc_set_a_Abs : forall psi1 a1,
+  | lc_set_a_Abs : forall psi1 A1 a1,
+    lc_set_tm A1 ->
     (forall x1 : tmvar, lc_set_tm (open_tm_wrt_tm a1 (a_Var_f x1))) ->
-    lc_set_tm (a_Abs psi1 a1)
+    lc_set_tm (a_Abs psi1 A1 a1)
   | lc_set_a_App : forall a1 psi1 b1,
     lc_set_tm a1 ->
     lc_set_tm b1 ->
     lc_set_tm (a_App a1 psi1 b1)
-  | lc_set_a_Type :
-    lc_set_tm (a_Type)
+  | lc_set_a_Type : forall sort1,
+    lc_set_tm (a_Type sort1)
   | lc_set_a_Var_f : forall x1,
     lc_set_tm (a_Var_f x1)
   | lc_set_a_Sum : forall A1 A2,
@@ -293,6 +295,20 @@ Ltac default_case_split ::=
 
 Ltac default_auto ::= auto with arith lngen; tauto.
 Ltac default_autorewrite ::= fail.
+
+(* begin hide *)
+
+Lemma size_sort_min_mutual :
+(forall s1, 1 <= size_sort s1).
+Proof. Admitted.
+
+(* end hide *)
+
+Lemma size_sort_min :
+forall s1, 1 <= size_sort s1.
+Proof. Admitted.
+
+Hint Resolve size_sort_min : lngen.
 
 (* begin hide *)
 
@@ -742,6 +758,12 @@ Proof. Admitted.
 
 Hint Resolve lc_tm_of_degree : lngen.
 
+Ltac sort_lc_exists_tac :=
+  repeat (match goal with
+            | H : _ |- _ =>
+              fail 1
+          end).
+
 Ltac grade_lc_exists_tac :=
   repeat (match goal with
             | H : _ |- _ =>
@@ -762,9 +784,10 @@ forall x1 psi1 A1 B1,
 Proof. Admitted.
 
 Lemma lc_a_Abs_exists :
-forall x1 psi1 a1,
+forall x1 psi1 A1 a1,
+  lc_tm A1 ->
   lc_tm (open_tm_wrt_tm a1 (a_Var_f x1)) ->
-  lc_tm (a_Abs psi1 a1).
+  lc_tm (a_Abs psi1 A1 a1).
 Proof. Admitted.
 
 Lemma lc_a_WSigma_exists :
@@ -793,7 +816,7 @@ Hint Extern 1 (lc_tm (a_Pi _ _ _)) =>
   pick_fresh x1;
   apply (lc_a_Pi_exists x1) : core.
 
-Hint Extern 1 (lc_tm (a_Abs _ _)) =>
+Hint Extern 1 (lc_tm (a_Abs _ _ _)) =>
   let x1 := fresh in
   pick_fresh x1;
   apply (lc_a_Abs_exists x1) : core.
@@ -830,13 +853,13 @@ Proof. Admitted.
 
 Hint Resolve lc_body_a_Pi_3 : lngen.
 
-Lemma lc_body_a_Abs_2 :
-forall psi1 a1,
-  lc_tm (a_Abs psi1 a1) ->
+Lemma lc_body_a_Abs_3 :
+forall psi1 A1 a1,
+  lc_tm (a_Abs psi1 A1 a1) ->
   body_tm_wrt_tm a1.
 Proof. Admitted.
 
-Hint Resolve lc_body_a_Abs_2 : lngen.
+Hint Resolve lc_body_a_Abs_3 : lngen.
 
 Lemma lc_body_a_WSigma_3 :
 forall psi1 A1 B1,
@@ -1404,10 +1427,10 @@ Proof. Admitted.
 Hint Resolve subst_tm_tm_a_Pi : lngen.
 
 Lemma subst_tm_tm_a_Abs :
-forall x2 psi1 a2 a1 x1,
+forall x2 psi1 A1 a2 a1 x1,
   lc_tm a1 ->
   x2 `notin` fv_tm_tm a1 `union` fv_tm_tm a2 `union` singleton x1 ->
-  subst_tm_tm a1 x1 (a_Abs psi1 a2) = a_Abs (psi1) (close_tm_wrt_tm x2 (subst_tm_tm a1 x1 (open_tm_wrt_tm a2 (a_Var_f x2)))).
+  subst_tm_tm a1 x1 (a_Abs psi1 A1 a2) = a_Abs (psi1) (subst_tm_tm a1 x1 A1) (close_tm_wrt_tm x2 (subst_tm_tm a1 x1 (open_tm_wrt_tm a2 (a_Var_f x2)))).
 Proof. Admitted.
 
 Hint Resolve subst_tm_tm_a_Abs : lngen.

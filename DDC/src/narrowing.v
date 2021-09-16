@@ -7,10 +7,10 @@ Set Implicit Arguments.
 Open Scope grade_scope.
 
 
-Lemma Grade_narrowing : forall P psi a, Grade P psi a -> forall P', P_sub P' P -> Grade P' psi a.
+Lemma Grade_narrowing : (forall P psi phi a, CGrade P psi phi a -> forall P', P_sub P' P -> CGrade P' psi phi a) /\
+  (forall P psi a, Grade P psi a -> forall P', P_sub P' P -> Grade P' psi a).
 Proof. 
-  intros P psi a H. 
-  induction H.
+  apply CGrade_Grade_mutual.
   all : intros; eauto using P_sub_uniq1.
   all: try solve [fresh_apply_Grade x; eauto;
     repeat spec x;
@@ -18,7 +18,7 @@ Proof.
     econstructor; eauto;
     reflexivity].
   - (* Var *)
-    move: (P_sub_binds _ _ H2 H1) => [psi' [b ss]]. clear H1.
+    move: (P_sub_binds _ _ ltac:(eassumption) b) => [psi' [bb ss]]. 
     eapply G_Var. 3 : { eauto. } eauto using P_sub_uniq1.
     transitivity psi0; auto.
 Qed.
@@ -46,12 +46,15 @@ Lemma GEq_narrowing : forall P phi a b,
   GEq P phi a b -> forall P', P_sub P' P -> GEq P' phi a b.
 Proof. apply CEq_GEq_narrowing; eauto. Qed.
 
-Lemma DefEq_narrowing : forall P phi a b,
-  DefEq P phi a b -> forall P', P_sub P' P -> DefEq P' phi a b.
+Lemma DefEq_narrowing : 
+(forall P phi psi a b,
+  CDefEq P phi psi a b -> forall P', P_sub P' P -> CDefEq P' phi psi a b) /\
+(forall P phi a b,
+  DefEq P phi a b -> forall P', P_sub P' P -> DefEq P' phi a b).
 Proof.
-  intros P phi a b h.
-  move: (Grade_narrowing) => gn.
-  induction h.
+  move: (Grade_narrowing) => [ _ gn].
+  eapply CDefEq_DefEq_mutual.
+  all: intros P phi a b h.
   all: intros; eauto 3 using P_sub_uniq1.
   all: try solve [fresh_apply_DefEq x; auto;
     repeat spec x;
@@ -66,27 +69,29 @@ Proof.
     reflexivity].
 
   eapply Eq_Trans; eauto.
-  eapply Eq_Sym; eauto.
-  eapply Eq_AppRel; eauto. 
+  eapply Eq_Beta; eauto.
+  eapply Eq_App; eauto. 
   eapply Eq_PiSnd; eauto.
   eapply Eq_WSigmaSnd; eauto.
-  eapply Eq_WPairRel; eauto.
+  eapply Eq_WPair; eauto.
   eapply Eq_SSigmaSnd; eauto.
-  eapply Eq_SPairRel; eauto.
+  eapply Eq_SPair; eauto.
   eapply Eq_Sum; eauto.
   eapply Eq_Case; eauto.
 
 Qed.
 
 Lemma Par_narrowing : 
+  (  forall P1 psi phi a b, CPar P1 psi phi a b -> forall P2, P_sub P2 P1 -> CPar P2 psi phi a b) /\
   forall P1 psi a b, Par P1 psi a b -> forall P2, P_sub P2 P1 -> Par P2 psi a b.
 Proof. 
-  intros P1 psi a b H. induction H; intros.
+  move: (Grade_narrowing) => [_ gn].
+  apply CPar_Par_mutual.
+  all: intros.
   all: eauto using Grade_narrowing, GEq_narrowing.
-  all: try (fresh_apply_Par x; auto; repeat spec x).
-  all: try solve [eapply H3; econstructor; eauto; try reflexivity].
-  
-  eapply H2. econstructor; eauto; try reflexivity.
+  all: try (fresh_apply_Par x; eauto; repeat spec x).
+  all: try solve [eapply H2; econstructor; eauto; try reflexivity].
+  eapply CPar_Nleq; eauto using P_sub_uniq1.
 Qed.
 
 
@@ -102,7 +107,7 @@ Proof with eauto using ctx_sub_meet_ctx_l.
                  fresh_apply_Typing x; 
                  eauto using po_join_r, ctx_sub_meet_ctx_l;
                  repeat spec x;
-                 eapply H3;
+                 eapply H4;
                  econstructor; eauto;
                  reflexivity ].
   - (* conv *)
@@ -114,6 +119,13 @@ Proof with eauto using ctx_sub_meet_ctx_l.
     move: (ctx_sub_binds ltac:(eauto) ltac:(eauto)) => [psi1 [h1 h2]].
     eapply T_Var with (psi0 := psi1); eauto using ctx_sub_uniq.
     transitivity psi0; auto.
+  - (* Pi *)
+    fresh_apply_Typing x; 
+    eauto using po_join_r, ctx_sub_meet_ctx_l;
+    repeat spec x.
+    eapply H3;
+    econstructor; eauto;
+    reflexivity .
   - (* WPair *)
     eapply T_WPair...
   - (* WPairI *)

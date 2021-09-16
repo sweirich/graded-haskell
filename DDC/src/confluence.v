@@ -8,28 +8,31 @@ Require Export Qual.par.
 
 Set Implicit Arguments.
 
-Lemma Par_Abs_inv : forall {S D rho a1 B}, Par S D (a_Abs rho a1) B -> 
-      exists b1, 
-          B = (a_Abs rho b1) 
+Lemma Par_Abs_inv : forall {S D rho A1 a1 B}, Par S D (a_Abs rho A1 a1) B -> 
+      exists B1 b1, 
+          B = (a_Abs rho B1 b1) 
         /\ forall x, x `notin` fv_tm_tm a1 \u fv_tm_tm b1 \u dom S ->
-               Par ([(x,rho)]++S) D (open_tm_wrt_tm a1 (a_Var_f x)) (open_tm_wrt_tm b1 (a_Var_f x)).
+               Par ([(x,rho)]++S) D (open_tm_wrt_tm a1 (a_Var_f x)) (open_tm_wrt_tm b1 (a_Var_f x))
+        /\ CPar S D q_Top A1 B1.
 Proof. 
-  intros S D rho a1 B h. dependent induction h.
-  all: try invert_Grade; subst;
-        eexists; split; try reflexivity; intros.
+  intros S D rho A1 a1 B h. 
+  dependent induction h.
+  all: try invert_Grade; subst. 
+  all: eexists; eexists.
+  all: split; try reflexivity; intros; split.
   all: pick fresh y.
   + eapply Par_Refl; eauto.
     eapply (@Grade_renaming y); eauto. 
+  + invert_CGrade A1; eauto.
   + repeat spec y.
     eapply (@Par_renaming y); eauto.
+  + auto.
 Qed.
 
 Lemma Par_WPair_inv : forall {S D rho a0 a1 B}, Par S D (a_WPair a0 rho a1) B -> 
       exists b0 b1, 
           B = (a_WPair b0 rho b1) 
-        /\ (rho <= D -> Par S D a0 b0) 
-        /\ lc_tm a0
-        /\ lc_tm b0
+        /\ (CPar S D rho a0 b0) 
         /\ Par S D a1 b1.
 Proof. 
   intros S D rho a0 a1 B h. dependent induction h.
@@ -38,15 +41,13 @@ Proof.
   all: repeat split.
   all: intros; try done.
   all: try eapply Par_Refl; eauto.
-  all: eauto using Grade_lc.
-  all: eauto using Par_lc1.
-  all: eauto using Par_lc2.
+  invert_CGrade a0; auto.
 Qed.
 
 Lemma Par_SPair_inv : forall {S D rho a0 a1 B}, Par S D (a_SPair a0 rho a1) B -> 
       exists b0 b1, 
           B = (a_SPair b0 rho b1) 
-        /\ (rho <= D -> Par S D a0 b0) 
+        /\ (CPar S D rho a0 b0) 
         /\ Par S D a1 b1.
 Proof. 
   intros S D rho a0 a1 B h. dependent induction h.
@@ -54,6 +55,7 @@ Proof.
         eexists; eexists; split; try reflexivity; split.
   all: intros; try done.
   all: try eapply Par_Refl; eauto.
+  invert_CGrade a0; auto.
 Qed.
 
 
@@ -150,92 +152,126 @@ Proof.
     exists (a_Pi psi1 ac (close_tm_wrt_tm x bc));
     split; eauto;
     exists_apply_Par x; eauto.
-  - (* two beta rel *)
-    use_size_induction b bc Par1 Par2.
-    use_size_induction a0 a0c Par3 Par4.
-    move: (Par_Abs_inv Par3) => [a'1 ?]; 
-    move: (Par_Abs_inv Par4) => [a'2 ?]; 
-    split_hyp; subst; invert_equality; subst.
-    exists (open_tm_wrt_tm a'2 bc).
-    pick fresh x. repeat spec x.
-    split.
-    eapply open2; eauto.
-    eapply open2; eauto.
-  - (* beta / app cong rel *)
-    use_size_induction a0 a0c Par1 Par2.
-    use_size_induction b bc Par3 Par4.
-    move: (Par_Abs_inv Par1) => [a'1 ?]; split_hyp; subst.
-    pick fresh x. repeat spec x.
-    exists (open_tm_wrt_tm a'1 bc).
-    split.
-    eapply open2; eauto.
-    eapply Par_AppBetaRel; eauto.
-  - (* two beta irrel *)
-    use_size_induction a0 a0c Par3 Par4.
-    move: (Par_Abs_inv Par3) => [a'1 ?]; 
-    move: (Par_Abs_inv Par4) => [a'2 ?]; 
-    split_hyp; subst; invert_equality; subst.
-    exists (open_tm_wrt_tm a'2 b').
-    pick fresh x. repeat spec x.
-    split.
-    eapply open2; eauto using Par_uniq.
-    eapply open2; eauto using Par_uniq.
-  - (* beta / app cong irrel *)
-    use_size_induction a0 a0c Par1 Par2.
-    move: (Par_Abs_inv Par1) => [a'1 ?]; split_hyp; subst.
-    pick fresh x. repeat spec x.
-    exists (open_tm_wrt_tm a'1 b').
-    split.
-    eapply open2; eauto using Par_uniq.
-    eapply Par_AppBetaIrrel; eauto.
+  - (* two betas *)
+    match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
+    match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
+    subst;
+    try done.
+    (* both rel *)
+    + use_size_induction b bc Par1 Par2.
+      use_size_induction a0 a0c Par3 Par4.
+      move: (Par_Abs_inv Par3) => [A'1 [a1' ?]].
+      move: (Par_Abs_inv Par4) => [A'2 [a'2 ?]].
+      split_hyp; subst; invert_equality; subst.
+      exists (open_tm_wrt_tm a'2 bc).
+      pick fresh x. repeat spec x. split_hyp.
+      split.
+      eapply open2; eauto.
+      eapply open2; eauto.
+    + (* both irrel *)
+      use_size_induction a0 a0c Par3 Par4.
+      move: (Par_Abs_inv Par3) => [A'1 [a1' ?]].
+      move: (Par_Abs_inv Par4) => [A'2 [a'2 ?]].
+      split_hyp; subst; invert_equality; subst.
+      exists (open_tm_wrt_tm a'2 b').
+      pick fresh x. repeat spec x. split_hyp.
+      split.
+      eapply open2; eauto using Par_uniq, Par_lc1, Par_lc2.
+      eapply open2; eauto using Par_uniq, Par_lc1, Par_lc2.
+  - (* beta / app cong *)
+    match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
+    match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
+    subst;
+    try done.
+     (* rel *)
+     + use_size_induction a0 a0c Par1 Par2.
+       use_size_induction b bc Par3 Par4.
+       move: (Par_Abs_inv Par1) => [A'1 [a'1 ?]]; split_hyp; subst.
+       pick fresh x. repeat spec x. split_hyp.
+       exists (open_tm_wrt_tm a'1 bc).
+       split.
+       eapply open2; eauto.
+       eapply Par_AppBeta; eauto.
+     + (* beta / app cong irrel *)
+       use_size_induction a0 a0c Par1 Par2.
+       move: (Par_Abs_inv Par1) => [A'1 [a'1 ?]]; split_hyp; subst.
+       pick fresh x. repeat spec x. split_hyp.
+       exists (open_tm_wrt_tm a'1 b').
+       split.
+       eapply open2; eauto using Par_uniq.
+       eapply Par_AppBeta; eauto.
   - (* app cong / beta *)
-    use_size_induction a0 a0c Par1 Par2.
-    use_size_induction b bc Par3 Par4.
-    move: (Par_Abs_inv Par2) => [a'1 ?]; split_hyp; subst.
-    pick fresh x. repeat spec x.
-    exists (open_tm_wrt_tm a'1 bc).
-    split.
-    eapply Par_AppBetaRel; eauto.
-    eapply open2; eauto.
+    match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
+    match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
+    subst;
+    try done.
+    + (* rel *)
+      use_size_induction a0 a0c Par1 Par2.
+      use_size_induction b bc Par3 Par4.
+      move: (Par_Abs_inv Par2) => [? [a'1 ?]]; split_hyp; subst.
+      pick fresh x. repeat spec x. split_hyp.
+      exists (open_tm_wrt_tm a'1 bc).
+      split.
+      eapply Par_AppBeta; eauto.
+      eapply open2; eauto.
+    + (* irrel *)
+      use_size_induction a0 a0c Par1 Par2.
+      move: (Par_Abs_inv Par2) => [? [a'1 ?]]; split_hyp; subst.
+      pick fresh x. repeat spec x. split_hyp.
+      exists (open_tm_wrt_tm a'1 b').
+      split.
+      eapply Par_AppBeta; eauto.
+      eapply open2; eauto using Par_uniq.
   - (* app cong / app cong *)
+    match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
+      match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
+      subst;
+      try done.
+    + (* rel *)
     use_size_induction a0 ac Par1 Par2.
     use_size_induction b bc Par3 Par4.
     exists (a_App ac psi1 bc).
     split; eauto. 
-  - (* app cong / beta irrel *)
-    use_size_induction a0 a0c Par1 Par2.
-    move: (Par_Abs_inv Par2) => [a'1 ?]; split_hyp; subst.
-    pick fresh x. repeat spec x.
-    exists (open_tm_wrt_tm a'1 b').
-    split.
-    eapply Par_AppBetaIrrel; eauto.
-    eapply open2; eauto using Par_uniq.
-  - (* app cong / app cpng irrel *)
-    use_size_induction a0 ac Par1 Par2.
-    exists (a_App ac psi1 b').
-    split; eauto. 
+    +  (* irrel *)
+      use_size_induction a0 ac Par1 Par2.
+      exists (a_App ac psi1 b').
+      split; eauto. 
   - (* lam cong / lam cong *)
     pick fresh x. 
     use_size_induction_open b1 x bc Par1 Par2.
-    exists (a_Abs psi1 (close_tm_wrt_tm x bc)).
-    split.
-    exists_apply_Par x.
-    exists_apply_Par x.
+    match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
+      match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
+      subst;
+      try done.
+    (* rel *)
+    + use_size_induction A1 AC Par3 Par4.
+      exists (a_Abs psi1 AC (close_tm_wrt_tm x bc)).
+      split.
+      exists_apply_Par x.
+      exists_apply_Par x.
+    + exists (a_Abs psi1 A1 (close_tm_wrt_tm x bc)).
+      split.
+      exists_apply_Par x.
+      exists_apply_Par x.
   - (* Sigma cong / Sigma cong *)
     use_size_induction A1 ac Par1 Par2.
     pick fresh x.
     use_size_induction_open B1 x bc Par3 Par4.
     exists (a_WSigma psi1 ac (close_tm_wrt_tm x bc)).
     split; exists_apply_Par x; eauto.
-  - (* two tensor rel *)
-    use_size_induction a0 ac Par1 Par2.
-    use_size_induction b1 bc Par3 Par4.
-    exists (a_WPair ac psi1 bc).
-    split. eauto. eauto.
-  - (* two wpair irrel *) 
-    use_size_induction b1 bc Par3 Par4.
-    exists (a_WPair a3 psi1 bc).
-    split. eauto. eauto.
+  - (* two wpair *)
+    match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
+    match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
+    subst; try done.
+    + (* rel *)
+      use_size_induction a0 ac Par1 Par2.
+      use_size_induction b1 bc Par3 Par4.
+      exists (a_WPair ac psi1 bc).
+      split. eauto. eauto.
+    + (* two wpair irrel *) 
+      use_size_induction b1 bc Par3 Par4.
+      exists (a_WPair a3 psi1 bc).
+      split. eauto. eauto.
   - (* letpair betas *)
     use_size_induction a0 ac Par1 Par2.
     pick fresh x.
@@ -248,18 +284,10 @@ Proof.
     rewrite (subst_tm_tm_intro x b2); auto.
     rewrite (subst_tm_tm_intro x b3); auto.
     split. 
-    + eapply Par_AppRel; eauto using leq_Bot.
+    + eapply Par_App; eauto using leq_Bot.
       eapply Par_subst3; try eassumption. 
-      destruct (q_leb psi1 psi) eqn:LE1.
-      eapply CPar_Leq; eauto.
-      eapply CPar_Nleq; eauto using Par_uniq.
-      rewrite LE1. done.
-    + eapply Par_AppRel; eauto using Par_lc1, leq_Bot. 
+    + eapply Par_App; eauto using Par_lc1, leq_Bot. 
       eapply Par_subst3; try eassumption. 
-      destruct (q_leb psi1 psi) eqn:LE1.
-      eapply CPar_Leq; eauto.
-      eapply CPar_Nleq; eauto using Par_uniq.
-      rewrite LE1. done.
   - (* letpair beta / cong *)
     use_size_induction a0 ac Par1 Par2.
     pick fresh x.
@@ -269,12 +297,8 @@ Proof.
     rewrite <- subst_tm_tm_spec.
     rewrite (subst_tm_tm_intro x b2); auto.
     split.
-    + eapply Par_AppRel; eauto using leq_Bot.
+    + eapply Par_App; eauto using leq_Bot.
       eapply Par_subst3; try eassumption. 
-      destruct (q_leb psi1 psi) eqn:LE1.
-      specialize (H1 ltac:(auto)).  eapply CPar_Leq; auto. 
-      eapply CPar_Nleq; eauto using Par_uniq.
-      rewrite LE1. done.
     + rewrite subst_tm_tm_spec.
       exists_apply_Par x.
   - (* letpair cong / beta *)
@@ -288,12 +312,8 @@ Proof.
     split.
     + rewrite subst_tm_tm_spec.
       exists_apply_Par x.
-    + eapply Par_AppRel; eauto using leq_Bot.
+    + eapply Par_App; eauto using leq_Bot.
       eapply Par_subst3; try eassumption. 
-      destruct (q_leb psi1 psi) eqn:LE1.
-      specialize (H1 ltac:(auto)).  eapply CPar_Leq; auto. 
-      eapply CPar_Nleq; eauto using Par_uniq.
-      rewrite LE1. done.
   - (* letpair cong / cong *)
     use_size_induction a0 ac Par1 Par2.
     pick fresh x.
@@ -309,11 +329,14 @@ Proof.
     exists (a_SSigma psi1 ac (close_tm_wrt_tm x bc)).
     split; exists_apply_Par x; eauto.
   - (* SPair cong / cong *)
-    use_size_induction a0 ac Par1 Par2.
-    use_size_induction b1 bc Par3 Par4.
-    exists (a_SPair ac psi1 bc).
-    split. eauto. eauto.
-  - (* SPair cong / cong irrel *)
+    match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
+    match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
+    subst; try done.
+    +  use_size_induction a0 ac Par1 Par2.
+       use_size_induction b1 bc Par3 Par4.
+       exists (a_SPair ac psi1 bc).
+       split. eauto. eauto.
+    + (* SPair cong / cong irrel *)
     use_size_induction b1 bc Par3 Par4.
     exists (a_SPair a3 psi1 bc).
     split. eauto. eauto.
@@ -321,15 +344,21 @@ Proof.
     use_size_induction a0 ac Par1 Par2.
     move: (Par_SPair_inv Par1) => [a'1 [b1' ?]]; split_hyp; subst.
     move: (Par_SPair_inv Par2) => [a'2 [b2' ?]]; split_hyp; subst.
+     match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
+    match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
+    subst; try done.
     invert_equality. subst.
     exists a'2. split. auto. auto.
   - (* fst beta / fst cong *)
     use_size_induction a0 ac Par1 Par2.
     move: (Par_SPair_inv Par1) => [a'1 [b1' ?]]; split_hyp; subst.
+    match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
+    subst; try done.
     exists a'1. split; eauto.
   - (* fst cong / fst beta *)
     use_size_induction a0 ac Par1 Par2.
     move: (Par_SPair_inv Par2) => [a'1 [b1' ?]]; split_hyp; subst.
+    match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end; subst; try done.    
     exists a'1. split; eauto.
   - (* fst cong / fst cong *)
     use_size_induction a0 ac Par1 Par2.
@@ -372,7 +401,7 @@ Proof.
     move: (Par_Inj1_inv Par2) => [a'2 ?]; split_hyp; subst.
     invert_equality; subst.
     exists (a_App b1c psi1 a'2).
-    split; eapply Par_AppRel; eauto.
+    split; eapply Par_App; eauto.
 
   - (* case beta1 / beta2 (impossible) *) 
     use_size_induction a0 ac Par1 Par2.
@@ -387,7 +416,7 @@ Proof.
     move: (Par_Inj1_inv Par1) => [a'1 ?]; split_hyp; subst.
 
     exists (a_App b1c psi1 a'1).
-    split. eapply Par_AppRel; eauto.
+    split. eapply Par_App; eauto.
     eapply Par_CaseBeta1; eauto.
   - (* case beta2 / beta1 *)
     use_size_induction a0 ac Par1 Par2.
@@ -402,14 +431,14 @@ Proof.
     move: (Par_Inj2_inv Par2) => [a'2 ?]; split_hyp; subst.
     invert_equality; subst.
     exists (a_App b2c psi1 a'2).
-    split; eapply Par_AppRel; eauto.
+    split; eapply Par_App; eauto.
   - (* case beta2 / cong *)
     use_size_induction a0 ac Par1 Par2.
     use_size_induction b1 b1c Par3 Par4.
     use_size_induction b2 b2c Par5 Par6.
     move: (Par_Inj2_inv Par1) => [a'1 ?]; split_hyp; subst.
     exists (a_App b2c psi1 a'1).
-    split. eapply Par_AppRel; eauto.
+    split. eapply Par_App; eauto.
     eapply Par_CaseBeta2; eauto.
   - (* case cong / beta1 *)
     use_size_induction a0 ac Par1 Par2.
@@ -418,7 +447,7 @@ Proof.
     move: (Par_Inj1_inv Par2) => [a'1 ?]; split_hyp; subst.
     exists (a_App b1c psi1 a'1).
     split. eapply Par_CaseBeta1; eauto.
-    eapply Par_AppRel; eauto.
+    eapply Par_App; eauto.
   - (* case cong / beta2 *)
     use_size_induction a0 ac Par1 Par2.
     use_size_induction b1 b1c Par3 Par4.
@@ -426,7 +455,7 @@ Proof.
     move: (Par_Inj2_inv Par2) => [a'1 ?]; split_hyp; subst.
     exists (a_App b2c psi1 a'1).
     split. eapply Par_CaseBeta2; eauto.
-    eapply Par_AppRel; eauto.
+    eapply Par_App; eauto.
   - (* case cong / cong *)
     use_size_induction a0 ac Par1 Par2.
     use_size_induction b1 b1c Par3 Par4.

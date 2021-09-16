@@ -8,24 +8,34 @@ Open Scope grade_scope.
 (* Helps with specializing the IH for weakening proofs. *)
 Local Ltac weakening_ih := 
     match goal with 
-    | [ H3 : forall P4 P5, [(?x, ?psi0)] ++ ?P2 ++ ?P1 ~= P4 ++ P5 -> _ |- _ ]
-     => specialize (H3 (x ~ psi0 ++ P2) P1 ltac:(auto) ltac:(simpl_env;auto)); simpl_env in H3
+    | [ H3 : forall P5 P4, [(?x, ?psi0)] ++ ?P2 ++ ?P1 = P4 ++ P5 -> _ |- _ ]
+     => specialize (H3 P1 (x ~ psi0 ++ P2) ltac:(eauto) ltac:(simpl_env;auto)); simpl_env in H3
      end.
 
-Lemma Grade_weakening_middle : forall P3 P2 P1 psi b,
-    Grade (P2 ++ P1) psi b
-    -> uniq (P2 ++ P3 ++ P1) 
-    -> Grade (P2 ++ P3 ++ P1) psi b.     
-Proof. 
-  intros. 
-  dependent induction H.
-  all: eauto.
+Lemma CGrade_Grade_weakening_middle : (forall P psi psi0 b,
+    CGrade P psi psi0 b -> forall P1 P2, P = P2 ++ P1 -> forall P3,
+     uniq (P2 ++ P3 ++ P1) 
+    -> CGrade (P2 ++ P3 ++ P1) psi psi0 b) /\ (forall P psi b,
+    Grade P psi b -> forall P1 P2, P = P2 ++ P1 -> forall P3,
+     uniq (P2 ++ P3 ++ P1) 
+    -> Grade (P2 ++ P3 ++ P1) psi b).     
+Proof.
+  eapply CGrade_Grade_mutual.
+  all: intros; eauto.
+  all: try solve [subst; eapply G_Var; eauto].
+
   all: try solve 
-        [fresh_apply_Grade x; auto;
+        [subst; fresh_apply_Grade x; eauto;
          repeat spec x;
          weakening_ih;
          eauto].
-Qed.
+Qed. 
+
+Lemma Grade_weakening_middle : forall P1 P2 P3 psi b,
+    Grade (P2 ++ P1) psi b -> uniq (P2 ++ P3 ++ P1) 
+    -> Grade (P2 ++ P3 ++ P1) psi b.     
+Proof. 
+  intros.   eapply CGrade_Grade_weakening_middle; eauto. Qed.
 
 Lemma Grade_weakening : forall P2 P1 psi b,
     Grade P1 psi b
@@ -33,7 +43,7 @@ Lemma Grade_weakening : forall P2 P1 psi b,
     -> Grade (P2 ++ P1) psi b.     
 Proof. 
   intros.
-  eapply Grade_weakening_middle with (P2 := nil); simpl_env; eauto.
+  eapply CGrade_Grade_weakening_middle with (P2 := nil); simpl_env; eauto.
 Qed.
 
 Ltac geq_weakening_ih := 
@@ -74,11 +84,13 @@ Proof.
   eapply H0 with (P2 := nil); eauto.
 Qed.
 
-Lemma DefEq_weakening_middle : 
+Lemma CDefEq_DefEq_weakening_middle : 
+  (forall P phi psi a b,
+  CDefEq P phi psi a b -> forall P1 P2, P = P2 ++ P1 -> forall P3, uniq (P2 ++ P3 ++ P1) -> CDefEq (P2 ++ P3 ++ P1) phi psi a b) /\
   (forall P phi a b,
   DefEq P phi a b -> forall P1 P2, P = P2 ++ P1 -> forall P3, uniq (P2 ++ P3 ++ P1) -> DefEq (P2 ++ P3 ++ P1) phi a b).
 Proof.
-  intros P Phi a b h. induction h.
+  apply CDefEq_DefEq_mutual.
   all: intros; subst; eauto 3 using Grade_weakening_middle.
   all: try solve [subst;
     fresh_apply_DefEq x; auto;
@@ -95,18 +107,28 @@ Proof.
   all: try (eapply Eq_Case; eauto 3 using Grade_weakening_middle).
 Qed.
 
+Lemma DefEq_weakening_middle : 
+  (forall P phi a b,
+  DefEq P phi a b -> forall P1 P2, P = P2 ++ P1 -> forall P3, uniq (P2 ++ P3 ++ P1) -> DefEq (P2 ++ P3 ++ P1) phi a b).
+Proof. 
+  intros.
+  eapply CDefEq_DefEq_weakening_middle; eauto.
+Qed.
+
 Lemma DefEq_weakening : forall P phi b1 b2,
   DefEq P phi b1 b2 -> forall P2, uniq (P2 ++ P) -> DefEq (P2 ++ P) phi b1 b2. 
 Proof.
   intros.
-  eapply DefEq_weakening_middle with (P2 := nil); eauto.
+  eapply CDefEq_DefEq_weakening_middle with (P2 := nil); eauto.
 Qed.
 
-Lemma Par_weakening_middle :
-  forall G0 a psi b, Par G0 psi a b ->
-  forall E F G, (G0 = F ++ G) -> uniq (F ++ E ++ G) ->  Par (F ++ E ++ G) psi a b.
+Lemma CPar_Par_weakening_middle :
+  (forall G0 psi psi0 a b, CPar G0 psi psi0 a b ->
+  forall E F G, (G0 = F ++ G) -> uniq (F ++ E ++ G) ->  CPar (F ++ E ++ G) psi psi0 a b) /\
+  (forall G0 psi a b, Par G0 psi a b ->
+  forall E F G, (G0 = F ++ G) -> uniq (F ++ E ++ G) ->  Par (F ++ E ++ G) psi a b).
 Proof.
-  intros P Phi a b h. induction h.
+  apply CPar_Par_mutual.
   all: intros; subst; eauto 3 using Grade_weakening_middle.
   all: try solve [
   subst; fresh_apply_Par x; auto; repeat spec x;
@@ -117,6 +139,14 @@ Proof.
 
   all: eauto 5 using Grade_weakening_middle.
 Qed.
+
+Lemma Par_weakening_middle :
+  forall G0 a psi b, Par G0 psi a b ->
+  forall E F G, (G0 = F ++ G) -> uniq (F ++ E ++ G) ->  Par (F ++ E ++ G) psi a b.
+Proof. 
+  intros. eapply CPar_Par_weakening_middle; eauto.
+Qed.
+
 
 Lemma Par_weakening :
   forall G a psi b, Par G psi a b ->
@@ -143,14 +173,14 @@ Proof.
              eapply T_AppIrrel; simpl_env; eauto;
              eapply IHh2; simpl_env; eauto].
   all: try solve [
-             apply T_WPair; simpl_env; eauto;
+             eapply T_WPair; simpl_env; eauto;
              eapply IHh1; simpl_env; eauto].
   all: try solve [
-             apply T_WPairIrrel; simpl_env; eauto;
+             eapply T_WPairIrrel; simpl_env; eauto;
              try eapply IHh1; simpl_env; eauto;
              try eapply IHh2; simpl_env; eauto].
   all: try solve [
-             apply T_SPair; simpl_env; eauto;
+             eapply T_SPair; simpl_env; eauto;
              try eapply IHh1; simpl_env; eauto;
              try eapply IHh2; simpl_env; eauto].
   all: try solve [
@@ -172,11 +202,11 @@ Proof.
                     try eapply DefEq_weakening_middle; eauto end.
 
   (* pi *)
-  subst; fresh_apply_Typing x; auto; repeat spec x;
+  subst; fresh_apply_Typing x; eauto 1; auto; repeat spec x;
   match goal with 
-  | [ H3 : forall F0 G0, [(?x, ?psi0)] ++ ?F ++ ?G ~= F0 ++ G0 -> _ |- _ ]
-    => specialize (H3 ([(x,psi0)] ++ F) G ltac:(simpl_env;eauto 3)) ;
-  simpl_env in H3; eauto 3; try eapply H3; try solve_uniq end.
+  | [ H2 : forall F0 G0, [(?x, ?psi0)] ++ ?F ++ ?G ~= F0 ++ G0 -> _ |- _ ]
+    => specialize (H2 ([(x,psi0)] ++ F) G ltac:(simpl_env;eauto 3));
+  simpl_env in H2; eauto 3; try eapply H2; try solve_uniq end.
 
   (* abs *)
   subst; fresh_apply_Typing x; simpl_env; try eapply IHh; simpl_env; eauto; repeat spec x;
@@ -186,18 +216,18 @@ Proof.
   simpl_env in H3 ; eauto 3; try eapply H3 end. 
 
   (* wsigma *)
-  subst; fresh_apply_Typing x; auto; repeat spec x;
+  subst; fresh_apply_Typing x; eauto 1; auto; repeat spec x;
   match goal with 
   | [ H3 : forall F0 G0, [(?x, ?psi0)] ++ ?F ++ ?G ~= F0 ++ G0 -> _ |- _ ]
     => specialize (H3 ([(x,psi0)] ++ F) G ltac:(simpl_env;eauto 3)) ;
   simpl_env in H3; eauto 3; try eapply H3; try solve_uniq end.
 
   (* letpair *)
-  - subst; fresh_apply_Typing x. 
+  - subst; fresh_apply_Typing x.
     + clear H H1 H2 IHh.
     repeat spec x. simpl_env.
     match goal with 
-    | [ H3 : forall F0 G0, [(?x, ?psi0)] ++ meet_ctx_l q_C (?F ++ ?G) ~= F0 ++ G0 -> _ |- _ ]
+    | [ H3 : forall F0 G0, [(?x, ?psi0)] ++ meet_ctx_l q_C (?F ++ ?G) ~= F0 ++ G0 -> _ |- _ ] 
       => specialize (H3 ([(x,psi0)] ++ meet_ctx_l q_C F) (meet_ctx_l q_C G) ltac:(simpl_env;eauto 3) (meet_ctx_l q_C W));
           simpl_env in H3; eapply H3 end.
     eapply uniq_cons_3; auto. repeat rewrite dom_app. repeat rewrite dom_meet_ctx_l. auto.
@@ -209,12 +239,12 @@ Proof.
       simpl_env in H0. eapply H0. solve_uniq.
 
   (* ssigma *)
-  - subst; fresh_apply_Typing x; auto; repeat spec x;
+  - subst; fresh_apply_Typing x; eauto 1; auto; repeat spec x;
       match goal with 
       | [ H3 : forall F0 G0, [(?x, ?psi0)] ++ ?F ++ ?G ~= F0 ++ G0 -> _ |- _ ]
         => specialize (H3 ([(x,psi0)] ++ F) G ltac:(simpl_env;eauto 3)) ;
             simpl_env in H3; eauto 3; try eapply H3; try solve_uniq end.
-  - (* case *)
+  - (* case *) 
     fresh_apply_Typing x; auto.
     repeat spec x.
     simpl_env.
@@ -234,3 +264,4 @@ Proof.
   intros.
   eapply Typing_weakening_middle with (W2 := nil); simpl_env; eauto.
 Qed.
+

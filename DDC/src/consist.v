@@ -10,9 +10,9 @@ Set Implicit Arguments.
    of a type, it never changes. *)
 
 
-Lemma MultiPar_Type_inv : forall S A psi B, MultiPar S psi A B -> A = a_Type -> B = a_Type.
+Lemma MultiPar_Type_inv : forall S A psi B s, MultiPar S psi A B -> A = a_Type s -> B = a_Type s.
 Proof.
-  intros S A psi B H. induction H. auto.
+  intros S A psi B s H. induction H. auto.
   inversion H; intro K; auto; try inversion K.
 Qed.
 
@@ -114,8 +114,8 @@ Ltac MultiPar_step EQ :=
   let b1' := fresh "b" in
   let b2' := fresh "b" in
   match goal with
-  | [ SIDE : MultiPar _  _ a_Type _ |- _ ] =>
-    apply MultiPar_Type_inv in SIDE; auto; rename SIDE into EQ
+  | [ SIDE : MultiPar _  _ ( a_Type _ ) _ |- _ ] =>
+    eapply MultiPar_Type_inv in SIDE; eauto; rename SIDE into EQ
   | [ SIDE : MultiPar _  _ a_TyUnit _ |- _ ] =>
     apply MultiPar_TyUnit_inv in SIDE; auto; rename SIDE into EQ
   | [ SIDE : MultiPar _  _ (a_Pi _ _ _ ) _ |- _ ] =>
@@ -147,6 +147,7 @@ Proof.
   (* 4 cases that actually are consistent. *)
   all: repeat match goal with [H : lc_tm (_ _) |- _ ] => inversion H; subst; clear H end.
   all: eauto.
+  
 Qed. 
 
 
@@ -351,25 +352,53 @@ Proof.
        auto.
 Qed.
 
-Lemma MultiPar_Abs : forall (L : atoms) (P : econtext) (psi psi0 : grade) (b1 b2 : tm),
+Lemma MultiPar_Abs1 : forall (L : atoms) (P : econtext) (psi psi0 : grade) (A1 b1 b2 : tm),
        (forall x : atom,
         x `notin` L -> MultiPar ([(x, psi0)] ++ P) psi (open_tm_wrt_tm b1 (a_Var_f x)) (open_tm_wrt_tm b2 (a_Var_f x))) ->
-       MultiPar P psi (a_Abs psi0 b1) (a_Abs psi0 b2).
+       CGrade P psi q_Top A1 ->
+       MultiPar P psi (a_Abs psi0 A1 b1) (a_Abs psi0 A1 b2).
 Proof.
   intros.
   pick fresh x. repeat spec x.
-  dependent induction H0.
+  dependent induction H1.
     ++ apply open_tm_wrt_tm_inj in x; auto. subst.
        eapply MP_Refl; eauto.
        fresh_apply_Grade y; eauto 2 using MultiPar_Grade2.
        eapply (@Grade_renaming x0); auto.
-    ++ eapply MP_Step with (b := a_Abs psi0 (close_tm_wrt_tm x b)).
+    ++ eapply MP_Step with (b := a_Abs psi0 A1 (close_tm_wrt_tm x b)).
        fresh_apply_Par y. 
        rewrite <- (open_tm_wrt_tm_close_tm_wrt_tm b x) in H.
        eapply (@Par_renaming x); try rewrite fv_tm_tm_close_tm_wrt_tm; auto.       
+       inversion H0; eauto.
        eapply IHMultiPar;  try rewrite fv_tm_tm_close_tm_wrt_tm; eauto 3.
        rewrite (open_tm_wrt_tm_close_tm_wrt_tm b x).
        auto.
+Qed.
+
+Inductive CMultiPar : econtext -> grade -> grade -> tm -> tm -> Prop :=
+    CMultiPar_Leq : forall (P : econtext) (psi psi0 : grade) (a1 a2 : tm),
+               psi0 <= psi -> MultiPar P psi a1 a2 -> CMultiPar P psi psi0 a1 a2
+  | CMultiPar_Nleq : forall (P : econtext) (psi psi0 : grade) (a1 a2 : tm),
+                lc_tm a1 ->
+                lc_tm a2 -> ~ psi0 <= psi -> uniq P -> CMultiPar P psi psi0 a1 a2.
+
+Hint Constructors CMultiPar : core.
+
+Lemma MultiPar_Abs : forall (L : atoms) (P : econtext) (psi psi0 : grade) (A1 A2 b1 b2 : tm),
+       (forall x : atom,
+        x `notin` L -> MultiPar ([(x, psi0)] ++ P) psi (open_tm_wrt_tm b1 (a_Var_f x)) (open_tm_wrt_tm b2 (a_Var_f x))) ->
+       (CMultiPar P psi q_Top A1 A2) ->
+       MultiPar P psi (a_Abs psi0 A1 b1) (a_Abs psi0 A2 b2).
+Proof.
+  intros.
+  inversion H0; subst; clear H0.
+  + induction H2; eauto. eapply MultiPar_Abs1; eauto.
+    eapply MP_Step with (b := a_Abs psi0 b b1). 
+    fresh_apply_Par y; auto. spec y. eapply Par_Refl. eapply MultiPar_Grade1; eauto.
+    eapply IHMultiPar; eauto.
+  + eapply MP_Step with (b := a_Abs psi0 A2 b1).  
+    fresh_apply_Par y; auto. spec y. eapply Par_Refl. eapply MultiPar_Grade1; eauto.
+    eapply MultiPar_Abs1; eauto.
 Qed.
 
 
@@ -404,13 +433,12 @@ Proof.
        have GA: (Grade P psi (open_tm_wrt_tm b2 a1')).
        { 
          pick fresh x. spec x.
-         invert_Grade; subst.
+         invert_Grade; subst. invert_CGrade a1'; subst.
          eapply Grade_open; eauto using MultiPar_Grade2.
          eapply Grade_open_irrel; eauto using MultiPar_Grade2.
        }
-       invert_Grade; subst.       
-       eapply G_AppRel; eauto using leq_Bot.
-       eapply G_AppRel; eauto using leq_Bot. 
+       invert_Grade; subst. 
+       eapply G_App; eauto using leq_Bot.
     ++ eapply MP_Step with (b := a_LetPair psi0 b b2).
        fresh_apply_Par x; eauto; repeat spec x.
        eapply Par_Refl; eauto using MultiPar_Grade2.
@@ -452,7 +480,7 @@ Ltac fresh_apply_MultiPar x :=
       | [ |- MultiPar ?P ?psi (a_Pi ?psi2 ?a ?b) (a_Pi ?psi3 ?a2 ?b2) ] => pick fresh x and apply MultiPar_Pi
       | [ |- MultiPar ?P ?psi (a_WSigma ?psi2 ?a ?b) (a_WSigma ?psi3 ?a3 ?b3) ] => pick fresh x and apply MultiPar_WSigma
       | [ |- MultiPar ?P ?psi (a_SSigma ?psi2 ?a ?b) (a_SSigma ?psi3 ?a2 ?b2) ] => pick fresh x and apply MultiPar_SSigma
-      | [ |- MultiPar ?P ?psi (a_Abs ?psi2 ?b) (a_Abs ?psi3 ?b3) ] => pick fresh x and apply MultiPar_Abs
+      | [ |- MultiPar ?P ?psi (a_Abs ?psi2 ?A1 ?b) (a_Abs ?psi3 ?A2 ?b3) ] => pick fresh x and apply MultiPar_Abs
       | [ |- MultiPar ?P ?psi (a_LetPair ?psi2 ?a ?b) (a_App ?a1 ?phi2 ?a2)  ] => pick fresh x and apply MultiPar_WPairBeta
       | [ |- MultiPar ?P ?psi (a_LetPair ?psi2 ?a ?b) (a_LetPair ?psi3 ?a2 ?b2)  ] => pick fresh x and apply MultiPar_LetPair
     end.
@@ -503,6 +531,26 @@ Proof.
 Qed. *)
 
 
+Lemma MultiPar_App : forall a a' c c' S psi psi0, 
+    MultiPar S psi a c 
+    -> CMultiPar S psi psi0 a' c' 
+    -> MultiPar S psi (a_App a psi0 a') (a_App c psi0 c').
+Proof.
+  intros.
+  eapply MultiPar_trans with (b:= a_App c psi0 a').
+  + induction H. eapply MP_Refl; eauto.
+    eapply G_App; eauto. inversion H0; subst; eauto using MultiPar_Grade1.
+    eapply MP_Step with (b:= a_App b psi0 a'); eauto using MultiPar_Grade1.  
+    eapply Par_App; eauto. inversion H0; subst; eauto using MultiPar_Grade1.
+  + inversion H0; subst; clear H0. 
+    induction H2; eauto using MultiPar_Grade2.
+    eapply MP_Step with (b:= a_App c psi0 b); eauto using MultiPar_Grade2.  
+    induction H; eauto using MultiPar_Grade2.
+    eapply MP_Step with (b:= a_App a psi0 c'); eauto using MultiPar_Grade2.  
+    
+Qed.    
+
+(*
 Lemma MultiPar_AppRel : forall a a' c c' S psi psi0, 
     MultiPar S psi a c 
     -> MultiPar S psi a' c' 
@@ -516,6 +564,26 @@ Proof.
   + induction H0; eauto using MultiPar_Grade2.
     eapply MP_Step with (b:= a_App c psi0 b); eauto using MultiPar_Grade2.  
 Qed.    
+*)
+
+Lemma Joins_App : forall a a' b b' S psi psi0, 
+      Joins S psi a b 
+    -> CJoins S psi psi0 a' b' 
+    -> Joins S psi (a_App a psi0 a') (a_App b psi0 b').
+Proof.
+  intros a a' b b' S psi psi0 H H0.
+  inversion H.
+  inversion H0. inversion H9; subst.
+  + apply join with (b1:= (a_App b1 psi0 b0)) (b2:= a_App b2 psi0 b3).
+    eapply MultiPar_App; eauto. 
+    eapply MultiPar_App; auto. 
+    apply GEq_App; eauto.
+  +  apply join with (b1:= (a_App b1 psi0 a')) (b2:= a_App b2 psi0 b').
+     eapply MultiPar_App; eauto. 
+     eapply MultiPar_App; auto. 
+     apply GEq_App; eauto using GEq_uniq.
+Qed.
+
 
 Lemma Joins_AppRel: forall a a' b b' S psi psi0, 
       Joins S psi a b 
@@ -528,25 +596,11 @@ Proof.
   inversion H0.
   subst.
   apply join with (b1:= (a_App b1 psi0 b0)) (b2:= a_App b2 psi0 b3).
-  eapply MultiPar_AppRel; eauto. 
-  eapply MultiPar_AppRel; auto. 
+  eapply MultiPar_App; eauto. 
+  eapply MultiPar_App; auto. 
   apply GEq_App; eauto.
 Qed.
 
-
-Lemma MultiPar_AppIrrel : forall a a' c c' S psi psi0, 
-      MultiPar S psi a c 
-    -> lc_tm a'
-    -> lc_tm c'
-    -> not (psi0 <= psi)
-    -> MultiPar S psi (a_App a psi0 a') (a_App c psi0 c').
-Proof.
-  intros.
-  eapply MultiPar_trans with (b:= a_App c psi0 a').
-  + induction H; eauto using MultiPar_Grade1. 
-  + eapply MP_Step with (b:= a_App c psi0 c'); eauto using MultiPar_Grade2.  
-Qed.    
-  
 Lemma Joins_AppIrrel : forall a a' c c' S psi psi0, 
       Joins S psi a c 
     -> lc_tm a'
@@ -558,11 +612,10 @@ Proof.
   inversion H.
   subst.
   apply join with (b1:= (a_App b1 psi0 a')) (b2:= a_App b2 psi0 b').
-  eapply MultiPar_AppIrrel; eauto. 
-  eapply MultiPar_AppIrrel; auto. 
+  eapply MultiPar_App; eauto using GEq_uniq.
+  eapply MultiPar_App; eauto using GEq_uniq.
   apply GEq_App; eauto using GEq_uniq.
-Qed.
-
+Qed.  
 
 Lemma MultiPar_WPairRel : forall a a' b b' S psi psi0, 
       MultiPar S psi a b 
@@ -588,8 +641,13 @@ Lemma MultiPar_WPairIrrel : forall a a' b b' S psi psi0,
 Proof.
   intros a a' b b' S psi psi0 LC1 LC2 NLE MP2.
   + eapply MultiPar_trans with (b:= a_WPair b psi0 a').
-    ++ eapply MP_Step with (b:= a_WPair b psi0 a'); eauto using MultiPar_Grade1.
-    ++ induction MP2; eauto using MultiPar_Grade1.
+    ++ eapply MP_Step with (b:= a_WPair b psi0 a').
+       eapply Par_WPair; eauto using MultiPar_Grade1, MultiPar_uniq.
+       eapply MP_Refl; eauto using MultiPar_Grade1, MultiPar_uniq.
+    ++ induction MP2. 
+       eapply MP_Refl; eauto using MultiPar_Grade1, MultiPar_uniq.
+       eapply MP_Step with (b:= a_WPair b psi0 b0); eauto.
+       eapply Par_WPair; eauto using MultiPar_Grade1, MultiPar_uniq.
 Qed.
 
 
@@ -635,10 +693,14 @@ Lemma MultiPar_SPairIrrel : forall a a' b b' S psi psi0,
 Proof.
   intros a a' b b' S psi psi0 LC1 LC2 NLE MP2.
   + eapply MultiPar_trans with (b:= a_SPair b psi0 a').
-    ++ eapply MP_Step with (b:= a_SPair b psi0 a'); eauto using MultiPar_Grade1.
-    ++ induction MP2; eauto using MultiPar_Grade1.
+    ++ eapply MP_Step with (b:= a_SPair b psi0 a').
+       eapply Par_SPair; eauto using MultiPar_Grade1, MultiPar_uniq.
+       eapply MP_Refl; eauto using MultiPar_Grade1, MultiPar_uniq.
+    ++ induction MP2. 
+       eapply MP_Refl; eauto using MultiPar_Grade1, MultiPar_uniq.
+       eapply MP_Step with (b:= a_SPair b psi0 b0); eauto.
+       eapply Par_SPair; eauto using MultiPar_Grade1, MultiPar_uniq.
 Qed.
-
 
 Lemma Joins_SPair : forall a a' b b' S psi psi0, 
       CJoins S psi psi0 a b 
@@ -814,10 +876,30 @@ Qed.
 (* This is the key lemma for consistency. If we can prove two types equal, then they are joinable. *)
 (* Basically, we need to prove a joins version of every DefEq rule. *)
 
+Ltac invert_Joins := 
+    match goal with [H : Joins _ _ _ _ |- _ ] => inversion H; clear H; subst
+                 |  [H : CJoins _ _ _ _ _ |- _ ] => inversion H; clear H; subst end.
 
-Lemma DefEq_Joins : forall S D A B, DefEq S D A B -> Joins S D A B.
+Ltac invert_CJoins := 
+    match goal with 
+                 |  [H : CJoins _ _ _ _ _ |- _ ] => inversion H; clear H; subst end.
+
+
+Ltac exists_apply_GEq x :=
+  let y := fresh in 
+  fresh_apply_GEq y; eauto;
+  eapply (@GEq_renaming x); repeat rewrite fv_tm_tm_close_tm_wrt_tm; eauto;
+  rewrite open_tm_wrt_tm_close_tm_wrt_tm;
+  rewrite open_tm_wrt_tm_close_tm_wrt_tm;
+  auto.
+
+
+Lemma DefEq_Joins : 
+(forall S D phi A B, CDefEq S D phi A B -> CJoins S D phi A B) /\
+forall S D A B, DefEq S D A B -> Joins S D A B.
 Proof.
-  induction 1; eauto 2.
+  apply CDefEq_DefEq_mutual.
+  all: intros; eauto.
   - eapply Joins_refl; eauto.
   - eapply Joins_transitive; eauto.
   - eapply Joins_symmetry; eauto.
@@ -830,89 +912,81 @@ Proof.
     eapply Step_Grade; eauto.
   - (* Pi cong *)
     pick fresh x. repeat spec x.
-    inversion IHDefEq. subst.
-    inversion H2. subst.
-    eapply join with (b1 := a_Pi psi0 b1 (close_tm_wrt_tm x b0)) 
-                     (b2 := a_Pi psi0 b2 (close_tm_wrt_tm x b3)).
+    repeat invert_Joins.
+    eapply join with (b1 := a_Pi psi0 b0 (close_tm_wrt_tm x b1)) 
+                     (b2 := a_Pi psi0 b3 (close_tm_wrt_tm x b2)).
     exists_apply_MultiPar x.
     exists_apply_MultiPar x.
-    fresh_apply_GEq y; eauto.
-    eapply (@GEq_renaming x); repeat rewrite fv_tm_tm_close_tm_wrt_tm; eauto. 
-    rewrite open_tm_wrt_tm_close_tm_wrt_tm.
-    rewrite open_tm_wrt_tm_close_tm_wrt_tm.
-    auto.
+    exists_apply_GEq x.
   - (* Abs cong *)
     pick fresh x. repeat spec x.
-    inversion H1. subst.
-    eapply join with (b1 := a_Abs psi0 (close_tm_wrt_tm x b0)) 
-                     (b2 := a_Abs psi0 (close_tm_wrt_tm x b3)).
-    exists_apply_MultiPar x.
-    exists_apply_MultiPar x.
-    fresh_apply_GEq y; eauto.
-    eapply (@GEq_renaming x); repeat rewrite fv_tm_tm_close_tm_wrt_tm; eauto. 
-    rewrite open_tm_wrt_tm_close_tm_wrt_tm.
-    rewrite open_tm_wrt_tm_close_tm_wrt_tm.
-    auto.    
-  - (* app cong *) eapply Joins_AppRel; eauto.
-  - (* app cong irrel *) eapply Joins_AppIrrel; eauto.
+    repeat invert_Joins.
+    + eapply join with (b1 := a_Abs psi0 b4 (close_tm_wrt_tm x b0)) 
+                     (b2 := a_Abs psi0 b5 (close_tm_wrt_tm x b3)).
+      exists_apply_MultiPar x.
+      exists_apply_MultiPar x.
+      exists_apply_GEq x.
+    + eapply join with (b1 := a_Abs psi0 A1 (close_tm_wrt_tm x b0)) 
+                     (b2 := a_Abs psi0 A2 (close_tm_wrt_tm x b3)).
+      exists_apply_MultiPar x.
+      exists_apply_MultiPar x.
+      exists_apply_GEq x.
+  - (* app cong *)
+    invert_CJoins.
+    eapply Joins_AppRel; eauto.
+    eapply Joins_AppIrrel; eauto.
   - (* PiFst *)
-    inversion IHDefEq; eauto. subst.
+    invert_Joins.
     eapply MultiPar_Pi_inv in H0; try reflexivity.
-    move: H0 => [A1' [? hh]]. split_hyp. subst. 
+    move: H0 => [A1' [B1' [? hh]]]. split_hyp. subst. 
     eapply MultiPar_Pi_inv in H1; try reflexivity.
-    move: H1 => [A2' [? hh]]. split_hyp. subst. 
+    move: H1 => [A2' [B2' [? hh]]]. split_hyp. subst. 
     match goal with [H:GEq _ _ _ _ |- _ ] => inversion H end. subst.
     eapply join; eauto.
   - (* PiSnd *)
-    inversion IHDefEq1; eauto. subst.
-    eapply MultiPar_Pi_inv in H1; try reflexivity.
-    move: H1 => [A1' [B1' hh]]. split_hyp. subst.  move: H5 => [L1 h1].
-    eapply MultiPar_Pi_inv in H2; try reflexivity.
-    move: H2 => [A2' [B2' hh]]. split_hyp. subst.  move: H5 => [L2 h2].
-    match goal with [H:GEq _ _ _ _ |- _ ] => inversion H; clear H end. subst.
+    repeat invert_Joins.
+    match goal with [H0 : MultiPar _ _ (a_Pi _ _ _) _ |- _ ] => 
+        eapply MultiPar_Pi_inv in H0; try reflexivity;
+        move: H0 => [A1' [B1' [? [? hh]]]]; subst; move: hh => [L1 h1] end.
+    match goal with [H0 : MultiPar _ _ (a_Pi _ _ _) _ |- _ ] => 
+        eapply MultiPar_Pi_inv in H0; try reflexivity;
+        move: H0 => [A2' [B2' [? [? hh]]]]; subst; move: hh => [L2 h2] end.
+    invert_GEq. subst.
     pick fresh x. repeat spec x.
     rewrite (subst_tm_tm_intro x B1); eauto.
     rewrite (subst_tm_tm_intro x B2); eauto.
-    inversion IHDefEq2. subst. clear IHDefEq2.
     eapply join.
     eapply MultiPar_subst3; try eassumption.
     eapply MultiPar_subst3; try eassumption.
     move: CEq_GEq_equality_substitution => [_ sub].
     eapply sub with (P2 := nil); simpl_env; eauto.
     eapply CEq_Leq; eauto using MultiPar_lc2. reflexivity.
-(*
-    destruct (q_leb q_C psi) eqn:LE.
-    + eauto.
-    + eapply CEq_Nleq; eauto using MultiPar_lc2.
-      rewrite LE. done.
-      eauto using MultiPar_uniq. *)
   - (* WSigma cong *)
     pick fresh x. repeat spec x.
-    inversion IHDefEq. subst.
-    inversion H2. subst.
-    eapply join with (b1 := a_WSigma psi0 b1 (close_tm_wrt_tm x b0)) 
-                     (b2 := a_WSigma psi0 b2 (close_tm_wrt_tm x b3)).
+    repeat invert_Joins.
+    eapply join with (b1 := a_WSigma psi0 b0 (close_tm_wrt_tm x b1)) 
+                     (b2 := a_WSigma psi0 b3 (close_tm_wrt_tm x b2)).
     exists_apply_MultiPar x.
     exists_apply_MultiPar x.
-    fresh_apply_GEq y; eauto.
-    eapply (@GEq_renaming x); repeat rewrite fv_tm_tm_close_tm_wrt_tm; eauto. 
-    rewrite open_tm_wrt_tm_close_tm_wrt_tm.
-    rewrite open_tm_wrt_tm_close_tm_wrt_tm.
-    auto.
+    exists_apply_GEq x.
   - (* WSigma Fst *)
-    inversion IHDefEq; eauto. subst.
-    eapply MultiPar_WSigma_inv in H0; try reflexivity.
-    move: H0 => [A1' [? hh]]. split_hyp. subst. 
-    eapply MultiPar_WSigma_inv in H1; try reflexivity.
-    move: H1 => [A2' [? hh]]. split_hyp. subst. 
+    repeat invert_Joins.
+    match goal with [H0 : MultiPar _ _ (a_WSigma _ _ _) _ |- _ ] => 
+        eapply MultiPar_WSigma_inv in H0; try reflexivity;
+        move: H0 => [A1' [B1' [? [? hh]]]]; subst; move: hh => [L1 h1] end.
+    match goal with [H0 : MultiPar _ _ (a_WSigma _ _ _) _ |- _ ] => 
+        eapply MultiPar_WSigma_inv in H0; try reflexivity;
+        move: H0 => [A2' [B2' [? [? hh]]]]; subst; move: hh => [L2 h2] end.
     match goal with [H:GEq _ _ _ _ |- _ ] => inversion H end. subst.
     eapply join; eauto.
   - (* WSigma Snd *)
-    inversion IHDefEq; eauto. subst.
-    eapply MultiPar_WSigma_inv in H1; try reflexivity.
-    move: H1 => [A1' [B1' hh]]. split_hyp. subst.  move: H5 => [L1 h1].
-    eapply MultiPar_WSigma_inv in H2; try reflexivity.
-    move: H2 => [A2' [B2' hh]]. split_hyp. subst.  move: H5 => [L2 h2].
+    repeat invert_Joins.
+    match goal with [H0 : MultiPar _ _ (a_WSigma _ _ _) _ |- _ ] => 
+        eapply MultiPar_WSigma_inv in H0; try reflexivity;
+        move: H0 => [A1' [B1' [? [? hh]]]]; subst; move: hh => [L1 h1] end.
+    match goal with [H0 : MultiPar _ _ (a_WSigma _ _ _) _ |- _ ] => 
+        eapply MultiPar_WSigma_inv in H0; try reflexivity;
+        move: H0 => [A2' [B2' [? [? hh]]]]; subst; move: hh => [L2 h2] end.
     match goal with [H:GEq _ _ _ _ |- _ ] => inversion H; clear H end. subst.
     pick fresh x. repeat spec x.
     rewrite (subst_tm_tm_intro x B1); eauto.
@@ -925,54 +999,44 @@ Proof.
     eapply GEq_substitution_same with (P2 := nil); eauto.
   - (* WPair *)
     eapply Joins_WPair; eauto.
-  - (* WPair Irrel  *)
-    move: (DefEq_uniq H1) => u.
-    eapply Joins_WPair; eauto.
   - (* LetPair cong *)
     pick fresh x. repeat spec x.
-    inversion IHDefEq. subst.
-    inversion H2. subst.
-     eapply join with (b1 := a_LetPair psi0 b0 (close_tm_wrt_tm x b4)) 
-                      (b2 := a_LetPair psi0 b3 (close_tm_wrt_tm x b5)).
+    repeat invert_Joins.
+    eapply join with (b1 := a_LetPair psi0 b4 (close_tm_wrt_tm x b0)) 
+                     (b2 := a_LetPair psi0 b5 (close_tm_wrt_tm x b3)).
     exists_apply_MultiPar x.
     exists_apply_MultiPar x.
-    fresh_apply_GEq y; eauto.
-    eapply (@GEq_renaming x); repeat rewrite fv_tm_tm_close_tm_wrt_tm; eauto. 
-    rewrite open_tm_wrt_tm_close_tm_wrt_tm.
-    rewrite open_tm_wrt_tm_close_tm_wrt_tm.
-    auto.
+    exists_apply_GEq x.
   - (* SSigma cong *)
     pick fresh x. repeat spec x.
-    inversion IHDefEq. subst.
-    inversion H2. subst.
-    eapply join with (b1 := a_SSigma psi0 b1 (close_tm_wrt_tm x b0)) 
-                     (b2 := a_SSigma psi0 b2 (close_tm_wrt_tm x b3)).
+    repeat invert_Joins.
+    eapply join with (b1 := a_SSigma psi0 b0 (close_tm_wrt_tm x b1)) 
+                     (b2 := a_SSigma psi0 b3 (close_tm_wrt_tm x b2)).
     exists_apply_MultiPar x.
     exists_apply_MultiPar x.
-    fresh_apply_GEq y; eauto.
-    eapply (@GEq_renaming x); repeat rewrite fv_tm_tm_close_tm_wrt_tm; eauto. 
-    rewrite open_tm_wrt_tm_close_tm_wrt_tm.
-    rewrite open_tm_wrt_tm_close_tm_wrt_tm.
-    auto.
+    exists_apply_GEq x.
   - (* SSigma Fst *)
-    inversion IHDefEq; eauto. subst.
-    eapply MultiPar_SSigma_inv in H0; try reflexivity.
-    move: H0 => [A1' [? hh]]. split_hyp. subst. 
-    eapply MultiPar_SSigma_inv in H1; try reflexivity.
-    move: H1 => [A2' [? hh]]. split_hyp. subst. 
+    repeat invert_Joins.
+    match goal with [H0 : MultiPar _ _ (a_SSigma _ _ _) _ |- _ ] => 
+        eapply MultiPar_SSigma_inv in H0; try reflexivity;
+        move: H0 => [A1' [B1' [? [? hh]]]]; subst; move: hh => [L1 h1] end.
+    match goal with [H0 : MultiPar _ _ (a_SSigma _ _ _) _ |- _ ] => 
+        eapply MultiPar_SSigma_inv in H0; try reflexivity;
+        move: H0 => [A2' [B2' [? [? hh]]]]; subst; move: hh => [L2 h2] end.
     match goal with [H:GEq _ _ _ _ |- _ ] => inversion H end. subst.
     eapply join; eauto.
   - (* SSigma Snd *)
-    inversion IHDefEq1; eauto. subst.
-    eapply MultiPar_SSigma_inv in H1; try reflexivity.
-    move: H1 => [A1' [B1' hh]]. split_hyp. subst.  move: H5 => [L1 h1].
-    eapply MultiPar_SSigma_inv in H2; try reflexivity.
-    move: H2 => [A2' [B2' hh]]. split_hyp. subst.  move: H5 => [L2 h2].
-    match goal with [H:GEq _ _ _ _ |- _ ] => inversion H; clear H end. subst.
+    repeat invert_Joins.
+    match goal with [H0 : MultiPar _ _ (a_SSigma _ _ _) _ |- _ ] => 
+        eapply MultiPar_SSigma_inv in H0; try reflexivity;
+        move: H0 => [A1' [B1' [? [? hh]]]]; subst; move: hh => [L1 h1] end.
+    match goal with [H0 : MultiPar _ _ (a_SSigma _ _ _) _ |- _ ] => 
+        eapply MultiPar_SSigma_inv in H0; try reflexivity;
+        move: H0 => [A2' [B2' [? [? hh]]]]; subst; move: hh => [L2 h2] end.
+    match goal with [H:GEq _ _ _ _ |- _ ] => inversion H end. subst.
     pick fresh x. repeat spec x.
     rewrite (subst_tm_tm_intro x B1); eauto.
     rewrite (subst_tm_tm_intro x B2); eauto.
-    inversion IHDefEq2. subst. clear IHDefEq2.
     eapply join.
     eapply MultiPar_subst3; try eassumption.
     eapply MultiPar_subst3; try eassumption.
@@ -981,9 +1045,6 @@ Proof.
     eapply CEq_Leq; eauto. reflexivity.
   - (* SPair *)
     eapply Joins_SPair; eauto.
-  - (* WPair Irrel  *)
-    move: (DefEq_uniq H2) => u.
-    eapply Joins_SPair; eauto.
   - (* Proj1 *)
     eapply Joins_Proj1; eauto.
   - (* Proj2 *)
@@ -991,7 +1052,7 @@ Proof.
   - (* Sum Cong *)
     eapply Joins_Sum; eauto.
   - (* Sum Fst *)
-    inversion IHDefEq; eauto. subst.
+    invert_Joins.
     eapply MultiPar_Sum_inv in H0; try reflexivity.
     move: H0 => [A1'1 [A2'1 hh]]. split_hyp. subst. 
     eapply MultiPar_Sum_inv in H1; try reflexivity.
@@ -999,7 +1060,7 @@ Proof.
     match goal with [H:GEq _ _ _ _ |- _ ] => inversion H end. subst.
     eapply join; eauto.
   - (* Sum Snd *)
-    inversion IHDefEq; eauto. subst.
+    invert_Joins.
     eapply MultiPar_Sum_inv in H0; try reflexivity.
     move: H0 => [A1'1 [A2'1 hh]]. split_hyp. subst. 
     eapply MultiPar_Sum_inv in H1; try reflexivity.
@@ -1016,8 +1077,8 @@ Proof.
   - eapply join; eauto.    
   - (* SubstIrrel *)
     pick fresh x. repeat spec x.
-    inversion H6; subst.
-    move: (GEq_uniq H8) => u. destruct_uniq.
+    invert_Joins.
+    move: (GEq_uniq H3) => u. destruct_uniq.
     rewrite (subst_tm_tm_intro x); auto.
     rewrite (subst_tm_tm_intro x b2); auto.
     eapply join.
@@ -1029,7 +1090,6 @@ Proof.
     eapply CMP_Nleq; auto.
     eapply GEq_substitution_irrel with (P2 := nil); eauto.
 Qed.
-
 
 Lemma DefEq_Consistent : forall S D A B, DefEq S D A B -> Consistent A B.
 Proof. 

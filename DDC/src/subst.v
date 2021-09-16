@@ -17,9 +17,9 @@ Proof.
   - simpl.
     rewrite subst_tm_tm_open_tm_wrt_tm; auto.
      econstructor; eauto using subst_tm_tm_lc_tm.
-     inversion H. subst.
+     match goal with [H : lc_tm (a_Abs _ _ _) |- _ ] => inversion H end. subst.
      pick fresh y.
-     eapply (lc_a_Abs_exists y). 
+     eapply (lc_a_Abs_exists y); eauto using subst_tm_tm_lc_tm.
      replace (a_Var_f y) with (subst_tm_tm a x (a_Var_f y)).
      rewrite <- subst_tm_tm_open_tm_wrt_tm; auto.
      eapply subst_tm_tm_lc_tm; eauto.
@@ -53,20 +53,53 @@ Proof.
   intros.
   destruct (q_leb psi phi) eqn:LE.
   eapply CG_Leq; eauto. 
-  eapply CG_Nleq; eauto using Grade_lc. rewrite LE. done.
+  eapply CG_Nleq; eauto using Grade_uniq, Grade_lc. rewrite LE. done.
 Qed.
 
 Local Hint Resolve Grade_CGrade : core.
 
 Ltac substitution_ih :=
     match goal with 
-      | [H3 : forall P3 x0 phi0 P4,
-            [(?y, ?psi0)] ++ ?P2 ++ [(?x, ?phi)] ++ ?P1 ~= P3 ++ [(x0, phi0)] ++ P4 -> _ |- _ ] => 
-        specialize (H3 ([(y, psi0)] ++ P2) x phi P1 ltac:(auto));
+      | [H3 : forall P4 P3 x0 phi0,
+            [(?y, ?psi0)] ++ ?P2 ++ [(?x, ?phi)] ++ ?P1 = P3 ++ [(x0, phi0)] ++ P4 -> _ |- _ ] => 
+                specialize (H3 P1 ([(y, psi0)] ++ P2) x phi  ltac:(auto) _ ltac:(eauto)); 
         simpl_env in H3;
     rewrite subst_tm_tm_open_tm_wrt_tm in H3; eauto using CGrade_lc;
     rewrite subst_tm_tm_var_neq in H3
     end.
+
+Lemma CGrade_Grade_substitution_CGrade : (forall P psi psi0 b,
+      CGrade P psi psi0 b -> forall P1 P2 x phi, 
+        P = P2 ++ [(x,phi)] ++ P1 
+        -> forall a , CGrade P1 psi phi a 
+        -> CGrade (P2 ++ P1) psi psi0 (subst_tm_tm a x b)) /\
+      (forall P psi b, 
+          Grade P psi b -> forall P1 P2 x phi, 
+            P = P2 ++ [(x,phi)] ++ P1 
+            -> forall a, CGrade P1 psi phi a 
+                   -> Grade (P2 ++ P1) psi (subst_tm_tm a x b)).
+Proof.
+  apply CGrade_Grade_mutual. 
+  all: intros; subst.
+  all: try solve [simpl; eauto].
+  all: try solve [eapply CG_Nleq; eauto  using subst_tm_tm_lc_tm, CGrade_lc] .
+  all: try solve [simpl;
+    fresh_apply_Grade y;
+    eauto using subst_tm_tm_lc_tm, CGrade_lc;
+    repeat spec y;
+    substitution_ih;
+    eauto].
+  - (* Var *) 
+    destruct (x == x0).
+    + subst.
+      apply binds_mid_eq in b; auto. subst.
+      rewrite subst_tm_tm_var; auto.
+      eapply Grade_weakening; try solve_uniq.
+      match goal with [ H : CGrade _ _ _ _ |- _ ] => inversion H; clear H; subst end; auto; try done.
+    + rewrite subst_tm_tm_var_neq. auto.
+      apply binds_remove_mid in b; auto.
+      eapply G_Var; eauto.
+Qed.
 
 Lemma Grade_substitution_CGrade : forall P2 x phi P1 psi a b,
       Grade (P2 ++ x ~ phi ++ P1) psi b
@@ -74,26 +107,7 @@ Lemma Grade_substitution_CGrade : forall P2 x phi P1 psi a b,
     -> Grade (P2 ++ P1) psi (subst_tm_tm a x b).
 Proof. 
   intros.
-  dependent induction H.
-  all: try solve [simpl; eauto].
-  all: try solve [simpl; eapply_GradeIrrel; eauto using subst_tm_tm_lc_tm, CGrade_lc].
-  all: try solve [simpl;
-    fresh_apply_Grade y;
-    eauto;
-    repeat spec y;
-    substitution_ih;
-    eauto].
-  - (* Var *) 
-    destruct (x == x0).
-    + subst.
-      apply binds_mid_eq in H1; auto. subst.
-      rewrite subst_tm_tm_var; auto.
-      eapply Grade_weakening; try solve_uniq.
-      match goal with [ H : CGrade _ _ _ _ |- _ ] => inversion H; clear H; subst end; auto; try done.
-    + rewrite subst_tm_tm_var_neq. auto.
-      apply binds_remove_mid in H1; auto.
-      eapply G_Var; eauto.
-Qed.
+  eapply CGrade_Grade_substitution_CGrade; eauto. Qed.
 
 Lemma Grade_substitution_same : forall P2 x phi P1 psi a b,
       Grade (P2 ++ x ~ phi ++ P1) psi b
@@ -112,6 +126,8 @@ Lemma Grade_substitution_irrel : forall P2 x phi P1 psi a b,
 Proof. 
   intros.
   eapply Grade_substitution_CGrade; eauto.
+  eapply Grade_uniq in H. destruct_uniq.
+  eauto.
 Qed.
 
 Lemma Grade_open : forall P psi y psi0 a b,
@@ -241,21 +257,16 @@ Proof.
       repeat rewrite subst_tm_tm_fresh_eq in h1; auto.
 Qed.
 
-Lemma GEq_refl : forall P phi a, Grade P phi a -> GEq P phi a a.
+Lemma CEq_GEq_refl : 
+  (forall P phi psi a, CGrade P phi psi a -> CEq P phi psi a a) /\
+  (forall P phi a, Grade P phi a -> GEq P phi a a).
 Proof. 
-  induction 1; intros; eauto.
-  - eapply GEq_App; eauto.
-    destruct (q_leb psi0 psi) eqn:L.
-    unfold is_true in H1. done.
-    eapply CEq_Nleq; eauto using Grade_lc, Grade_uniq. 
-  - eapply GEq_WPair; eauto.
-    destruct (q_leb psi0 psi) eqn:L.
-    unfold is_true in H1. done.
-    eapply CEq_Nleq; eauto using Grade_lc, Grade_uniq. 
-  - eapply GEq_SPair; eauto.
-    destruct (q_leb psi0 psi) eqn:L.
-    unfold is_true in H1. done.
-    eapply CEq_Nleq; eauto using Grade_lc, Grade_uniq. 
+  eapply CGrade_Grade_mutual.
+  all: intros; eauto.
+Qed.
+
+Lemma GEq_refl : forall P phi a, Grade P phi a -> GEq P phi a a.
+  intros. eapply CEq_GEq_refl. auto.
 Qed.
 
 Lemma CEq_refl : forall P phi a psi, Grade P phi a -> CEq P phi psi a a.
@@ -333,50 +344,54 @@ Local Ltac defeq_subst_ih :=  match goal with
     repeat rewrite subst_tm_tm_open_tm_wrt_tm in H5; eauto 3 using CGrade_lc;
     repeat rewrite subst_tm_tm_var_neq in H5; eauto end.
 
-Lemma DefEq_substitution_CGrade : 
+Lemma CDefEq_DefEq_substitution_CGrade : 
+  (forall P phi phi0 b1 b2, CDefEq P phi phi0 b1 b2 -> forall P1 P2 x psi, 
+        P = P2 ++ [(x,psi)] ++ P1 
+       -> forall a, CGrade P1 phi psi a
+       -> CDefEq (P2 ++ P1) phi phi0 (subst_tm_tm a x b1) (subst_tm_tm a x b2)) /\
   (forall P phi b1 b2, DefEq P phi b1 b2 -> forall P1 P2 x psi, 
         P = P2 ++ [(x,psi)] ++ P1 
        -> forall a, CGrade P1 phi psi a
        -> DefEq (P2 ++ P1) phi (subst_tm_tm a x b1) (subst_tm_tm a x b2)). 
 Proof. 
-  intros P phi b1 b2 h. induction h.
+  apply CDefEq_DefEq_mutual.
   all: intros; subst.  
   all: try solve [eapply Eq_Refl; eauto using Grade_substitution_CGrade].
   all: try solve [eapply Eq_Beta; eauto using Grade_substitution_CGrade, Step_substitution, CGrade_lc].
-  all: try solve [simpl; eapply Eq_AppIrrel; eauto using Grade_substitution_CGrade, subst_tm_tm_lc_tm, CGrade_lc].
-  all: try solve [simpl; eapply Eq_WPairIrrel; eauto using Grade_substitution_CGrade, subst_tm_tm_lc_tm, CGrade_lc].
-  all: try solve [simpl; eapply Eq_SPairIrrel; eauto using Grade_substitution_CGrade, subst_tm_tm_lc_tm, CGrade_lc].
+  all: try solve [simpl; eapply Eq_App; eauto using Grade_substitution_CGrade, subst_tm_tm_lc_tm, CGrade_lc].
+  all: try solve [simpl; eapply Eq_WPair; eauto using Grade_substitution_CGrade, subst_tm_tm_lc_tm, CGrade_lc].
+  all: try solve [simpl; eapply Eq_SPair; eauto using Grade_substitution_CGrade, subst_tm_tm_lc_tm, CGrade_lc].
   all: try solve [repeat invert_Grade; subst;
-    simpl; fresh_apply_DefEq y; eauto 2;
+    simpl; fresh_apply_DefEq y; eauto 3 using subst_tm_tm_lc_tm, CGrade_lc;
     repeat spec y;
     defeq_subst_ih] .
   all: try solve [simpl; eauto 3].
   eapply Eq_Trans; eauto 2.
   all: try solve [simpl; eauto 4 using Grade_substitution_CGrade, Step_substitution, CGrade_lc].
   - eapply Eq_PiFst; eauto 1. 
-    specialize (IHh _ _ _ _ ltac:(eauto) _ ltac:(eauto));
-    simpl in IHh; eauto.
+    specialize (H _ _ _ _ ltac:(eauto) _ ltac:(eauto));
+    simpl in H; eauto.
   - repeat rewrite subst_tm_tm_open_tm_wrt_tm; eauto 2 using CGrade_lc.
-    match goal with [H0 : CGrade _ _ _ _|- _ ] => 
-    specialize (IHh2 _ _ _ _ ltac:(eauto) _ H0);
-    specialize (IHh1 _ _ _ _ ltac:(eauto) _ H0) end. simpl in IHh1.
+    match goal with [H2 : CGrade _ _ _ _|- _ ] => 
+    specialize (H0 _ _ _ _ ltac:(eauto) _ H2);
+    specialize (H _ _ _ _ ltac:(eauto) _ H2) end. simpl in H0.
     eapply Eq_PiSnd; eauto 3 using Grade_substitution_CGrade, subst_tm_tm_lc_tm, CGrade_lc.    
   - repeat rewrite subst_tm_tm_open_tm_wrt_tm; eauto 2 using CGrade_lc.
-    specialize (IHh _ _ _ _ ltac:(eauto) _ H0); simpl in IHh; eauto.
+    specialize (H _ _ _ _ ltac:(eauto) _ H1); simpl in H; eauto.
   - repeat rewrite subst_tm_tm_open_tm_wrt_tm; eauto 2 using CGrade_lc.
-    specialize (IHh _ _ _ _ ltac:(eauto) _ H1); simpl in IHh.
+    specialize (H _ _ _ _ ltac:(eauto) _ H1); simpl in H.
     eapply Eq_WSigmaSnd; eauto using Grade_substitution_CGrade.
-  - specialize (IHh _ _ _ _ ltac:(eauto) _ H0); simpl in IHh.
+  - specialize (H _ _ _ _ ltac:(eauto) _ H1); simpl in H.
     eapply Eq_SSigmaFst; eauto using Grade_substitution_CGrade.
   - repeat rewrite subst_tm_tm_open_tm_wrt_tm; eauto 2 using CGrade_lc.
-    specialize (IHh1 _ _ _ _ ltac:(eauto) _ H0); simpl in IHh1.
+    specialize (H _ _ _ _ ltac:(eauto) _ H2); simpl in H.
     eapply Eq_SSigmaSnd; eauto using Grade_substitution_CGrade.
   - eapply Eq_SumFst; eauto 1.  
-    specialize (IHh _ _ _ _ ltac:(eauto) _ ltac:(eauto));
-    simpl in IHh; eauto.
+    specialize (H _ _ _ _ ltac:(eauto) _ ltac:(eauto));
+    simpl in H; eauto.
   - eapply Eq_SumSnd; eauto 1.  
-    specialize (IHh _ _ _ _ ltac:(eauto) _ ltac:(eauto));
-    simpl in IHh; eauto.
+    specialize (H _ _ _ _ ltac:(eauto) _ ltac:(eauto));
+    simpl in H; eauto.
   - simpl.
     eapply Eq_Case; eauto.
   - repeat invert_Grade; subst;
@@ -386,12 +401,23 @@ Proof.
     eauto using subst_tm_tm_lc_tm, CGrade_lc.    
     eauto using subst_tm_tm_lc_tm, CGrade_lc.    
     repeat spec y.
-    specialize (H3 P1 ([(y, psi)] ++ P2) x psi0).
-    simpl_env in H3. specialize (H3 ltac:(auto)).
-    specialize (H3 _ ltac:(eassumption)).
-    repeat rewrite subst_tm_tm_open_tm_wrt_tm in H3; eauto 2 using CGrade_lc.
-    rewrite subst_tm_tm_var_neq in H3. auto.
+    specialize (H2 P1 ([(y, psi)] ++ P2) x psi0).
+    simpl_env in H2. specialize (H2 ltac:(auto)).
+    specialize (H2 _ ltac:(eassumption)).
+    repeat rewrite subst_tm_tm_open_tm_wrt_tm in H2; eauto 2 using CGrade_lc.
+    rewrite subst_tm_tm_var_neq in H2. auto.
     auto.
+  - eapply CDefEq_Nleq; eauto using subst_tm_tm_lc_tm, CGrade_lc.
+Qed.
+
+Lemma DefEq_substitution_CGrade : 
+  (forall P phi b1 b2, DefEq P phi b1 b2 -> forall P1 P2 x psi, 
+        P = P2 ++ [(x,psi)] ++ P1 
+       -> forall a, CGrade P1 phi psi a
+       -> DefEq (P2 ++ P1) phi (subst_tm_tm a x b1) (subst_tm_tm a x b2)). 
+Proof.
+  intros. 
+  eapply CDefEq_DefEq_substitution_CGrade; eauto.
 Qed.
 
 Lemma DefEq_substitution_same : 
@@ -413,6 +439,8 @@ Lemma DefEq_substitution_irrel : forall (P : econtext) (psi : grade) (b1 b2 : tm
 Proof. 
   intros.
   eapply DefEq_substitution_CGrade; eauto.
+  subst. apply DefEq_uniq in H. destruct_uniq.
+  auto.
 Qed.
 
 
@@ -450,33 +478,38 @@ Ltac exists_apply_DefEq x :=
 Local Ltac par_subst2_ih :=
     match goal with 
       | [H3 : forall P3 x0 phi0 P4,
-            [(?y, ?psi0)] ++ ?P2 ++ [(?x, ?phi)] ++ ?P1 ~= P3 ++ [(x0, phi0)] ++ P4 -> _ |- _ ] => 
+            (?y, ?psi0) :: ?P2 ++ (?x, ?phi) :: ?P1 = P3 ++ (x0, phi0) ::  P4 -> _ |- _ ] => 
     specialize (H3 ([(y, psi0)] ++ P2) x phi P1 ltac:(reflexivity) _ ltac:(eassumption));
     simpl_env in H3;
     repeat rewrite subst_tm_tm_open_tm_wrt_tm in H3; eauto 3 using CGrade_lc, Par_lc1, Par_lc2;
     repeat rewrite subst_tm_tm_var_neq in H3 
     end.
 
+Lemma CPar_Par_substitution_CGrade : (forall P psi psi0 a a', 
+  CPar P psi psi0 a a' -> forall P2 x phi P1, P = (P2 ++ [(x, phi)] ++ P1) ->
+  forall b, CGrade P1 psi phi b ->
+  CPar (P2 ++ P1) psi psi0 (subst_tm_tm b x a) (subst_tm_tm b x a')) /\ (forall P psi a a', 
+  Par P psi a a' -> forall P2 x phi P1, P = (P2 ++ [(x, phi)] ++ P1) ->
+  forall b, CGrade P1 psi phi b ->
+  Par (P2 ++ P1) psi (subst_tm_tm b x a) (subst_tm_tm b x a')).
+Proof.
+  apply CPar_Par_mutual.
+  all: simpl; intros; subst.
+  all: simpl; eauto using Grade_substitution_CGrade, GEq_substitution_same, GEq_substitution_irrel.
+  (* 9 subgoals *)
+  all: repeat rewrite subst_tm_tm_open_tm_wrt_tm; eauto using CGrade_lc.
+  all: try solve [fresh_apply_Par y; eauto; repeat spec y;
+            par_subst2_ih; eauto].
+  (* 2 subgoals *)
+  - simpl_env in *. eapply Par_Refl; eauto using Grade_substitution_CGrade.
+  - simpl_env in *. eapply CPar_Nleq; eauto using CGrade_lc, subst_tm_tm_lc_tm.
+Qed.
+
 Lemma Par_substitution_CGrade : forall P2 x phi P1 psi a a', 
   Par (P2 ++ [(x, phi)] ++ P1) psi a a' -> 
   forall b, CGrade P1 psi phi b ->
   Par (P2 ++ P1) psi (subst_tm_tm b x a) (subst_tm_tm b x a').
-Proof.
-  intros P2 x phi P1 psi a a' PAR.
-  dependent induction PAR; simpl; intros.
-  all: simpl; eauto using Grade_substitution_CGrade, GEq_substitution_same, GEq_substitution_irrel.
-  (* 13 subgoals *)
-  all: repeat rewrite subst_tm_tm_open_tm_wrt_tm; eauto using CGrade_lc.
-  all: try solve [fresh_apply_Par y; eauto; repeat spec y;
-            par_subst2_ih; eauto].
-  (* 6 subgoals *)
-  all: try (eapply_ParIrrel; eauto using CGrade_lc, subst_tm_tm_lc_tm).
-  - eapply Par_Proj1Beta; eauto using CGrade_lc, subst_tm_tm_lc_tm.
-    simpl in IHPAR. eauto.
-  - eapply Par_Proj2Beta; eauto using CGrade_lc, subst_tm_tm_lc_tm.
-    simpl in IHPAR. eauto.
-Qed.
-
+Proof. intros. eapply CPar_Par_substitution_CGrade; eauto. Qed.
 
 Lemma subst2 : forall x phi P1 psi a a' b, 
   Par ([(x, phi)] ++ P1) psi a a' -> 
@@ -491,7 +524,10 @@ Lemma subst2_irrel : forall x phi P1 psi a a',
   Par P1 psi (subst_tm_tm b x a) (subst_tm_tm b x a').
 Proof.
   intros.
-  eapply Par_substitution_CGrade with (P2:=nil); eauto. Qed.
+  eapply Par_substitution_CGrade with (P2:=nil); eauto. 
+  apply Par_uniq in H. destruct_uniq.
+  eapply CG_Nleq; eauto.
+Qed.
 
 Lemma Par_renaming : forall y x psi0 P psi b1 b2, 
     x `notin` dom P \u fv_tm_tm b1 \u fv_tm_tm b2 -> 
@@ -535,8 +571,8 @@ Lemma subst5_full :
  (forall P psi psi0 a a',
   CEq P psi psi0 a a' ->  forall P1 P2 x phi,
         P = P2 ++ [(x,phi)] ++ P1 
-       -> psi0 <= psi -> forall b b', CPar P1 psi phi b b' 
-       -> Par (P2 ++ P1) psi (subst_tm_tm b x a) (subst_tm_tm b' x a')) /\
+       -> forall b b', CPar P1 psi phi b b' 
+       -> CPar (P2 ++ P1) psi psi0 (subst_tm_tm b x a) (subst_tm_tm b' x a')) /\
   (forall P psi a a',
   GEq P psi a a' -> forall P1 P2 x phi, 
         P = P2 ++ [(x,phi)] ++ P1 
@@ -551,6 +587,8 @@ Proof.
     apply binds_mid_eq in b; auto; subst; done
   | eauto].
 
+  all: try move: (CEq_uniq c) => U; destruct_uniq.
+
   all : try solve [
   fresh_apply_Par y; eauto 3; repeat spec y;
   match goal with 
@@ -560,24 +598,43 @@ Proof.
     simpl_env in H3;
     repeat rewrite subst_tm_tm_open_tm_wrt_tm in H3; eauto 3 using Grade_lc, CPar_lc1, CPar_lc2;
     repeat rewrite subst_tm_tm_var_neq in H3 end; eauto 3 ].
-
-  all: destruct (q_leb psi0 psi) eqn:LE; try done.
-  eapply Par_AppRel; eauto 3 using Grade_lc, CPar_lc1, CPar_lc2, subst_tm_tm_lc_tm.
-  eapply Par_AppIrrel; eauto 4 using Grade_lc, CPar_lc1, CPar_lc2, CEq_lc1, CEq_lc2, subst_tm_tm_lc_tm.
-  rewrite LE. done.
-
-  eapply Par_WPairRel; eauto 3 using Grade_lc, CPar_lc1, CPar_lc2, subst_tm_tm_lc_tm.
-  eapply Par_WPairIrrel; eauto 4 using Grade_lc, CPar_lc1, CPar_lc2, CEq_lc1, CEq_lc2, subst_tm_tm_lc_tm.
-  rewrite LE. done.
-
-  eapply Par_SPairRel; eauto 3 using Grade_lc, CPar_lc1, CPar_lc2, subst_tm_tm_lc_tm.
-  eapply Par_SPairIrrel; eauto 4 using Grade_lc, CPar_lc1, CPar_lc2, CEq_lc1, CEq_lc2, subst_tm_tm_lc_tm.
-  rewrite LE. done.
+  eapply CPar_Nleq; eauto 3 using CPar_lc1, CPar_lc2, subst_tm_tm_lc_tm.
 Qed.
 
 
+Lemma Par_subst3_full : forall P1 psi phi b b',
+    CPar P1 psi phi b b' ->
+    ((forall P psi1 psi0 a a', CPar P psi1 psi0 a a' -> forall P2 x, P = (P2 ++ [(x,phi)] ++ P1) -> psi = psi1 -> 
+    CPar (P2 ++ P1) psi1 psi0 (subst_tm_tm b x a) (subst_tm_tm b' x a'))) /\ 
+    (forall P psi1 a a', Par P psi1 a a' -> forall P2 x, P = (P2 ++ [(x,phi)] ++ P1) -> psi = psi1 ->
+    Par (P2 ++ P1) psi1 (subst_tm_tm b x a) (subst_tm_tm b' x a')).
+Proof.
+  intros.
+  apply CPar_Par_mutual.
+  all: intros; subst; simpl; eauto 4.
+  (* refl case *)
+  move: (subst5_full) => [_ h]. 
+  eapply h; eauto using GEq_refl.
 
+  all: repeat rewrite subst_tm_tm_open_tm_wrt_tm; eauto 2 using  CPar_lc1, CPar_lc2.
+  all: eauto.
+(*  all: try (eapply_ParIrrel; eauto 3 using CPar_lc1, CPar_lc2, subst_tm_tm_lc_tm).   *)
 
+  all: try solve [
+  fresh_apply_Par y; eauto 3; repeat spec y;
+  match goal with 
+      | [H3 : forall P3 x0,
+            [(?y, ?psi0)] ++ ?P2 ++ [(?x, ?phi)] ++ ?P1 = P3 ++ [(x0, ?phi0)] ++ ?P5 -> _ |- _ ] => 
+    specialize (H3 ([(y, psi0)] ++ P2) x ltac:(reflexivity) ltac:(reflexivity));
+    simpl_env in H3;
+    repeat rewrite subst_tm_tm_open_tm_wrt_tm in H3; eauto 3 using Grade_lc, CPar_lc1, CPar_lc2;
+    repeat rewrite subst_tm_tm_var_neq in H3 end; eauto 3].
+
+  destruct_uniq.
+ eapply CPar_Nleq; eauto 3 using CPar_lc1, CPar_lc2, subst_tm_tm_lc_tm.
+Qed.
+
+(*
 Lemma Par_subst3_full : forall P2 phi P1 b psi b' x,
     CPar P1 psi phi b b' ->
     forall a a', Par (P2 ++ [(x,phi)] ++ P1) psi a a' ->
@@ -612,6 +669,7 @@ Proof.
   eapply Par_Proj2Beta; eauto.
   eapply IHPar; eauto.
 Qed.
+*)
 
 Lemma Par_subst3 : forall P1 phi b psi b' x,
     CPar P1 psi phi b b' ->

@@ -6,10 +6,12 @@ Set Implicit Arguments.
 Open Scope grade_scope.
 
 
-Lemma DefEq_Grade : forall P psi a b, DefEq P psi a b -> Grade P psi a /\ Grade P psi b.
+Lemma CDefEq_DefEq_Grade : 
+  (forall P psi phi a b, CDefEq P psi phi a b -> CGrade P psi phi a /\ CGrade P psi phi b) /\
+  (forall P psi a b, DefEq P psi a b -> Grade P psi a /\ Grade P psi b).
 Proof.
-  intros P psi a b h. induction h.
-  all: split; split_hyp; eauto.
+  apply CDefEq_DefEq_mutual.
+  all: intros; split; split_hyp; eauto.
   all: try solve [eauto using leq_join_r ].
   all: try solve [repeat invert_Grade; subst; eauto].
   all: try solve [fresh_apply_Grade x; auto;
@@ -25,6 +27,8 @@ Proof.
 
 Qed.
 
+Lemma DefEq_Grade : forall P psi a b, DefEq P psi a b -> Grade P psi a /\ Grade P psi b.
+Proof. apply  CDefEq_DefEq_Grade. Qed.
 
 Lemma DefEq_Grade1 : forall {W psi a b}, DefEq W psi a b -> Grade W psi a. 
 eapply DefEq_Grade; auto. Qed.
@@ -33,21 +37,11 @@ eapply DefEq_Grade; auto. Qed.
 
 
 Lemma CEqGEq_DefEq : 
-  (forall P phi phi0 a b, CEq P phi phi0 a b -> phi0 <= phi -> DefEq P phi a b) /\
+  (forall P phi phi0 a b, CEq P phi phi0 a b -> CDefEq P phi phi0 a b) /\
   (forall P phi a b, GEq P phi a b -> DefEq P phi a b).
 Proof. 
   eapply CEq_GEq_mutual.
   all: intros; eauto 3.
-  all: destruct (q_leb psi0 psi) eqn:LE.
-  all: eauto 4.
-  + eapply Eq_AppIrrel; eauto using CEq_lc1. eapply CEq_lc2; eauto.
-    rewrite LE; try done.
-  + eapply Eq_WPairIrrel; eauto using CEq_lc1. eauto using CEq_lc2.
-    rewrite LE; try done.
-  + eapply Eq_SPairIrrel; eauto using CEq_lc1. eauto using CEq_lc2.
-    rewrite LE; try done.
-  + done.
-  + done.
 Qed.
 
 
@@ -73,6 +67,8 @@ Proof.
   eapply Grade_substitution_irrel; eauto using DefEq_lc2.
 Qed.
 
+Parameter star : sort.
+
 Lemma DefEq_equality_substitution : (forall P phi b1 b2,
   DefEq P phi b1 b2 -> forall P1 x psi, 
         P = [(x,psi)] ++ P1 
@@ -83,8 +79,8 @@ Proof.
   intros.
   subst.
   move: (DefEq_uniq H) => h. destruct_uniq.
-  have RE: DefEq P1 phi (a_Pi psi a_Type (close_tm_wrt_tm x b1))
-                       (a_Pi psi a_Type (close_tm_wrt_tm x b2)).
+  have RE: DefEq P1 phi (a_Pi psi (a_Type star) (close_tm_wrt_tm x b1))
+                        (a_Pi psi (a_Type star) (close_tm_wrt_tm x b2)).
   + pick fresh y and apply Eq_Pi. eapply Eq_Refl; eauto.
     rewrite <- subst_tm_tm_spec.
     rewrite <- subst_tm_tm_spec.
