@@ -3,7 +3,7 @@ OTT_LOC    = ..
 FILES      = Qualitative_ott Qualitative_inf
 OTTFILES   = $(foreach i, $(OTT_SOURCE), $(OTT_LOC)/$(i).ott)
 OTTIFLAGS  = $(foreach i, $(OTT_SOURCE), -i $(OTT_LOC)/$(i).ott) -merge true
-OTTOFLAGS  = $(foreach i, $(OTT_SOURCE), -o $(i)_ott.v)
+OTTOFLAGS  = -o Qualitative_ott.v
 
 
 all: coq
@@ -84,8 +84,8 @@ coq: $(COQMKFILENAME) $(VFILES)
 
 
 %_ott.v: $(OTT_LOC)/%.ott typing.patch
-	ott $(OTTIFLAGS)  $(OTTOFLAGS) -coq_lngen true -coq_expand_list_types true
-#	make PATCH_TYPING_$*_ott
+	ott -i $(OTT_LOC)/Qualitative.ott  $(OTTOFLAGS) -coq_lngen true -coq_expand_list_types true
+	make PATCH_TYPING_$*_ott
 
 %_inf.v: $(OTT_LOC)/%.ott  
 	$(LNGEN) --coq-no-proofs --coq $*_inf.v --coq-ott $*_ott $(OTT_LOC)/$*.ott 
@@ -112,4 +112,4 @@ PATCH_TYPING_%:
 # delete lines from _inf.v file corresponding to "grade".  Need to update this 
 # when .ott file is changed
 GRADE.FIX_%:
-	sed '88,97d' $*.v | sed '18,41d' > __TMP__; mv __TMP__ $*.v
+	sed '87,96d' $*.v | sed '18,41d' > __TMP__; mv __TMP__ $*.v

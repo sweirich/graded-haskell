@@ -13,22 +13,21 @@ Definition grade : Set := grade.
 Definition sort : Set := sort.
 
 Inductive tm : Set :=  (*r terms and types *)
- | a_TyUnit : tm
- | a_TmUnit : tm
- | a_Pi (psi:grade) (A:tm) (B:tm)
- | a_Abs (psi:grade) (A:tm) (a:tm)
- | a_App (a:tm) (psi:grade) (b:tm)
- | a_Type (sort5:sort)
- | a_Var_b (_:nat)
- | a_Var_f (x:tmvar)
- | a_Sum (A1:tm) (A2:tm)
- | a_Inj1 (a:tm)
- | a_Inj2 (a:tm)
- | a_Case (psi:grade) (a:tm) (b1:tm) (b2:tm)
- | a_UCase (a:tm) (b1:tm) (b2:tm)
- | a_WSigma (psi:grade) (A:tm) (B:tm)
- | a_WPair (a:tm) (psi:grade) (b:tm)
- | a_LetPair (psi:grade) (a:tm) (b:tm)
+ | a_TyUnit : tm (*r unit type *)
+ | a_TmUnit : tm (*r unit term *)
+ | a_Pi (psi:grade) (A:tm) (B:tm) (*r dependent function type *)
+ | a_Abs (psi:grade) (A:tm) (a:tm) (*r function *)
+ | a_App (a:tm) (psi:grade) (b:tm) (*r function application *)
+ | a_Type (s:sort) (*r sort *)
+ | a_Var_b (_:nat) (*r variable *)
+ | a_Var_f (x:tmvar) (*r variable *)
+ | a_Sum (A1:tm) (A2:tm) (*r sum type *)
+ | a_Inj1 (a:tm) (*r injection into sum type *)
+ | a_Inj2 (a:tm) (*r injection into sum type *)
+ | a_Case (psi:grade) (a:tm) (b1:tm) (b2:tm) (*r case elimination of sum type *)
+ | a_WSigma (psi:grade) (A:tm) (B:tm) (*r dependent tuple type *)
+ | a_WPair (a:tm) (psi:grade) (b:tm) (*r tuple creation *)
+ | a_LetPair (psi:grade) (a:tm) (b:tm) (*r tuple elimination *)
  | a_SSigma (psi:grade) (A:tm) (B:tm)
  | a_SPair (a:tm) (psi:grade) (b:tm)
  | a_Proj1 (psi:grade) (a:tm)
@@ -51,7 +50,7 @@ Fixpoint open_tm_wrt_tm_rec (k:nat) (a5:tm) (a_6:tm) {struct a_6}: tm :=
   | (a_Pi psi A B) => a_Pi psi (open_tm_wrt_tm_rec k a5 A) (open_tm_wrt_tm_rec (S k) a5 B)
   | (a_Abs psi A a) => a_Abs psi (open_tm_wrt_tm_rec k a5 A) (open_tm_wrt_tm_rec (S k) a5 a)
   | (a_App a psi b) => a_App (open_tm_wrt_tm_rec k a5 a) psi (open_tm_wrt_tm_rec k a5 b)
-  | (a_Type sort5) => a_Type sort5
+  | (a_Type s) => a_Type s
   | (a_Var_b nat) => 
       match lt_eq_lt_dec nat k with
         | inleft (left _) => a_Var_b nat
@@ -63,7 +62,6 @@ Fixpoint open_tm_wrt_tm_rec (k:nat) (a5:tm) (a_6:tm) {struct a_6}: tm :=
   | (a_Inj1 a) => a_Inj1 (open_tm_wrt_tm_rec k a5 a)
   | (a_Inj2 a) => a_Inj2 (open_tm_wrt_tm_rec k a5 a)
   | (a_Case psi a b1 b2) => a_Case psi (open_tm_wrt_tm_rec k a5 a) (open_tm_wrt_tm_rec k a5 b1) (open_tm_wrt_tm_rec k a5 b2)
-  | (a_UCase a b1 b2) => a_UCase (open_tm_wrt_tm_rec k a5 a) (open_tm_wrt_tm_rec k a5 b1) (open_tm_wrt_tm_rec k a5 b2)
   | (a_WSigma psi A B) => a_WSigma psi (open_tm_wrt_tm_rec k a5 A) (open_tm_wrt_tm_rec (S k) a5 B)
   | (a_WPair a psi b) => a_WPair (open_tm_wrt_tm_rec k a5 a) psi (open_tm_wrt_tm_rec k a5 b)
   | (a_LetPair psi a b) => a_LetPair psi (open_tm_wrt_tm_rec k a5 a) (open_tm_wrt_tm_rec (S k) a5 b)
@@ -96,8 +94,8 @@ Inductive lc_tm : tm -> Prop :=    (* defn lc_tm *)
      (lc_tm a) ->
      (lc_tm b) ->
      (lc_tm (a_App a psi b))
- | lc_a_Type : forall (sort5:sort),
-     (lc_tm (a_Type sort5))
+ | lc_a_Type : forall (s:sort),
+     (lc_tm (a_Type s))
  | lc_a_Var_f : forall (x:tmvar),
      (lc_tm (a_Var_f x))
  | lc_a_Sum : forall (A1 A2:tm),
@@ -115,11 +113,6 @@ Inductive lc_tm : tm -> Prop :=    (* defn lc_tm *)
      (lc_tm b1) ->
      (lc_tm b2) ->
      (lc_tm (a_Case psi a b1 b2))
- | lc_a_UCase : forall (a b1 b2:tm),
-     (lc_tm a) ->
-     (lc_tm b1) ->
-     (lc_tm b2) ->
-     (lc_tm (a_UCase a b1 b2))
  | lc_a_WSigma : forall (psi:grade) (A B:tm),
      (lc_tm A) ->
       ( forall x , lc_tm  ( open_tm_wrt_tm B (a_Var_f x) )  )  ->
@@ -154,14 +147,13 @@ Fixpoint fv_tm_tm (a5:tm) : vars :=
   | (a_Pi psi A B) => (fv_tm_tm A) \u (fv_tm_tm B)
   | (a_Abs psi A a) => (fv_tm_tm A) \u (fv_tm_tm a)
   | (a_App a psi b) => (fv_tm_tm a) \u (fv_tm_tm b)
-  | (a_Type sort5) => {}
+  | (a_Type s) => {}
   | (a_Var_b nat) => {}
   | (a_Var_f x) => {{x}}
   | (a_Sum A1 A2) => (fv_tm_tm A1) \u (fv_tm_tm A2)
   | (a_Inj1 a) => (fv_tm_tm a)
   | (a_Inj2 a) => (fv_tm_tm a)
   | (a_Case psi a b1 b2) => (fv_tm_tm a) \u (fv_tm_tm b1) \u (fv_tm_tm b2)
-  | (a_UCase a b1 b2) => (fv_tm_tm a) \u (fv_tm_tm b1) \u (fv_tm_tm b2)
   | (a_WSigma psi A B) => (fv_tm_tm A) \u (fv_tm_tm B)
   | (a_WPair a psi b) => (fv_tm_tm a) \u (fv_tm_tm b)
   | (a_LetPair psi a b) => (fv_tm_tm a) \u (fv_tm_tm b)
@@ -179,14 +171,13 @@ Fixpoint subst_tm_tm (a5:tm) (x5:tmvar) (a_6:tm) {struct a_6} : tm :=
   | (a_Pi psi A B) => a_Pi psi (subst_tm_tm a5 x5 A) (subst_tm_tm a5 x5 B)
   | (a_Abs psi A a) => a_Abs psi (subst_tm_tm a5 x5 A) (subst_tm_tm a5 x5 a)
   | (a_App a psi b) => a_App (subst_tm_tm a5 x5 a) psi (subst_tm_tm a5 x5 b)
-  | (a_Type sort5) => a_Type sort5
+  | (a_Type s) => a_Type s
   | (a_Var_b nat) => a_Var_b nat
   | (a_Var_f x) => (if eq_var x x5 then a5 else (a_Var_f x))
   | (a_Sum A1 A2) => a_Sum (subst_tm_tm a5 x5 A1) (subst_tm_tm a5 x5 A2)
   | (a_Inj1 a) => a_Inj1 (subst_tm_tm a5 x5 a)
   | (a_Inj2 a) => a_Inj2 (subst_tm_tm a5 x5 a)
   | (a_Case psi a b1 b2) => a_Case psi (subst_tm_tm a5 x5 a) (subst_tm_tm a5 x5 b1) (subst_tm_tm a5 x5 b2)
-  | (a_UCase a b1 b2) => a_UCase (subst_tm_tm a5 x5 a) (subst_tm_tm a5 x5 b1) (subst_tm_tm a5 x5 b2)
   | (a_WSigma psi A B) => a_WSigma psi (subst_tm_tm a5 x5 A) (subst_tm_tm a5 x5 B)
   | (a_WPair a psi b) => a_WPair (subst_tm_tm a5 x5 a) psi (subst_tm_tm a5 x5 b)
   | (a_LetPair psi a b) => a_LetPair psi (subst_tm_tm a5 x5 a) (subst_tm_tm a5 x5 b)
@@ -234,8 +225,7 @@ Fixpoint close_tm_wrt_tm_rec (n1 : nat) (x1 : tmvar) (a1 : tm) {struct a1} : tm 
     | a_Sum A1 A2 => a_Sum (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec n1 x1 A2)
     | a_Inj1 a2 => a_Inj1 (close_tm_wrt_tm_rec n1 x1 a2)
     | a_Inj2 a2 => a_Inj2 (close_tm_wrt_tm_rec n1 x1 a2)
-    | a_Case psi1 a2 b1 b2 => a_Case psi1 (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1) (close_tm_wrt_tm_rec n1 x1 b2)
-    | a_UCase a2 b1 b2 => a_UCase (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1) (close_tm_wrt_tm_rec n1 x1 b2)
+    | a_Case psi a2 b1 b2 => a_Case psi (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1) (close_tm_wrt_tm_rec n1 x1 b2)
     | a_WSigma psi1 A1 B1 => a_WSigma psi1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 B1)
     | a_WPair a2 psi1 b1 => a_WPair (close_tm_wrt_tm_rec n1 x1 a2) psi1 (close_tm_wrt_tm_rec n1 x1 b1)
     | a_LetPair psi1 a2 b1 => a_LetPair psi1 (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec (S n1) x1 b1)

@@ -346,7 +346,7 @@ Fixpoint close_tm_wrt_tm_rec (n1 : nat) (x1 : tmvar) (a1 : tm) {struct a1} : tm 
     | a_Sum A1 A2 => a_Sum (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec n1 x1 A2)
     | a_Inj1 a2 => a_Inj1 (close_tm_wrt_tm_rec n1 x1 a2)
     | a_Inj2 a2 => a_Inj2 (close_tm_wrt_tm_rec n1 x1 a2)
-    | a_UCase a2 b1 b2 => a_UCase (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1) (close_tm_wrt_tm_rec n1 x1 b2)
+    | a_Case psi a2 b1 b2 => a_Case psi (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1) (close_tm_wrt_tm_rec n1 x1 b2)
     | a_WSigma psi1 A1 B1 => a_WSigma psi1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 B1)
     | a_WPair a2 psi1 b1 => a_WPair (close_tm_wrt_tm_rec n1 x1 a2) psi1 (close_tm_wrt_tm_rec n1 x1 b1)
     | a_LetPair psi1 a2 b1 => a_LetPair psi1 (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec (S n1) x1 b1)
