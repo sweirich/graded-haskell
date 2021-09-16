@@ -1,36 +1,36 @@
-OTT_SOURCE = Qualitative
+OTT_SOURCE = Qualitative Auxiliary
 OTT_LOC    = ..
 FILES      = Qualitative_ott Qualitative_inf
 OTTFILES   = $(foreach i, $(OTT_SOURCE), $(OTT_LOC)/$(i).ott)
-OTTIFLAGS  = $(foreach i, $(OTT_SOURCE), -i $(OTT_LOC)/$(i).ott)
+OTTIFLAGS  = $(foreach i, $(OTT_SOURCE), -i $(OTT_LOC)/$(i).ott) -merge true
 OTTOFLAGS  = $(foreach i, $(OTT_SOURCE), -o $(i)_ott.v)
+
 
 all: coq
 
 ################ latex ####################
 
-SPEC = $(OTT_LOC)/$(OTT_SOURCE).ott
+SPEC = spec.mng
 SPECFILE = spec.tex
-RULESFILE = qualitative-rules.tex
+RULESFILE = qualitative-rules.tex 
 
 spec.pdf: $(SPEC) $(SPECFILE)
-	ott -o $(RULESFILE) \
-					-tex_wrap false \
-					-tex_show_meta false $(SPEC)
+	ott $(OTTIFLAGS) \
+	    -tex_wrap false -tex_show_meta false -tex_filter $(SPEC) $(SPECFILE)
 	pdflatex -interaction nonstopmode $(SPECFILE)
 	mv spec.pdf ..
 
 
-$(RULESFILE): $(SPEC)
+$(RULESFILE) : $(OTTFILES)
 	ott $(OTTIFLAGS) -o $(RULESFILE) \
-					-tex_wrap false \
-					-tex_show_meta false
+	          -tex_wrap false \
+		  -tex_show_meta false
 
 %.tex: $(RULESFILE) %.mng Makefile
 	ott $(OTTIFLAGS) \
-										-tex_wrap false \
-										-tex_show_meta false \
-										-tex_filter $*.mng $*.tex
+            -tex_wrap false \
+	    -tex_show_meta false \
+	    -tex_filter $*.mng $*.tex
 
 %.pdf : %.tex $(RULESFILE)
 	latexmk -bibtex -pdf $*.tex
