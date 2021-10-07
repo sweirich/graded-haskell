@@ -65,7 +65,7 @@ Contents
       grade.v              - Step relation preserves Grade
       geq.v                - Properties of CEq / GEq 
                                  equivalence relation
-                                 respects step
+                                 respects step  (Main non-interference theorem)
                                  implies Grade
       defeq.v              - Properties of DefEq
                                  implies grade
