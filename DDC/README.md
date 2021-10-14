@@ -82,8 +82,11 @@ Contents
       consist.v            - Definitional Equality is consistent
       progress.v           - Main Progress lemma
 
-      strong_exists.v      - Derive projections of strong Sigmas from weak Sigmas
+* Other
 
+      strong_exists.v      - Derive projections of strong Sigmas from pattern matching
+                             [Caveat: two Axioms about variable renaming.]
+      erasure.v            - Justify using runtime irrelevance to erase terms
 
 
 
