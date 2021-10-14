@@ -18,14 +18,14 @@ Require Export Qualitative_ott.
 Scheme tm_ind' := Induction for tm Sort Prop.
 
 Definition tm_mutind :=
-  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 =>
-  tm_ind' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21.
+  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 =>
+  tm_ind' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20.
 
 Scheme tm_rec' := Induction for tm Sort Set.
 
 Definition tm_mutrec :=
-  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 =>
-  tm_rec' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21.
+  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 =>
+  tm_rec' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20.
 
 
 (* *********************************************************************** *)
@@ -36,16 +36,15 @@ Fixpoint close_tm_wrt_tm_rec (n1 : nat) (x1 : tmvar) (a1 : tm) {struct a1} : tm 
     | a_TyUnit => a_TyUnit
     | a_TmUnit => a_TmUnit
     | a_Pi psi1 A1 B1 => a_Pi psi1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 B1)
-    | a_Abs psi1 a2 => a_Abs psi1 (close_tm_wrt_tm_rec (S n1) x1 a2)
+    | a_Abs psi1 A1 a2 => a_Abs psi1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 a2)
     | a_App a2 psi1 b1 => a_App (close_tm_wrt_tm_rec n1 x1 a2) psi1 (close_tm_wrt_tm_rec n1 x1 b1)
-    | a_Type => a_Type
+    | a_Type s1 => a_Type s1
     | a_Var_f x2 => if (x1 == x2) then (a_Var_b n1) else (a_Var_f x2)
     | a_Var_b n2 => if (lt_ge_dec n2 n1) then (a_Var_b n2) else (a_Var_b (S n2))
     | a_Sum A1 A2 => a_Sum (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec n1 x1 A2)
     | a_Inj1 a2 => a_Inj1 (close_tm_wrt_tm_rec n1 x1 a2)
     | a_Inj2 a2 => a_Inj2 (close_tm_wrt_tm_rec n1 x1 a2)
     | a_Case psi1 a2 b1 b2 => a_Case psi1 (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1) (close_tm_wrt_tm_rec n1 x1 b2)
-    | a_UCase a2 b1 b2 => a_UCase (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1) (close_tm_wrt_tm_rec n1 x1 b2)
     | a_WSigma psi1 A1 B1 => a_WSigma psi1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 B1)
     | a_WPair a2 psi1 b1 => a_WPair (close_tm_wrt_tm_rec n1 x1 a2) psi1 (close_tm_wrt_tm_rec n1 x1 b1)
     | a_LetPair psi1 a2 b1 => a_LetPair psi1 (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec (S n1) x1 b1)
@@ -66,16 +65,15 @@ Fixpoint size_tm (a1 : tm) {struct a1} : nat :=
     | a_TyUnit => 1
     | a_TmUnit => 1
     | a_Pi psi1 A1 B1 => 1 + (size_grade psi1) + (size_tm A1) + (size_tm B1)
-    | a_Abs psi1 a2 => 1 + (size_grade psi1) + (size_tm a2)
+    | a_Abs psi1 A1 a2 => 1 + (size_grade psi1) + (size_tm A1) + (size_tm a2)
     | a_App a2 psi1 b1 => 1 + (size_tm a2) + (size_grade psi1) + (size_tm b1)
-    | a_Type => 1
+    | a_Type s1 => 1 + (size_sort s1)
     | a_Var_f x1 => 1
     | a_Var_b n1 => 1
     | a_Sum A1 A2 => 1 + (size_tm A1) + (size_tm A2)
     | a_Inj1 a2 => 1 + (size_tm a2)
     | a_Inj2 a2 => 1 + (size_tm a2)
     | a_Case psi1 a2 b1 b2 => 1 + (size_grade psi1) + (size_tm a2) + (size_tm b1) + (size_tm b2)
-    | a_UCase a2 b1 b2 => 1 + (size_tm a2) + (size_tm b1) + (size_tm b2)
     | a_WSigma psi1 A1 B1 => 1 + (size_grade psi1) + (size_tm A1) + (size_tm B1)
     | a_WPair a2 psi1 b1 => 1 + (size_tm a2) + (size_grade psi1) + (size_tm b1)
     | a_LetPair psi1 a2 b1 => 1 + (size_grade psi1) + (size_tm a2) + (size_tm b1)
@@ -100,15 +98,16 @@ Inductive degree_tm_wrt_tm : nat -> tm -> Prop :=
     degree_tm_wrt_tm n1 A1 ->
     degree_tm_wrt_tm (S n1) B1 ->
     degree_tm_wrt_tm n1 (a_Pi psi1 A1 B1)
-  | degree_wrt_tm_a_Abs : forall n1 psi1 a1,
+  | degree_wrt_tm_a_Abs : forall n1 psi1 A1 a1,
+    degree_tm_wrt_tm n1 A1 ->
     degree_tm_wrt_tm (S n1) a1 ->
-    degree_tm_wrt_tm n1 (a_Abs psi1 a1)
+    degree_tm_wrt_tm n1 (a_Abs psi1 A1 a1)
   | degree_wrt_tm_a_App : forall n1 a1 psi1 b1,
     degree_tm_wrt_tm n1 a1 ->
     degree_tm_wrt_tm n1 b1 ->
     degree_tm_wrt_tm n1 (a_App a1 psi1 b1)
-  | degree_wrt_tm_a_Type : forall n1,
-    degree_tm_wrt_tm n1 (a_Type)
+  | degree_wrt_tm_a_Type : forall n1 s1,
+    degree_tm_wrt_tm n1 (a_Type s1)
   | degree_wrt_tm_a_Var_f : forall n1 x1,
     degree_tm_wrt_tm n1 (a_Var_f x1)
   | degree_wrt_tm_a_Var_b : forall n1 n2,
@@ -129,11 +128,6 @@ Inductive degree_tm_wrt_tm : nat -> tm -> Prop :=
     degree_tm_wrt_tm n1 b1 ->
     degree_tm_wrt_tm n1 b2 ->
     degree_tm_wrt_tm n1 (a_Case psi1 a1 b1 b2)
-  | degree_wrt_tm_a_UCase : forall n1 a1 b1 b2,
-    degree_tm_wrt_tm n1 a1 ->
-    degree_tm_wrt_tm n1 b1 ->
-    degree_tm_wrt_tm n1 b2 ->
-    degree_tm_wrt_tm n1 (a_UCase a1 b1 b2)
   | degree_wrt_tm_a_WSigma : forall n1 psi1 A1 B1,
     degree_tm_wrt_tm n1 A1 ->
     degree_tm_wrt_tm (S n1) B1 ->
@@ -164,8 +158,8 @@ Inductive degree_tm_wrt_tm : nat -> tm -> Prop :=
 Scheme degree_tm_wrt_tm_ind' := Induction for degree_tm_wrt_tm Sort Prop.
 
 Definition degree_tm_wrt_tm_mutind :=
-  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 =>
-  degree_tm_wrt_tm_ind' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21.
+  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 =>
+  degree_tm_wrt_tm_ind' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20.
 
 Hint Constructors degree_tm_wrt_tm : core lngen.
 
@@ -182,15 +176,16 @@ Inductive lc_set_tm : tm -> Set :=
     lc_set_tm A1 ->
     (forall x1 : tmvar, lc_set_tm (open_tm_wrt_tm B1 (a_Var_f x1))) ->
     lc_set_tm (a_Pi psi1 A1 B1)
-  | lc_set_a_Abs : forall psi1 a1,
+  | lc_set_a_Abs : forall psi1 A1 a1,
+    lc_set_tm A1 ->
     (forall x1 : tmvar, lc_set_tm (open_tm_wrt_tm a1 (a_Var_f x1))) ->
-    lc_set_tm (a_Abs psi1 a1)
+    lc_set_tm (a_Abs psi1 A1 a1)
   | lc_set_a_App : forall a1 psi1 b1,
     lc_set_tm a1 ->
     lc_set_tm b1 ->
     lc_set_tm (a_App a1 psi1 b1)
-  | lc_set_a_Type :
-    lc_set_tm (a_Type)
+  | lc_set_a_Type : forall s1,
+    lc_set_tm (a_Type s1)
   | lc_set_a_Var_f : forall x1,
     lc_set_tm (a_Var_f x1)
   | lc_set_a_Sum : forall A1 A2,
@@ -208,11 +203,6 @@ Inductive lc_set_tm : tm -> Set :=
     lc_set_tm b1 ->
     lc_set_tm b2 ->
     lc_set_tm (a_Case psi1 a1 b1 b2)
-  | lc_set_a_UCase : forall a1 b1 b2,
-    lc_set_tm a1 ->
-    lc_set_tm b1 ->
-    lc_set_tm b2 ->
-    lc_set_tm (a_UCase a1 b1 b2)
   | lc_set_a_WSigma : forall psi1 A1 B1,
     lc_set_tm A1 ->
     (forall x1 : tmvar, lc_set_tm (open_tm_wrt_tm B1 (a_Var_f x1))) ->
@@ -243,20 +233,20 @@ Inductive lc_set_tm : tm -> Set :=
 Scheme lc_tm_ind' := Induction for lc_tm Sort Prop.
 
 Definition lc_tm_mutind :=
-  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 =>
-  lc_tm_ind' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20.
+  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 =>
+  lc_tm_ind' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19.
 
 Scheme lc_set_tm_ind' := Induction for lc_set_tm Sort Prop.
 
 Definition lc_set_tm_mutind :=
-  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 =>
-  lc_set_tm_ind' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20.
+  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 =>
+  lc_set_tm_ind' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19.
 
 Scheme lc_set_tm_rec' := Induction for lc_set_tm Sort Set.
 
 Definition lc_set_tm_mutrec :=
-  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 =>
-  lc_set_tm_rec' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20.
+  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 =>
+  lc_set_tm_rec' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19.
 
 Hint Constructors lc_tm : core lngen.
 
@@ -293,6 +283,20 @@ Ltac default_case_split ::=
 
 Ltac default_auto ::= auto with arith lngen; tauto.
 Ltac default_autorewrite ::= fail.
+
+(* begin hide *)
+
+Lemma size_sort_min_mutual :
+(forall s1, 1 <= size_sort s1).
+Proof. Admitted.
+
+(* end hide *)
+
+Lemma size_sort_min :
+forall s1, 1 <= size_sort s1.
+Proof. Admitted.
+
+Hint Resolve size_sort_min : lngen.
 
 (* begin hide *)
 
@@ -742,6 +746,12 @@ Proof. Admitted.
 
 Hint Resolve lc_tm_of_degree : lngen.
 
+Ltac sort_lc_exists_tac :=
+  repeat (match goal with
+            | H : _ |- _ =>
+              fail 1
+          end).
+
 Ltac grade_lc_exists_tac :=
   repeat (match goal with
             | H : _ |- _ =>
@@ -762,9 +772,10 @@ forall x1 psi1 A1 B1,
 Proof. Admitted.
 
 Lemma lc_a_Abs_exists :
-forall x1 psi1 a1,
+forall x1 psi1 A1 a1,
+  lc_tm A1 ->
   lc_tm (open_tm_wrt_tm a1 (a_Var_f x1)) ->
-  lc_tm (a_Abs psi1 a1).
+  lc_tm (a_Abs psi1 A1 a1).
 Proof. Admitted.
 
 Lemma lc_a_WSigma_exists :
@@ -793,7 +804,7 @@ Hint Extern 1 (lc_tm (a_Pi _ _ _)) =>
   pick_fresh x1;
   apply (lc_a_Pi_exists x1) : core.
 
-Hint Extern 1 (lc_tm (a_Abs _ _)) =>
+Hint Extern 1 (lc_tm (a_Abs _ _ _)) =>
   let x1 := fresh in
   pick_fresh x1;
   apply (lc_a_Abs_exists x1) : core.
@@ -830,13 +841,13 @@ Proof. Admitted.
 
 Hint Resolve lc_body_a_Pi_3 : lngen.
 
-Lemma lc_body_a_Abs_2 :
-forall psi1 a1,
-  lc_tm (a_Abs psi1 a1) ->
+Lemma lc_body_a_Abs_3 :
+forall psi1 A1 a1,
+  lc_tm (a_Abs psi1 A1 a1) ->
   body_tm_wrt_tm a1.
 Proof. Admitted.
 
-Hint Resolve lc_body_a_Abs_2 : lngen.
+Hint Resolve lc_body_a_Abs_3 : lngen.
 
 Lemma lc_body_a_WSigma_3 :
 forall psi1 A1 B1,
@@ -1404,10 +1415,10 @@ Proof. Admitted.
 Hint Resolve subst_tm_tm_a_Pi : lngen.
 
 Lemma subst_tm_tm_a_Abs :
-forall x2 psi1 a2 a1 x1,
+forall x2 psi1 A1 a2 a1 x1,
   lc_tm a1 ->
   x2 `notin` fv_tm_tm a1 `union` fv_tm_tm a2 `union` singleton x1 ->
-  subst_tm_tm a1 x1 (a_Abs psi1 a2) = a_Abs (psi1) (close_tm_wrt_tm x2 (subst_tm_tm a1 x1 (open_tm_wrt_tm a2 (a_Var_f x2)))).
+  subst_tm_tm a1 x1 (a_Abs psi1 A1 a2) = a_Abs (psi1) (subst_tm_tm a1 x1 A1) (close_tm_wrt_tm x2 (subst_tm_tm a1 x1 (open_tm_wrt_tm a2 (a_Var_f x2)))).
 Proof. Admitted.
 
 Hint Resolve subst_tm_tm_a_Abs : lngen.

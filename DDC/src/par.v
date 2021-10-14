@@ -13,7 +13,7 @@ Ltac par_preserves_head :=
   try match goal with [ H :(_ _) = (_ _) |- _ ] => inversion H; subst; eauto end.
 
 
-Lemma Par_Type_inv : forall S A psi B, Par S psi A B -> A = a_Type -> B = a_Type.
+Lemma Par_Type_inv : forall S A psi B s, Par S psi A B -> A = a_Type s -> B = a_Type s.
 Proof. par_preserves_head. Qed.
 
 Lemma Par_TyUnit_inv : forall S A psi B, Par S psi A B -> A = a_TyUnit -> B = a_TyUnit.
@@ -38,23 +38,27 @@ Proof. par_preserves_head. Qed.
 
 (* ------------------------------------------------- *)
 
-Lemma Par_Grade : forall P psi a b, Par P psi a b -> Grade P psi a /\ Grade P psi b.
+Lemma CPar_Par_Grade : (forall P psi phi a b, CPar P psi phi a b -> CGrade P psi phi a /\ CGrade P psi phi b) /\ 
+                       (forall P psi a b, Par P psi a b -> Grade P psi a /\ Grade P psi b).
 Proof. 
-  induction 1; split; split_hyp; eauto.
+  apply CPar_Par_mutual.
+  all: split; split_hyp; eauto.
   all: try solve [invert_Grade; subst; auto].
   all: try solve [fresh_apply_Grade x; auto; repeat spec x; split_hyp; eauto].
-  all: try solve [invert_Grade; subst; pick fresh y; repeat spec y; eapply Grade_open; eauto].
-  all: try solve [invert_Grade; subst; pick fresh y; repeat spec y; eapply Grade_open_irrel; eauto].
+  - (* Beta *)
+    invert_Grade; subst; pick fresh y; repeat spec y. invert_CGrade b'. eapply Grade_open; eauto. eapply Grade_open_irrel; eauto.
   - (* Par_WPairBeta *)
     invert_Grade; subst; pick fresh y; repeat spec y; split_hyp; eauto.
-     ++ eapply G_AppRel; eauto using leq_Bot.
+    eapply G_App; eauto using leq_Bot.
+    invert_CGrade a1'.
         eapply Grade_open; eauto.
-     ++ eapply G_AppRel; eauto using leq_Bot.
          eapply Grade_open_irrel; eauto.
   - (* Proj1 *)
-    invert_Grade; subst. auto. done.
+    invert_Grade; subst. invert_CGrade a1'. auto. done.
 Qed.
 
+Lemma Par_Grade : forall P psi a b, Par P psi a b -> Grade P psi a /\ Grade P psi b.
+Proof. apply CPar_Par_Grade. Qed.
 
 Lemma Par_Grade1 : forall P psi a b, Par P psi a b -> Grade P psi a.
 Proof.  eapply Par_Grade. Qed.
@@ -170,6 +174,7 @@ Proof.
   all: try invert_Grade; subst. 
   all: try specialize (IHStep _ _ ltac:(eassumption)).
   all: eauto using GEq_refl.
+  all: invert_CGrade b; eauto.
 Qed.
 
 
@@ -180,22 +185,24 @@ Qed.
 
  *)
 
+
 Local Ltac  Par_respects_ih b':= 
   match goal with [H3 : forall a', GEq ([(?x, _)] ++ _) ?psi (open_tm_wrt_tm ?B1 (a_Var_f ?x)) a' -> _
                    |- _ ] =>  move: (H3 _ ltac:(eassumption)) => [b' ?]; split_hyp end.  
 
 
-Lemma Par_respects_GEq : forall W a psi b, Par W psi a b -> forall a', GEq W psi a a' -> exists b', Par W psi a' b' /\ GEq W psi b b'.
+Lemma CPar_Par_respects_GEq : 
+  (forall W psi phi a b, CPar W psi phi a b -> forall a', CEq W psi phi a a' -> exists b', CPar W psi phi a' b' /\ CEq W psi phi b b') /\
+  (forall W psi a b, Par W psi a b -> forall a', GEq W psi a a' -> exists b', Par W psi a' b' /\ GEq W psi b b').
 Proof.
-  induction 1; intros aa GE; eauto.
+  apply CPar_Par_mutual.
+  all: intros; eauto. 
   (* refl *)
-  exists aa. split; eauto 4 using GEq_refl, GEq_Grade2. 
-
-  all: inversion GE; subst; clear GE.
-  all: try (match goal with [ H9 : CEq _ _ _ _ _ |- _ ] => inversion H9; subst; clear H9 end).
-  all: try (move: (IHPar1 _ ltac:(eauto 2)) => [a1' [P1' GE1']]; clear IHPar1).
-  all: let b2' := fresh "b2'" in try (move: (IHPar2 _ ltac:(eauto 1)) => [b2' [P2' GE2']]; clear IHPar2).
-  all: try (move: (IHPar _ ltac:(eauto 1)) => [a3' [P3' GE3']]; clear IHPar).
+  exists a'. split; eauto 4 using GEq_refl, GEq_Grade2. 
+  all: try (invert_GEq ; subst).
+  all: try (move: (H _ ltac:(eauto 2)) => [a1' [P1' GE1']]; clear H).
+  all: let b2' := fresh "b2'" in try (move: (H0 _ ltac:(eauto 1)) => [b2' [P2' GE2']]; clear H0).
+  all: try (move: (H1 _ ltac:(eauto 1)) => [a3' [P3' GE3']]; clear H1). 
   all: let b4' := fresh "b4'" in try (move: (IHPar3 _ ltac:(eauto 1)) => [b4' [P4' GE4']]; clear IHPar3).
 
   all: try done.
@@ -203,7 +210,7 @@ Proof.
   - (* Pi *)
     pick fresh x; repeat spec x.
     Par_respects_ih b'.
-    exists (a_Pi psi1 a3' (close_tm_wrt_tm x b')).
+    exists (a_Pi psi1 a1' (close_tm_wrt_tm x b')).
     split.
     exists_apply_Par x.
     exists_apply_GEq x.
@@ -212,35 +219,28 @@ Proof.
     pick fresh y; repeat spec y.
     exists (open_tm_wrt_tm b0 b2').
     split.
-    eapply Par_AppBetaRel; eauto.
+    eapply Par_AppBeta; eauto.
     eapply GEq_open; eauto.
-  - (* App Irrel *)
-    inversion GE3'; subst; clear GE3'.
-    pick fresh y; repeat spec y.
-    exists (open_tm_wrt_tm b0 b').
-    split.
-    eapply Par_AppBetaIrrel; eauto using Par_lc2.
-    eapply GEq_open; eauto using Par_lc2.
   - (* Abs cases *)    
     pick fresh x. repeat spec x.
     Par_respects_ih b'.
-    exists (a_Abs psi0 (close_tm_wrt_tm x b')).
+    exists (a_Abs psi0 b2' (close_tm_wrt_tm x b')).
     split.
     exists_apply_Par x.
     exists_apply_GEq x.
   - (* WSigma *)
     pick fresh x; repeat spec x.
     Par_respects_ih b'.
-    exists (a_WSigma psi1 a3' (close_tm_wrt_tm x b')).
+    exists (a_WSigma psi1 a1' (close_tm_wrt_tm x b')).
     split.
     exists_apply_Par x.
     exists_apply_GEq x.
   - (* LetPair *)
-    move: (Par_Grade H) => [Ga GWP].  
-    inversion GE3'; subst; clear GE3'.
+    move: (Par_Grade p) => [Ga GWP].  
+    edestruct H as [a3 [Pa GE]]; eauto. invert_GEq. subst.
     pick fresh x.  repeat spec x.
     Par_respects_ih a4'.
-    exists (a_App (open_tm_wrt_tm (close_tm_wrt_tm x a4') a3) q_Bot b4).
+    exists (a_App (open_tm_wrt_tm (close_tm_wrt_tm x a4') a4) q_Bot b4).
     split.
     exists_apply_Par x.
     eapply GEq_App.
@@ -250,34 +250,45 @@ Proof.
   - (* LetPair Cong *)
     pick fresh x. repeat spec x.
     Par_respects_ih a4'.
-    exists (a_LetPair psi0 a3' (close_tm_wrt_tm x a4')).
+    exists (a_LetPair psi0 a1' (close_tm_wrt_tm x a4')).
     split.
     exists_apply_Par x. 
     exists_apply_GEq x. 
   - (* SSigma *)
     pick fresh x; repeat spec x.
     Par_respects_ih b'.
-    exists (a_SSigma psi1 a3' (close_tm_wrt_tm x b')).
+    exists (a_SSigma psi1 a1' (close_tm_wrt_tm x b')).
     split.
     exists_apply_Par x.
     exists_apply_GEq x.
     
   - (* proj1 *)
-    inversion GE3'. subst. clear GE3'.
-    exists a4. split. eauto. 
-    inversion H9. subst. auto. done.
+    edestruct H as [a4 [Pa E]]; eauto.
+    invert_GEq. subst.
+    exists a5. split; eauto. 
+    inversion H8. subst. auto. done.
   - (* proj2 *)
-    inversion GE3'. subst. clear GE3'.
-    exists b2. split; eauto. 
+    edestruct H as [a4 [Pa E]]; eauto.
+    invert_GEq. subst.
+    exists b2. split; eauto.
+  - (* inj1 *) edestruct H as [a4 [Pa E]]; eauto.
   - (* case *)
     inversion GE1'. subst. clear GE1'.
     exists (a_App b2'1 psi0 a1'0).
     split; eauto.
-  - inversion GE1'. subst. clear GE1'.
-    exists (a_App b4' psi0 a2').
+  - (* case *)
+    inversion GE1'. subst. clear GE1'.
+    exists (a_App a3' psi0 a2').
     split; eauto.
-Qed.
+  - (* subst *)
+    edestruct H as [a4 [Pa E]]; eauto. 
+    inversion H0; subst. auto. done. 
+  - inversion H; subst. done.
+    eauto.
+Qed.  
 
+Lemma Par_respects_GEq : forall W a psi b, Par W psi a b -> forall a', GEq W psi a a' -> exists b', Par W psi a' b' /\ GEq W psi b b'.
+Proof. intros. move: CPar_Par_respects_GEq => [_ h]. eauto. Qed.
 
 (* ------------------------------------------------- *)
 

@@ -5,10 +5,10 @@ Require Export Qual.consist.
 Set Implicit Arguments.
 Open Scope grade_scope.
 
-Lemma Consistent_Type : forall A0,
-    Consistent a_Type A0 -> ValueType A0 -> A0 = a_Type.
+Lemma Consistent_Type : forall s A0,
+    Consistent (a_Type s) A0 -> ValueType A0 -> A0 = (a_Type s).
 Proof.
-  intros A0 C V.
+  intros s A0 C V.
   destruct A0; 
     simpl in *; inversion C; inversion V.
   all: subst; auto.
@@ -34,7 +34,7 @@ Ltac impossible_defeq :=
 
 Lemma Canonical_Pi' : forall b psi psi0 B A1 A2, 
     Typing nil psi b B -> 
-    DefEq nil q_C B (a_Pi psi0 A1 A2) -> Value b -> exists a0, b = a_Abs psi0 a0.
+    DefEq nil q_C B (a_Pi psi0 A1 A2) -> Value b -> exists A0 a0, b = a_Abs psi0 A0 a0.
 Proof. intros b psi psi0 B A1 A2 T E V.
        dependent induction T.
        all: try solve
@@ -53,15 +53,15 @@ Qed.
 
 Lemma Canonical_Pi : forall b psi psi0 A1 A2, 
     Typing nil psi b (a_Pi psi0 A1 A2) -> 
-    Value b -> exists a0, b = a_Abs psi0 a0.
+    Value b -> exists A0 a0, b = a_Abs psi0 A0 a0.
 Proof. 
   intros.
   eapply Canonical_Pi' in H; auto. 
   2: { eapply Eq_Refl. 
        replace nil with (labels nil). 2: auto.
+       apply Typing_regularity in H; auto. destruct H.
        eapply Typing_Grade.
-       replace nil with (meet_ctx_l q_C nil). 2: auto.
-       eapply Typing_regularity; eauto.
+       replace nil with (meet_ctx_l q_C nil); eauto. 
   } 
   auto.
 Qed.
@@ -93,9 +93,9 @@ Proof.
   eapply Canonical_WSigma' in H; auto. 
   2: { eapply Eq_Refl. 
        replace nil with (labels nil). 2: auto.
+       apply Typing_regularity in H; auto. destruct H.
        eapply Typing_Grade.
-       replace nil with (meet_ctx_l q_C nil). 2: auto.
-       eapply Typing_regularity; eauto.
+       replace nil with (meet_ctx_l q_C nil); eauto.
   } 
   auto.
 Qed.
@@ -127,9 +127,9 @@ Proof.
   eapply Canonical_SSigma' in H; auto. 
   2: { eapply Eq_Refl. 
        replace nil with (labels nil). 2: auto.
+       apply Typing_regularity in H; auto. destruct H.
        eapply Typing_Grade.
-       replace nil with (meet_ctx_l q_C nil). 2: auto.
-       eapply Typing_regularity; eauto.
+       replace nil with (meet_ctx_l q_C nil); eauto.
   } 
   auto.
 Qed.
@@ -161,9 +161,9 @@ Proof.
   eapply Canonical_Sum' in H; auto. 
   eapply Eq_Refl. 
   replace nil with (labels nil). 2: auto.
+  apply Typing_regularity in H; auto. destruct H.
   eapply Typing_Grade.
-  replace nil with (meet_ctx_l q_C nil). 2: auto.
-  eapply Typing_regularity; eauto.
+  replace nil with (meet_ctx_l q_C nil); eauto.
 Qed.
 
 Lemma Typing_progress: 
@@ -178,18 +178,22 @@ Proof.
   all: try solve [match goal with [H : binds _ _ _ |- _ ] => inversion H end].
 
   all: inversion LC; subst.
+  - (* Abs *) 
+    right. eauto.
   - (* AppRel *)
     left.
     destruct IHTyping1 as [[a' S]|V]; auto.
     + eauto.
-    + move: (Canonical_Pi H V) => [a0 EQ]. subst.
+    + move: (Canonical_Pi H V) => [A0 [a0 EQ]]. subst.
+      inversion H4.
       eexists.
       eapply S_Beta; eauto.
   - (* AppIrrel *)
     left.
     destruct IHTyping1 as [[a' S]|V]; auto.
     + eauto.
-    + move: (Canonical_Pi H V) => [a0 EQ]. subst.
+    + move: (Canonical_Pi H V) => [A0 [a0 EQ]]. subst.
+      inversion H4.
       eexists.
       eapply S_Beta; eauto.
   - (* LetPair *)

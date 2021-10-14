@@ -1,0 +1,22 @@
+
+
+defns 
+JTyping :: '' ::=
+
+defn 
+  W |-- psi a : A ::  :: Typing :: 'T_' {{ com Typing }}
+by
+
+W |-- psi a : Sigma x :psi0 A . B
+(# W ++ x :psi0 \/ psi A #) |-- psi c : Pi y : phi B . (# C { (x psi0 , y) / z } #) 
+W ++ z : top (Sigma x :psi0 A . B) |--> top C : type s
+------------------------------------------------------------- :: LetPairC
+W |-- psi let (x psi0 , ) = a in c : C { a / z }
+
+W |-- psi a : A1 + A2
+W |-- psi b1 : Pi x :psi0 A1. (# B {inj1 x / z}  #)
+W |-- psi b2 : Pi y :psi0 A2. (# B {inj2 y / z}  #)
+psi0 <= psi
+((CTime /\ W) ++ z :CTime A1 + A2) |-- CTime  B : type s
+-------------------------------------------------------- :: CaseC
+W |-- psi case psi0 a of b1; b2 : B {a/z}

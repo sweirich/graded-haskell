@@ -26,7 +26,7 @@ Set Implicit Arguments.
 
 Lemma CEq_GEq_Grade : 
   (forall P phi phi0 a b,
-  CEq P phi phi0 a b -> phi0 <= phi -> Grade P phi a /\ Grade P phi b) /\
+  CEq P phi phi0 a b -> CGrade P phi phi0 a /\ CGrade P phi phi0 b) /\
   (forall P phi a b,
   GEq P phi a b -> Grade P phi a /\ Grade P phi b).
 Proof. 
@@ -34,10 +34,6 @@ Proof.
   all: intros; split_hyp; split; eauto using leq_join_r.
   all: try solve [fresh_apply_Grade x; eauto;
     repeat spec x; split_hyp; eauto].
-  all: try solve [inversion c; subst;
-  try match goal with [ H0 : ?h -> ?b /\ ?c, H1 : ?h |- _ ] => 
-                  move: (H0 H1) => [? ?] end; eauto].
-  all: try done.
 Qed.
 
 Lemma GEq_Grade1 :
@@ -54,31 +50,20 @@ Proof. apply CEq_GEq_Grade. Qed.
 
 (* Graded/Guarded equality is an equivalence/congruence relation, closed under substitution and implies consistency. *)
 
-Lemma GEq_refl : forall P phi a, Grade P phi a -> GEq P phi a a.
+Lemma CEq_GEq_refl : (forall P phi psi a, CGrade P phi psi a -> CEq P phi psi a a) /\ 
+                     (forall P phi a, Grade P phi a -> GEq P phi a a).
 Proof. 
-  induction 1; intros; eauto.
-  - eapply GEq_App; eauto.
-    destruct (q_leb psi0 psi) eqn:L.
-    unfold is_true in H1. done.
-    eapply CEq_Nleq; eauto using Grade_lc, Grade_uniq. 
-  - eapply GEq_WPair; eauto.
-    destruct (q_leb psi0 psi) eqn:L.
-    unfold is_true in H1. done.
-    eapply CEq_Nleq; eauto using Grade_lc, Grade_uniq. 
-  - eapply GEq_SPair; eauto.
-    destruct (q_leb psi0 psi) eqn:L.
-    unfold is_true in H1. done.
-    eapply CEq_Nleq; eauto using Grade_lc, Grade_uniq. 
+  apply CGrade_Grade_mutual.
+  all: intros; eauto.
 Qed.
 
-Lemma CEq_refl : forall P phi a psi, Grade P phi a -> CEq P phi psi a a.
+Lemma GEq_refl :  (forall P phi a, Grade P phi a -> GEq P phi a a).
+  apply CEq_GEq_refl; auto.
+Qed.
+
+Lemma CEq_refl : forall P phi a psi, CGrade P phi psi a -> CEq P phi psi a a.
 Proof.
-  intros.
-  destruct (q_leb psi phi) eqn:LE.
-  + eapply CEq_Leq; eauto.
-    eapply GEq_refl; eauto.
-  + eapply CEq_Nleq; eauto using Grade_uniq, Grade_lc.
-    rewrite LE. done.
+  destruct CEq_GEq_refl; auto.
 Qed.
 
 Lemma CEq_GEq_sym : 

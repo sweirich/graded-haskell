@@ -8,68 +8,79 @@ Open Scope grade_scope.
 (* Can we define strong existentials from weak existentials? *)
 
 
-Definition wproj1 psi0 a := a_LetPair psi0 a (a_Abs q_Bot (a_Var_b 1)).
-Definition wproj2 psi0 a := a_LetPair psi0 a (a_Abs q_Bot (a_Var_b 0)).
+Definition wproj1 psi0 a A := a_LetPair psi0 a (a_Abs q_Bot A (a_Var_b 1)).
+Definition wproj2 psi0 a A := a_LetPair psi0 a (a_Abs q_Bot A (a_Var_b 0)).
 
-Lemma wproj1_lc : forall a1 psi0, 
-    lc_tm a1 -> 
-    lc_tm (a_LetPair psi0 a1 (a_Abs q_Bot (a_Var_b 1))).
+Local Hint Resolve lc_body_tm_wrt_tm : core.
+
+Lemma wproj1_lc : forall a1 psi0 A, 
+    lc_tm a1 -> body_tm_wrt_tm A ->
+    lc_tm (a_LetPair psi0 a1 (a_Abs q_Bot A (a_Var_b 1))).
 Proof.
   intros.
   eapply (lc_a_LetPair); auto.
   intro z.
   cbn.
   eapply (lc_a_Abs_exists z).
-  cbn.
-  eauto.
+  + replace (open_tm_wrt_tm_rec 0 (a_Var_f z) A) with 
+        (open_tm_wrt_tm A (a_Var_f z)). 2: reflexivity.
+    eauto.
+  + cbn. eauto.
 Qed.
 
 
 
-Lemma wproj2_lc : forall a1 psi0, 
-    lc_tm a1 -> 
-    lc_tm (a_LetPair psi0 a1  (a_Abs q_Bot (a_Var_b 0))).
+Lemma wproj2_lc : forall a1 psi0 A, 
+    lc_tm a1 -> body_tm_wrt_tm A ->
+    lc_tm (a_LetPair psi0 a1  (a_Abs q_Bot A (a_Var_b 0))).
 Proof.
   intros.
   eapply (lc_a_LetPair); auto.
   intro z.
   cbn.
   eapply (lc_a_Abs_exists z).
-  cbn.
+  + replace (open_tm_wrt_tm_rec 0 (a_Var_f z) A) with 
+        (open_tm_wrt_tm A (a_Var_f z)). 2: reflexivity.
+    eauto.
+  + cbn.
   eauto.
 Qed.
 
 Local Hint Resolve wproj1_lc wproj2_lc : core.
 
 
-Lemma wproj1_beta : forall a1 a2 psi0, 
-    lc_tm a1 -> lc_tm a2 ->
-    exists b, Step (wproj1 psi0 (a_WPair a1 psi0 a2)) b /\ Step b a1.
+Lemma wproj1_beta : forall a1 a2 psi0 A, 
+    lc_tm a1 -> lc_tm a2 ->  body_tm_wrt_tm A ->
+    exists b, Step (wproj1 psi0 (a_WPair a1 psi0 a2) A) b /\ Step b a1.
 Proof. 
   intros. unfold wproj1.
   eexists.
   split.
   + eapply S_LetPairBeta; auto.
   + cbn.
-    replace a1 with (open_tm_wrt_tm a1 a2) at 2.
-    eapply S_Beta; auto.
-    eapply lc_a_Abs. intro x. 
+    replace (open_tm_wrt_tm_rec 0 a1 A) with 
+        (open_tm_wrt_tm A a1). 2: reflexivity.
+    replace a1 with (open_tm_wrt_tm a1 a2) at 3.
+    eapply S_Beta; eauto.
+    eapply lc_a_Abs; eauto. intro x. 
     rewrite open_tm_wrt_tm_lc_tm; auto.
     rewrite open_tm_wrt_tm_lc_tm; auto.
 Qed.
 
-Lemma wproj2_beta : forall a1 a2 psi0, 
-    lc_tm a1 -> lc_tm a2 ->
-    exists b, Step (wproj2 psi0 (a_WPair a1 psi0 a2)) b /\ Step b a2.
+Lemma wproj2_beta : forall a1 a2 psi0 A, 
+    lc_tm a1 -> lc_tm a2 ->  body_tm_wrt_tm A ->
+    exists b, Step (wproj2 psi0 (a_WPair a1 psi0 a2) A) b /\ Step b a2.
 Proof. 
   intros. unfold wproj2.
   eexists.
   split.
   eapply S_LetPairBeta; eauto.
   cbn.
+  replace (open_tm_wrt_tm_rec 0 a1 A) with 
+        (open_tm_wrt_tm A a1). 2: reflexivity.
   replace a2 with (open_tm_wrt_tm (a_Var_b 0) a2) at 2.
   eapply S_Beta; eauto.
-  eapply (lc_a_Abs). move=> z.
+  eapply (lc_a_Abs); eauto. move=> z.
   cbn. auto.
   cbn.
   auto.
@@ -79,25 +90,27 @@ Qed.
 Lemma T_wproj1
      : forall (W : context) (psi psi0 : grade) (a A B : tm),
        Typing W psi a (a_WSigma psi0 A B) -> psi0 <= psi -> Ctx W -> 
-       Typing W psi (wproj1 psi0 a) A.
+       Typing W psi (wproj1 psi0 a A) A.
 Proof.
   intros.
-  move: (Typing_regularity H H1) => TW.
+  move: (Typing_regularity H H1) => [s TW].
   unfold wproj1.
   pick fresh z for (fv_tm_tm A). 
   replace A with (open_tm_wrt_tm (close_tm_wrt_tm z A) a). 
   2 : { rewrite <- subst_tm_tm_spec. rewrite subst_tm_tm_fresh_eq; auto. }
   move: (Typing_uniq TW) => u.
-
+Admitted.
+(*
   pick fresh x and apply T_LetPair.
   + have Frz: x `notin` union (dom (meet_ctx_l q_C W)) (fv_tm_tm B); try rewrite dom_meet_ctx_l; eauto.
-    move: (@T_WSigma_inversion x _ _ _ _ _ _ Frz TW ltac:(eauto using Ctx_meet_ctx_l)) => hh. split_hyp.
+    move: (@T_WSigma_inversion x _ _ _ _ _ _ Frz TW ltac:(eauto using Ctx_meet_ctx_l)) => 
+    [s1 [s2 [s3 hh]]]. split_hyp.
     move: (Typing_uniq H3) => uu.
     
     rewrite <- subst_tm_tm_spec.
     rewrite subst_tm_tm_fresh_eq; auto.
     eapply Typing_weakening; eauto. 
-
+    
   + eauto.
   + move=> y Fry.
     cbn. simpl_env.
@@ -131,32 +144,36 @@ Proof.
        eapply Typing_weakening; auto.
        econstructor; eauto.
        simpl. rewrite dom_meet_ctx_l. auto.
-Qed.
+Qed. *)
 
 Lemma T_WProj2
      : forall (W : context) (psi psi0 : grade) (a B A : tm),
        Typing W psi a (a_WSigma psi0 A B) -> Ctx W -> 
        (psi0 <= q_C) -> 
-       Typing W psi (wproj2 psi0 a) (open_tm_wrt_tm B (wproj1 psi0 a)).
+       Typing W psi (wproj2 psi0 a A) (open_tm_wrt_tm B (wproj1 psi0 a A)).
 Proof.
   intros.
-  move: (Typing_regularity H H0) => TW.
+  move: (Typing_regularity H H0) => [s TW].
   move: (Typing_leq_C H) => LP.
   move: (Typing_Grade TW) => GW.
   move: (Typing_uniq H) => uh.
   move: (Typing_uniq TW) => uw.
   unfold wproj2.
-  pick fresh z for (fv_tm_tm B \u fv_tm_tm a \u dom W).
-  replace (open_tm_wrt_tm B (wproj1 psi0 a)) with 
-      (open_tm_wrt_tm (close_tm_wrt_tm z (open_tm_wrt_tm B (wproj1 psi0 (a_Var_f z)))) a).
+  pick fresh z for (fv_tm_tm B \u fv_tm_tm a \u dom W \u fv_tm_tm A).
+  replace (open_tm_wrt_tm B (wproj1 psi0 a A)) with 
+      (open_tm_wrt_tm (close_tm_wrt_tm z (open_tm_wrt_tm B (wproj1 psi0 (a_Var_f z) A))) a).
   2: { rewrite <- subst_tm_tm_spec.
        rewrite subst_tm_tm_open_tm_wrt_tm; eauto using Typing_lc1.
        rewrite subst_tm_tm_fresh_eq. auto.
        f_equal.
        cbn. unfold wproj1.
        f_equal.
-       destruct (z == z) eqn:E. rewrite E. done. done. }
-  pick fresh x and apply T_LetPair.
+       destruct (z == z) eqn:E. rewrite E. done. done. 
+       rewrite subst_tm_tm_fresh_eq; auto.
+
+  }
+Admitted.
+(*  pick fresh x and apply T_LetPair.
   - (* result type is well formed. *)
     rewrite <- subst_tm_tm_spec.
     rewrite subst_tm_tm_open_tm_wrt_tm; eauto using Typing_lc1.
@@ -357,3 +374,4 @@ Proof.
 Unshelve.
 eapply q_C.
 Qed.
+*)

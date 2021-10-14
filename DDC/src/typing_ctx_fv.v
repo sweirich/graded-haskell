@@ -74,7 +74,8 @@ Proof.
   - match goal with [ H4 : Ctx_Prop _ -> _ |- _ ] =>  specialize (H4 ltac:(eapply Ctx_Prop_cons; auto; try fsetdec)) end.
     split_hyp.
     move: (lemma z _ _ H ltac:(fsetdec)) => h.
-    auto.
+    eapply AtomSetProperties.union_subset_3; auto.
+    fsetdec.
 
   - match goal with [ H4 : Ctx_Prop _ -> _ |- _ ] =>  specialize (H4 ltac:(eapply Ctx_Prop_cons; auto; try fsetdec)) end.
     split_hyp.
@@ -95,7 +96,7 @@ Proof.
     move: (lemma z _ _ H2 FC) => h.
     clear Fr Fr0. fsetdec.
 
-  - destruct H4.
+  - destruct H5.
     eapply Ctx_Prop_cons; auto. simpl. 
     move: (lemma z _ _ H0 ltac:(fsetdec)) => h.
     eapply AtomSetProperties.union_subset_3; auto.

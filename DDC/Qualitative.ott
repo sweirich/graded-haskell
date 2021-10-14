@@ -1,3 +1,10 @@
+embed
+{{ coq-preamble
+Require Export Metalib.LibLNgen. 
+Require Export Qual.grade_sig.
+Require Export Qual.sort_sig.
+}}
+
 metavar tmvar, x, y, z, f, g, n ::=
   {{ repr-locally-nameless }}
   {{ com variables }}
@@ -27,27 +34,33 @@ grade, psi {{ tex \ell }} , phi {{ tex k }} :: 'q_' ::=   {{ coq grade }}
   | ( psi )                       :: M :: paren {{ tex [[ psi ]] }} 
                                                 {{ coq ([[psi]]) }}
 
-tm, a , b , c , A , B , C , u , v , s , t :: 'a_' ::= {{ com terms and types }}
+sort, s :: '' ::=  {{ coq sort }}
+  | star                          :: M :: Star {{ coq star }}
 
-  | Unit         ::   :: TyUnit
-  | unit         ::   :: TmUnit
+tm, a , b , c , A , B , C , u , v , t :: 'a_' ::= {{ com terms and types }}
 
-  | Pi x : psi A . B    ::    :: Pi
+  | Unit         ::   :: TyUnit  {{ com unit type }}
+  | unit         ::   :: TmUnit  {{ com unit term }}
+
+  | Pi x : psi A . B    ::    :: Pi   
     (+ bind x in B +)
     {{ tex \Pi [[x]]\!:^{[[psi]]}\![[A]].[[B]] }}
+    {{ com dependent function type }}
 
-  | \ psi x . a            ::    :: Abs
+  | \ psi x : A . a            ::    :: Abs 
     (+ bind x in a +)
-    {{ tex \lambda^{[[psi]]} [[x]] . [[a]] }}
+    {{ tex \lambda^{[[psi]]} [[x]]\!:\![[A]] . [[a]] }}
+    {{ com function }}
 
-  | a psi b                  ::   :: App
+  | a psi b                  ::   :: App 
     {{ tex [[a]] \; [[b]]^{[[psi]]} }}
+    {{ com function application }}
     
   | ( A )       :: M  :: Paren {{ coq ([[A]]) }}
 
-  | type        ::    :: Type {{ tex \textbf{Type} }}
+  | type s   ::    :: Type {{ tex [[s]] }} {{ com sort }}
 
-  | x           ::    :: Var
+  | x           ::    :: Var {{ com variable }}
 
    %% standard substitution, using open
    | a { b / x }      :: S :: Subst
@@ -60,33 +73,33 @@ tm, a , b , c , A , B , C , u , v , s , t :: 'a_' ::= {{ com terms and types }}
 
    | A1 + A2              ::   :: Sum
     {{ tex [[A1]] + [[A2]] }}
+    {{ com sum type }}
    | inj1 a              ::   :: Inj1
     {{ tex \ottkw{inj}_1\, [[a]] }}
+    {{ com injection into sum type }}
    | inj2 a              ::   :: Inj2
     {{ tex \ottkw{inj}_2\, [[a]] }}
+    {{ com injection into sum type }}
    | case psi a of b1 ; b2  ::  :: Case
     {{ tex \ottkw{case}_{[[psi]]}\, [[a]]\, \ottkw{of}\, [[b1]] ; [[b2]] }}
-
-   | case a of b1 ; b2      ::   :: UCase
-    {{ tex \ottkw{case} \, [[a]]\, \ottkw{of}\, [[b1]] ; [[b2]] }}
-
+    {{ com case elimination of sum type }}
    | Sigma x : psi A . B ::  :: WSigma
      (+ bind x in B +)
 %     {{ tex  ([[x]]\!\!:^{[[psi]]}\!\![[A]]) \otimes [[B]] }}
      {{ tex \Sigma [[x]]\!\!:^{[[psi]]}\!\![[A]].[[B]] }}
+     {{ com dependent tuple type }}
    | ( a psi , b )            ::     :: WPair
 %     {{ tex ([[a]]^{[[psi]]} \otimes [[b]]) }}
-
+      
      {{ tex ([[a]]^{[[psi]]}, [[b]]) }}
-
+     {{ com tuple creation }}
    | let ( x psi , ) = a in b ::    :: LetPair
      (+ bind x in b +)
      {{ tex [[let]]\, ([[x]]^{[[psi]]}, ) = [[a]] \, [[in]]\, [[b]] }}
-
+     {{ com tuple elimination }}
    | x : psi A && B ::  :: SSigma
      (+ bind x in B +)
      {{ tex ([[x]]\!\!:^{[[psi]]}\!\![[A]]) \, \& \, [[B]] }}
-
    | ( a psi & b )            ::     :: SPair
      {{ tex ([[a]]^{[[psi]]} \, \& \, [[b]]) }}
    | fst psi a                ::     :: Proj1
@@ -199,7 +212,8 @@ terminals :: 'terminals_' ::=
   | case              ::   :: case       {{ tex \ottkw{case} }}
   | /\                ::   :: meet       {{ tex \wedge }}
   | \/                ::   :: join       {{ tex \vee }}
-
+  | |-->              ::   :: ctyp       {{ tex \Vdash }}
+  | implies           ::   :: implies    {{ tex \ottkw{implies} }}
 
 formula :: 'formula_' ::=
   | judgement                ::   :: judgement
@@ -288,6 +302,11 @@ formula :: 'formula_' ::=
 
   | W |- a : A :: :: Typ {{ tex [[W]] \vdash[[a]]:[[A]] }}
 
+  | axiom s1 s2 ::  :: axiom
+     {{ coq axiom [[s1]] [[s2]] }}
+  | rule s1 s2 s3 ::   :: rule
+     {{ coq rule [[s1]] [[s2]] [[s3]] }}
+
 
 embed {{ coq 
 
@@ -319,16 +338,15 @@ Fixpoint close_tm_wrt_tm_rec (n1 : nat) (x1 : tmvar) (a1 : tm) {struct a1} : tm 
     | a_TyUnit => a_TyUnit
     | a_TmUnit => a_TmUnit
     | a_Pi psi1 A1 B1 => a_Pi psi1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 B1)
-    | a_Abs psi1 a2 => a_Abs psi1 (close_tm_wrt_tm_rec (S n1) x1 a2)
+    | a_Abs psi1 A1 a2 => a_Abs psi1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 a2)
     | a_App a2 psi1 b1 => a_App (close_tm_wrt_tm_rec n1 x1 a2) psi1 (close_tm_wrt_tm_rec n1 x1 b1)
-    | a_Type => a_Type
+    | a_Type s => a_Type s
     | a_Var_f x2 => if (x1 == x2) then (a_Var_b n1) else (a_Var_f x2)
     | a_Var_b n2 => if (lt_ge_dec n2 n1) then (a_Var_b n2) else (a_Var_b (S n2))
     | a_Sum A1 A2 => a_Sum (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec n1 x1 A2)
     | a_Inj1 a2 => a_Inj1 (close_tm_wrt_tm_rec n1 x1 a2)
     | a_Inj2 a2 => a_Inj2 (close_tm_wrt_tm_rec n1 x1 a2)
-    | a_Case psi1 a2 b1 b2 => a_Case psi1 (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1) (close_tm_wrt_tm_rec n1 x1 b2)
-    | a_UCase a2 b1 b2 => a_UCase (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1) (close_tm_wrt_tm_rec n1 x1 b2)
+    | a_Case psi a2 b1 b2 => a_Case psi (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1) (close_tm_wrt_tm_rec n1 x1 b2)
     | a_WSigma psi1 A1 B1 => a_WSigma psi1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 B1)
     | a_WPair a2 psi1 b1 => a_WPair (close_tm_wrt_tm_rec n1 x1 a2) psi1 (close_tm_wrt_tm_rec n1 x1 b1)
     | a_LetPair psi1 a2 b1 => a_LetPair psi1 (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec (S n1) x1 b1)
@@ -360,7 +378,7 @@ defn
 
 
 ------------------------------- :: Beta
-|- (\ psi x. a) psi b   ~>  a { b / x } 
+|- (\ psi x : A. a) psi b   ~>  a { b / x } 
 
 
 |- a ~> a'
@@ -447,6 +465,22 @@ by
 defns 
    JGrade :: '' ::= 
 
+defn
+ P |- psi phi a :: :: CGrade :: 'CG_' {{ com Guarded Grade }}
+ {{ tex [[ P ]] \vdash_{[[ psi ]]}^{[[phi]]} [[ a ]]  }}
+
+by
+   phi0 <= phi
+   P |- phi a
+  --------------------- :: Leq 
+   P |- phi phi0 a
+
+   not (phi0 <= phi)
+   uniq P
+  --------------------- :: Nleq 
+   P |- phi phi0 a
+
+
 defn 
   P |- psi a ::   :: Grade :: 'G_' {{ com Observable variables are bounded by their grades }}
 {{ tex [[P]] \vdash_{[[psi]]} [[a]] }}
@@ -454,8 +488,8 @@ defn
 by
 
 uniq P
---------------- :: Type
-P |- psi type 
+----------------- :: Type
+P |- psi type s
 
 uniq P
 psi0 <= psi
@@ -471,18 +505,13 @@ P ++ x : psi |- psi B
 P |- psi Pi x :psi0 A. B
 
 P ++ x :psi0 |- psi b
+P |- psi top A
 ------------------------------------------ :: Abs
-P |- psi \ psi0 x . b 
+P |- psi \ psi0 x : A . b 
 
 P |- psi b 
-P |- psi a 
-psi0 <= psi
-------------------------------------------- :: AppRel
-P |- psi b psi0 a 
-
-P |- psi b 
-not (psi0 <= psi)
-------------------------------------------- :: AppIrrel
+P |- psi psi0 a 
+------------------------------------------- :: App
 P |- psi b psi0 a 
 
 % weak sigmas
@@ -492,18 +521,10 @@ P ++ x : psi |- psi B
 ---------------------------------------- :: WSigma
 P |- psi Sigma x : psi0 A . B 
 
-P |- psi a 
+P |- psi psi0 a 
 P |- psi b 
-psi0 <= psi
------------------------------------------- :: WPairRel
+------------------------------------------ :: WPair
 P |- psi (a psi0, b) 
-
-
-P |- psi b 
-not (psi0 <= psi)
------------------------------------------- :: WPairIrrel
-P |- psi (a psi0, b) 
-
 
 P |- psi a 
 (P ++ x :psi0 ) |- psi c
@@ -518,18 +539,11 @@ P ++ x : psi |- psi B
 ---------------------------------------- :: SSigma
 P |- psi x : psi0 A && B
 
-P |- psi a
+P |- psi psi0 a
 P |- psi b 
-psi0 <= psi
------------------------------------------- :: SPairRel
+------------------------------------------ :: SPair
 P |- psi (a psi0 & b) 
-
-P |- psi b 
-not (psi0 <= psi)
------------------------------------------- :: SPairIrrel
-P |- psi (a psi0 & b) 
-
-
+ 
 P |- psi a 
 psi0 <= psi
 ----------------------------------- :: Proj1
@@ -573,9 +587,6 @@ uniq P
 P |- psi unit
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -612,7 +623,7 @@ P |- psi x ~~ x
 
 uniq P
 ---------------------------- :: Type
-P |- psi type ~~ type
+P |- psi type s ~~ type s
 
 % functions
 
@@ -622,8 +633,9 @@ P ++ x : psi |- psi B1 ~~ B2
 P |- psi Pi x :psi0 A1. B1 ~~ Pi x :psi0 A2. B2
 
 P ++ x : psi0 |- psi b1 ~~ b2
+P |- psi top A1 ~~ A2
 ------------------------------------- :: Abs
-P |- psi \ psi0 x . b1 ~~ \ psi0 x . b2
+P |- psi \ psi0 x : A1 . b1 ~~ \ psi0 x : A2 . b2
 
 P |- psi b1 ~~ b2
 P |- psi psi0 a1 ~~ a2
@@ -709,6 +721,22 @@ defns
    JUnTyDefEq :: '' ::=
 
 defn
+ P |- psi phi a == b :: :: CDefEq :: 'CDefEq_' {{ com UnTyped Definitional Equality }}
+ {{ tex [[ P ]] \vdash [[ a ]] \equiv_{[[ psi ]]} [[ b ]]  }}
+
+by
+   phi0 <= phi
+   P |- phi a == b 
+  --------------------- :: Leq 
+   P |- phi phi0 a == b
+
+   not (phi0 <= phi)
+   uniq P
+  --------------------- :: Nleq 
+   P |- phi phi0 a == b
+
+
+defn
  P |- psi a == b :: :: DefEq :: 'Eq_' {{ com UnTyped Definitional Equality }}
  {{ tex [[ P ]] \vdash [[ a ]] \equiv_{[[ psi ]]} [[ b ]]  }}
 
@@ -740,21 +768,14 @@ P ++ x : psi |- psi B1 == B2
 ------------------------------------------------- :: Pi
 P |- psi Pi x :psi0 A1. B1 == Pi x :psi0 A2. B2
 
+P |- psi top A1 == A2
 P ++ x : psi0 |- psi b1 == b2
 ------------------------------------- :: Abs
-P |- psi \ psi0 x . b1 == \ psi0 x . b2
+P |- psi \ psi0 x : A1 . b1 == \ psi0 x : A2 . b2
 
 P |- psi b1 == b2
-P |- psi a1 == a2
-psi0 <= psi
--------------------------------- :: AppRel
-P |- psi b1 psi0 a1 == b2 psi0 a2
-
-P |- psi b1 == b2
-not (psi0 <= psi)
-% P |- (psi0 \/ psi) a1 
-% P |- (psi0 \/ psi) a2 
--------------------------------- :: AppIrrel
+P |- psi psi0 a1 == a2
+-------------------------------- :: App
 P |- psi b1 psi0 a1 == b2 psi0 a2
 
 P |- psi Pi x :psi0 A1. B1 == Pi x :psi0 A2. B2
@@ -798,17 +819,9 @@ P |- psi B1 {a/x} == B2 {a/x}
 
 % WSigmaSndRel / WSigmaSndIrrel ??
 
-P |- psi a1 == a2
+P |- psi psi0 a1 == a2
 P |- psi b1 == b2
-psi0 <= psi
------------------------------------------------ :: WPairRel
-P |- psi (a1 psi0, b1) == (a2 psi0, b2)
-
-P |- psi b1 == b2
-not (psi0 <= psi)
-% P |- (psi0 \/ psi) a1 
-% P |- (psi0 \/ psi) a2 
----------------------------------------------- :: WPairIrrel
+----------------------------------------------- :: WPair
 P |- psi (a1 psi0, b1) == (a2 psi0, b2)
 
 P |- psi a1 == a2
@@ -834,19 +847,10 @@ P |- psi B1 {a1/x} == B2 {a2/x}
 
 % WSigmaSndRel / WSigmaSndIrrel ??
 
-psi0 <= psi
-P |- psi a1 == a2
+P |- psi psi0 a1 == a2
 P |- psi b1 == b2
----------------------------------------- :: SPairRel
+---------------------------------------- :: SPair
 P |- psi (a1 psi0 & b1) == (a2 psi0 & b2)
-
-not (psi0 <= psi)
-% P |- (psi0 \/ psi) a1 
-% P |- (psi0 \/ psi) a2 
-P |- psi b1 == b2
----------------------------------------------- :: SPairIrrel
-P |- psi (a1 psi0 & b1) == (a2 psi0 & b2)
-
 
 P |- psi a1 == a2
 psi0 <= psi
@@ -897,8 +901,8 @@ uniq P
 ------------------------- :: TmUnit
 P |- psi unit == unit
 
-nolc (\top x.b1)
-nolc (\top x.b2)
+nolc (\top x:type star.b1)
+nolc (\top x:type star.b2)
 P ++ x : psi |- phi b1 == b2
 not (psi <= phi)
 --------------------------------------- :: SubstIrrel
@@ -926,12 +930,13 @@ defn
 
 uniq W
 psi <= CTime
+axiom s1 s2 
 -------------------------- :: Type
-W |-- psi type : type
+W |-- psi type s1 : type s2
 
 W |-- psi a : A
 |CTime /\ W| |- CTime A == B 
-CTime /\ W |-- CTime B : type
+CTime /\ W |-- CTime B : type s
 ------------------------------- :: Conv
 W |-- psi a : B
 
@@ -944,15 +949,16 @@ W |-- psi x : A
 
 %% functions
 
-W |-- psi A : type
-W ++ x : psi A |-- psi B : type
+W |-- psi A : type s1
+W ++ x : psi A |-- psi B : type s2
+rule s1 s2 s3
 --------------------------------------- :: Pi
-W |-- psi Pi x :psi0 A. B : type
+W |-- psi Pi x :psi0 A. B : type s3
 
 W ++ x : psi0  \/ psi A |-- psi b : B
-CTime /\ W |-- CTime (Pi x:psi0 A. B) : type
------------------------------------------- :: Abs
-W |-- psi \ psi0 x . b : Pi x :psi0 A . B
+CTime /\ W |-- CTime (Pi x:psi0 A. B) : type s
+----------------------------------------------- :: Abs
+W |-- psi \ psi0 x : A . b : Pi x :psi0 A . B
 
 W |-- psi b : Pi x :psi0 A . B
 W |-- psi0 \/ psi a : A
@@ -970,19 +976,20 @@ W |-- psi b psi0 a : B {a/x}
 
 %% weak sigmas
 
-W |-- psi A : type
-W ++ x : psi A |-- psi B : type
+W |-- psi A : type s1
+W ++ x : psi A |-- psi B : type s2
+rule s1 s2 s3
 ---------------------------------------- :: WSigma
-W |-- psi Sigma x :psi0 A . B : type
+W |-- psi Sigma x :psi0 A . B : type s3
 
-CTime /\ W |-- CTime (Sigma x :psi0 A. B) : type
+CTime /\ W |-- CTime (Sigma x :psi0 A. B) : type s
 W |-- psi0 \/ psi a : A
 W |-- psi b : B {a/x}
 psi0  <= CTime
 ------------------------------------------ :: WPair
 W |-- psi  (a psi0, b) : Sigma x :psi0 A. B
 
-CTime /\ W |-- CTime (Sigma x :psi0 A. B) : type
+CTime /\ W |-- CTime (Sigma x :psi0 A. B) : type s
 CTime /\ W |-- CTime a : A
 CTime < psi0
 % not psi0 <= CTime
@@ -993,7 +1000,7 @@ W |-- psi  (a psi0, b) : Sigma x :psi0 A. B
 
 
 %++ z :psi1 Sigma x :psi0 A. B
-CTime /\ W |-- CTime (Pi y : psi B. C) : type
+CTime /\ W |-- CTime (Pi y : psi B. C) : type s
 W |-- psi a : (Sigma x :psi0 A . B)
 (# W ++ x :psi0 \/ psi A #)  |-- psi c : (Pi y : phi B. C)
 %  needs this substitution above C {(x psi0, y)/z}
@@ -1004,12 +1011,13 @@ W |-- psi let (x psi0 , ) = a in c : C
 %% strong sigmas
 %% We don't allow the first component to be I b/c then fst doesn't make sense.
 
-W |-- psi A : type
-W ++ x : psi A |-- psi B : type
+W |-- psi A : type s1
+W ++ x : psi A |-- psi B : type s2
+rule s1 s2 s3
 ---------------------------------------- :: SSigma
-W |-- psi x :psi0 A && B : type
+W |-- psi x :psi0 A && B : type s3
 
-CTime /\ W |-- CTime x:psi0 A && B : type
+CTime /\ W |-- CTime x:psi0 A && B : type s
 W |-- psi0 \/ psi a : A
 W |-- psi b : B {a/x}
 psi0 <= CTime
@@ -1030,22 +1038,22 @@ W |-- psi snd psi0 a : B {fst psi0 a / x}
 
 %% sums
 
-W |-- psi A : type
-W |-- psi B : type
+W |-- psi A : type s
+W |-- psi B : type s
 ----------------------- :: Sum
-W |-- psi A + B : type
+W |-- psi A + B : type s
 
 W |-- psi a1 : A1
-CTime /\ W |-- CTime A2 : type
+CTime /\ W |-- CTime A1 + A2 : type s
 -------------------------------- :: Inj1
 W |-- psi inj1 a1 : A1 + A2
 
 W |-- psi a2 : A2
-CTime /\ W |-- CTime A1 : type
+CTime /\ W |-- CTime A1 + A2 : type s
 --------------------------------- :: Inj2
 W |-- psi inj2 a2 : A1 + A2
 
-((CTime /\ W) ++ z :CTime A1 + A2) |-- CTime  B : type
+((CTime /\ W) ++ z :CTime A1 + A2) |-- CTime  B : type s
 W |-- psi a : A1 + A2
 B1 = (# B {inj1 x / z} #)
 B2 = (# B {inj2 y / z} #)
@@ -1060,7 +1068,7 @@ W |-- psi case psi0 a of b1; b2 : B {a/z}
 uniq W
 psi <= CTime
 -------------------------- :: TmUnit
-W |-- psi Unit : type
+W |-- psi Unit : type s
 
 uniq W
 psi <= CTime
@@ -1103,7 +1111,7 @@ by
 
 
 |- W
-CTime /\ W |-- CTime A : type
+CTime /\ W |-- CTime A : type s
 x notin dom W
 ------------------------- :: Cons
 |- W ++ x :psi0 A
@@ -1120,7 +1128,7 @@ ValueType A ::   :: ValueType :: 'ValueType_'
 by
 
 ------- :: Type
-ValueType type
+ValueType type s
 
 
 ------- :: Unit
@@ -1148,7 +1156,7 @@ defn
 by
 
 ---------------------- :: Type
-Consistent type type
+Consistent type s type s
 
 ---------------------- :: Unit
 Consistent Unit Unit
@@ -1175,6 +1183,24 @@ Consistent a b
 
 defns
    JPar :: '' ::=
+
+defn 
+P |- psi psi0 a => b ::  :: CPar :: 'CPar_' {{ com Parallel reduction at [[psi]] is guarded by [[psi0]] }}
+ {{ tex [[ P ]] \vdash^{[[psi0]]}_{[[psi]]} [[ a ]] [[=>]] [[ b ]]  }}
+
+by
+
+psi0 <= psi
+P |- psi a1 => a2
+-------------------------------- :: Leq
+P |- psi psi0 a1 => a2
+
+not (psi0 <= psi)
+uniq P
+-------------------------------- :: Nleq
+P |- psi psi0 a1 => a2
+
+
 defn
  P |- psi  a => b :: :: Par :: 'Par_' {{ com Parallel Reduction }}
  {{ tex [[P]] [[|-]]  [[ a ]] \Rightarrow_{[[ psi ]]} [[ b ]]  }}
@@ -1189,51 +1215,30 @@ P ++ x : psi |- psi  B1 => B2
 ---------------------------------------------- :: Pi
 P |- psi  Pi x :psi1 A1. B1 => Pi x :psi1 A2. B2
 
-P |- psi  a => (\ psi0 x. a')
-P |- psi  b => b'
-psi0 <= psi
------------------------------ :: AppBetaRel
+P |- psi  a => (\ psi0 x : A. a')
+P |- psi psi0 b => b'
+----------------------------- :: AppBeta
 P |- psi  a psi0 b => a' { b' / x }
-
-P |- psi  a => (\ psi0 x. a')
-not (psi0 <= psi)
------------------------------ :: AppBetaIrrel
-P |- psi  a psi0 b => a' { b' / x }
-
 
 P |- psi a => a'
-P |- psi b => b'
-psi0 <= psi
------------------------------ :: AppRel
+P |- psi psi0 b => b'
+----------------------------- :: App
 P |- psi  a psi0 b => a' psi0  b'
-
-P |- psi  a => a'
-not (psi0 <= psi)
------------------------------ :: AppIrrel
-P |- psi  a psi0 b => a' psi0  b'
-
 
 P ++ x: psi0 |- psi  b1 => b2
+P |- psi top A1 => A2
 ------------------------------------- :: Abs
-P |- psi  \ psi0 x . b1 => \ psi0 x . b2
+P |- psi  \ psi0 x : A1 . b1 => \ psi0 x : A2 . b2
 
 P |- psi  A1 => A2
 P ++ x : psi |- psi  B1 => B2
 ------------------------------------------------ :: WSigma
 P |- psi  Sigma x :psi1 A1. B1 => Sigma x :psi1 A2. B2
 
-P |- psi  a1 => a2
-P |- psi  b1 => b2
-psi0 <= psi
------------------------------------------------ :: WPairRel
+P |- psi psi0 a1 => a2
+P |- psi b1 => b2
+----------------------------------------------- :: WPair
 P |- psi  (a1 psi0, b1) => (a2 psi0, b2)
-
-P |- psi  b1 => b2
-not (psi0 <= psi)
------------------------------------------------ :: WPairIrrel
-P |- psi  (a1 psi0, b1) => (a2 psi0, b2)
-
-
 
 P |- psi  a1 => (a1' psi0, a2')
 P ++ x : psi0 |- psi  b1 => b2 {x/x}
@@ -1250,17 +1255,10 @@ P ++ x : psi |- psi  B1 => B2
 ----------------------------------------- :: SSigma
 P |- psi  x :psi1 A1 && B1 => x :psi1 A2 && B2
 
-P |- psi a1 => a2
-P |- psi  b1 => b2
-psi0 <= psi
----------------------------------------- :: SPairRel
+P |- psi psi0 a1 => a2
+P |- psi b1 => b2
+---------------------------------------- :: SPair
 P |- psi  (a1 psi0 & b1) => (a2 psi0 & b2)
-
-P |- psi  b1 => b2
-not (psi0 <= psi)
----------------------------------------- :: SPairIrrel
-P |- psi  (a1 psi0 & b1) => (a2 psi0 & b2)
-
 
 P |- psi  a1 => (a1' psi0 & a2)
 psi0 <= psi
@@ -1366,7 +1364,7 @@ Value a
 Value unit
 
 ---------------------------- :: Abs
-Value \ psi x . a
+Value \ psi x : A . a
 
 ---------------------------- :: WPair
 Value ( a psi , b ) 
@@ -1380,60 +1378,6 @@ Value inj1 a
 --------------------------- :: Inj2
 Value inj2 a
 
-
-defns 
-   JCGrade :: '' ::=
-
-defn
- P |- psi phi a :: :: CGrade :: 'CG_' {{ com Guarded Grade }}
- {{ tex [[ P ]] \vdash_{[[ psi ]]} [[ a ]]  }}
-
-by
-   phi0 <= phi
-   P |- phi a
-  --------------------- :: Leq 
-   P |- phi phi0 a
-
-   not (phi0 <= phi)
-  --------------------- :: Nleq 
-   P |- phi phi0 a
-
-
-defns
-   JCDefEq :: '' ::=
-
-defn
- P |- psi phi a == b :: :: CDefEq :: 'CDefEq_' {{ com UnTyped Definitional Equality }}
- {{ tex [[ P ]] \vdash [[ a ]] \equiv_{[[ psi ]]} [[ b ]]  }}
-
-by
-   phi0 <= phi
-   P |- phi a == b 
-  --------------------- :: Leq 
-   P |- phi phi0 a == b
-
-   not (phi0 <= phi)
-  --------------------- :: Nleq 
-   P |- phi phi0 a == b
-
-defns
-  JCPar :: '' ::=
-
-defn 
-P |- psi psi0 a => b ::  :: CPar :: 'CPar_' {{ com Parallel reduction at [[psi]] is guarded by [[psi0]] }}
- {{ tex [[ P ]] \vdash^{[[psi0]]}_{[[psi]]} [[ a ]] [[=>]] [[ b ]]  }}
-
-by
-
-psi0 <= psi
-P |- psi a1 => a2
--------------------------------- :: Leq
-P |- psi psi0 a1 => a2
-
-not (psi0 <= psi)
-uniq P
--------------------------------- :: Nleq
-P |- psi psi0 a1 => a2
 
 defns 
   JCMultiPar :: '' ::=

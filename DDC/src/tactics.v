@@ -13,6 +13,25 @@ Scheme GEq_ind' := Induction for GEq Sort Prop
 Combined Scheme CEq_GEq_mutual
   from CEq_ind', GEq_ind'.
 
+Scheme Grade_ind' := Induction for Grade Sort Prop
+   with CGrade_ind'   := Induction for CGrade Sort Prop.
+
+Combined Scheme CGrade_Grade_mutual
+  from CGrade_ind', Grade_ind'.
+
+Scheme Par_ind' := Induction for Par Sort Prop
+   with CPar_ind'   := Induction for CPar Sort Prop.
+
+Combined Scheme CPar_Par_mutual
+  from CPar_ind', Par_ind'.
+
+Scheme DefEq_ind' := Induction for DefEq Sort Prop
+   with CDefEq_ind'   := Induction for CDefEq Sort Prop.
+
+Combined Scheme CDefEq_DefEq_mutual
+  from CDefEq_ind', DefEq_ind'.
+
+
 
 Ltac gather_atoms ::=
   let A := gather_atoms_with (fun x : vars => x) in
@@ -117,7 +136,7 @@ Ltac fresh_apply_Grade x :=
       | [ |- Grade ?P ?psi (a_Pi ?psi2 ?a ?b) ] => pick fresh x and apply G_Pi
       | [ |- Grade ?P ?psi (a_WSigma ?psi2 ?a ?b) ] => pick fresh x and apply G_WSigma
       | [ |- Grade ?P ?psi (a_SSigma ?psi2 ?a ?b) ] => pick fresh x and apply G_SSigma
-      | [ |- Grade ?P ?psi (a_Abs ?psi2 ?b) ] => pick fresh x and apply G_Abs
+      | [ |- Grade ?P ?psi (a_Abs ?psi2 ?A ?b) ] => pick fresh x and apply G_Abs
       | [ |- Grade ?P ?psi (a_LetPair ?psi2 ?a ?b) ] => pick fresh x and apply G_LetPair
     end.
 
@@ -126,7 +145,7 @@ Ltac fresh_apply_GEq x :=
       | [ |- GEq ?P ?psi (a_Pi ?psi2 ?a ?b) (a_Pi ?psi3 ?a2 ?b2) ] => pick fresh x and apply GEq_Pi
       | [ |- GEq ?P ?psi (a_WSigma ?psi2 ?a ?b) (a_WSigma ?psi3 ?a3 ?b3) ] => pick fresh x and apply GEq_WSigma
       | [ |- GEq ?P ?psi (a_SSigma ?psi2 ?a ?b) (a_SSigma ?psi3 ?a2 ?b2) ] => pick fresh x and apply GEq_SSigma
-      | [ |- GEq ?P ?psi (a_Abs ?psi2 ?b) (a_Abs ?psi3 ?b3) ] => pick fresh x and apply GEq_Abs
+      | [ |- GEq ?P ?psi (a_Abs ?psi2 ?A1 ?b) (a_Abs ?psi3 ?A2 ?b3) ] => pick fresh x and apply GEq_Abs
       | [ |- GEq ?P ?psi (a_LetPair ?psi2 ?a ?b) (a_LetPair ?psi3 ?a2 ?b2)  ] => pick fresh x and apply GEq_LetPair
     end.
 
@@ -135,7 +154,7 @@ Ltac fresh_apply_DefEq x :=
       | [ |- DefEq ?P ?psi (a_Pi ?psi2 ?a ?b) (a_Pi ?psi3 ?a2 ?b2) ] => pick fresh x and apply Eq_Pi
       | [ |- DefEq ?P ?psi (a_WSigma ?psi2 ?a ?b) (a_WSigma ?psi3 ?a3 ?b3) ] => pick fresh x and apply Eq_WSigma
       | [ |- DefEq ?P ?psi (a_SSigma ?psi2 ?a ?b) (a_SSigma ?psi3 ?a2 ?b2) ] => pick fresh x and apply Eq_SSigma
-      | [ |- DefEq ?P ?psi (a_Abs ?psi2 ?b) (a_Abs ?psi3 ?b3) ] => pick fresh x and apply Eq_Abs
+      | [ |- DefEq ?P ?psi (a_Abs ?psi2 ?A1 ?b) (a_Abs ?psi3 ?A2 ?b3) ] => pick fresh x and apply Eq_Abs
       | [ |- DefEq ?P ?psi (a_LetPair ?psi2 ?a ?b) (a_LetPair ?psi3 ?a2 ?b2)  ] => pick fresh x and apply Eq_LetPair
     end.
 
@@ -144,7 +163,7 @@ Ltac fresh_apply_Par x :=
       | [ |- Par ?P ?psi (a_Pi ?psi2 ?a ?b) (a_Pi ?psi3 ?a2 ?b2) ] => pick fresh x and apply Par_Pi
       | [ |- Par ?P ?psi (a_WSigma ?psi2 ?a ?b) (a_WSigma ?psi3 ?a3 ?b3) ] => pick fresh x and apply Par_WSigma
       | [ |- Par ?P ?psi (a_SSigma ?psi2 ?a ?b) (a_SSigma ?psi3 ?a2 ?b2) ] => pick fresh x and apply Par_SSigma
-      | [ |- Par ?P ?psi (a_Abs ?psi2 ?b) (a_Abs ?psi3 ?b3) ] => pick fresh x and apply Par_Abs
+      | [ |- Par ?P ?psi (a_Abs ?psi2 ?A ?b) (a_Abs ?psi3 ?A2 ?b3) ] => pick fresh x and apply Par_Abs
       | [ |- Par ?P ?psi (a_LetPair ?psi2 ?a ?b) (a_App ?a1 ?phi2 ?a2)  ] => pick fresh x and apply Par_WPairBeta
       | [ |- Par ?P ?psi (a_LetPair ?psi2 ?a ?b) (a_LetPair ?psi3 ?a2 ?b2)  ] => pick fresh x and apply Par_LetPair
     end.
@@ -154,50 +173,48 @@ Ltac fresh_apply_Typing x :=
       | [ |- Typing ?P ?psi (a_Pi ?psi2 ?a ?b) _ ] => pick fresh x and apply T_Pi
       | [ |- Typing ?P ?psi (a_WSigma ?psi2 ?a ?b) _ ] => pick fresh x and apply T_WSigma
       | [ |- Typing ?P ?psi (a_SSigma ?psi2 ?a ?b) _ ] => pick fresh x and apply T_SSigma
-      | [ |- Typing ?P ?psi (a_Abs ?psi2 ?b) _ ] => pick fresh x and apply T_Abs
+      | [ |- Typing ?P ?psi (a_Abs ?psi2 ?A ?b) _ ] => pick fresh x and apply T_Abs
       | [ |- Typing ?P ?psi (a_LetPair ?psi2 ?a ?b) _ ] => pick fresh x and apply T_LetPair
       | [ |- Typing ?P ?psi (a_Case ?psi2 ?a ?b1 ?b2) _ ] => pick fresh x and apply T_Case
     end.
 
 (* ------------------------------------------------- *)
-(* Some of the judgements are not very syntax directed in the cases of App, Wpair and SPair.
-   In each of these cases, the first constructor handles the "relevent" case, the second, 
-   the "irrelevelent" case. 
+(*
 *)
 
 
 Ltac eapply_GradeIrrel := 
   match goal with 
       | [ H : not (?psi0 <= ?psi) |- 
-         Grade ?P ?psi (a_App ?a ?psi0 ?b) ] => eapply G_AppIrrel
+         Grade ?P ?psi (a_App ?a ?psi0 ?b) ] => eapply G_App;  [idtac|eapply CG_Nleq]
       | [ H : not (?psi0 <= ?psi) |- 
-         Grade ?P ?psi (a_WPair ?a ?psi0 ?b) ] => eapply G_WPairIrrel
+         Grade ?P ?psi (a_WPair ?a ?psi0 ?b) ] => eapply G_WPair;  [idtac|eapply CG_Nleq]
       | [ H : not (?psi0 <= ?psi) |- 
-         Grade ?P ?psi (a_SPair ?a ?psi0 ?b) ] => eapply G_SPairIrrel
+         Grade ?P ?psi (a_SPair ?a ?psi0 ?b) ] => eapply G_SPair;  [idtac|eapply CG_Nleq]
     end.
 
 
 Ltac eapply_DefEqIrrel := 
   match goal with 
       | [ H : not (?psi0 <= ?psi) |- 
-         DefEq ?P ?psi (a_App ?a ?psi0 ?b) (a_App ?c ?psi0 ?d) ] => eapply Eq_AppIrrel
+         DefEq ?P ?psi (a_App ?a ?psi0 ?b) (a_App ?c ?psi0 ?d) ] => eapply Eq_App;  [idtac|eapply CEq_Nleq]
       | [ H : not (?psi0 <= ?psi) |- 
-         DefEq ?P ?psi (a_WPair ?a ?psi0 ?b) (a_WPair ?c ?psi0 ?d) ] => eapply Eq_WPairIrrel
+         DefEq ?P ?psi (a_WPair ?a ?psi0 ?b) (a_WPair ?c ?psi0 ?d) ] => eapply Eq_WPair;  [idtac|eapply CEq_Nleq]
       | [ H : not (?psi0 <= ?psi) |- 
-         DefEq ?P ?psi (a_SPair ?a ?psi0 ?b) (a_SPair ?c ?psi0 ?d) ] => eapply Eq_SPairIrrel
+         DefEq ?P ?psi (a_SPair ?a ?psi0 ?b) (a_SPair ?c ?psi0 ?d) ] => eapply Eq_SPair;  [idtac|eapply CEq_Nleq]
     end.
 
 
 Ltac eapply_ParIrrel := 
   match goal with 
       | [ H : not (?psi0 <= ?psi) |- 
-         Par ?P ?psi (a_App ?a ?psi0 ?b) (open_tm_wrt_tm ?c ?d) ] => eapply Par_AppBetaIrrel
+         Par ?P ?psi (a_App ?a ?psi0 ?b) (open_tm_wrt_tm ?c ?d) ] => eapply Par_AppBeta;  [idtac|eapply CPar_Nleq]
       | [ H : not (?psi0 <= ?psi) |- 
-         Par ?P ?psi (a_App ?a ?psi0 ?b) (a_App ?c ?psi0 ?d) ] => eapply Par_AppIrrel
+         Par ?P ?psi (a_App ?a ?psi0 ?b) (a_App ?c ?psi0 ?d) ] => eapply Par_App;  [idtac|eapply CPar_Nleq]
       | [ H : not (?psi0 <= ?psi) |- 
-         Par ?P ?psi (a_WPair ?a ?psi0 ?b) (a_WPair ?c ?psi0 ?d) ] => eapply Par_WPairIrrel
+         Par ?P ?psi (a_WPair ?a ?psi0 ?b) (a_WPair ?c ?psi0 ?d) ] => eapply Par_WPair;  [idtac|eapply CPar_Nleq]
       | [ H : not (?psi0 <= ?psi) |- 
-         Par ?P ?psi (a_SPair ?a ?psi0 ?b) (a_SPair ?c ?psi0 ?d) ] => eapply Par_SPairIrrel
+         Par ?P ?psi (a_SPair ?a ?psi0 ?b) (a_SPair ?c ?psi0 ?d) ] => eapply Par_SPair;  [idtac|eapply CPar_Nleq]
     end.
 
 
@@ -211,7 +228,7 @@ Ltac invert_Grade :=
       | [ H : Grade ?P ?psi (a_Pi ?psi2 ?a ?b) |- _ ] => inversion H ; clear H
       | [ H : Grade ?P ?psi (a_WSigma ?psi2 ?a ?b)  |- _  ] => inversion H ; clear H
       | [ H : Grade ?P ?psi (a_SSigma ?psi2 ?a ?b)  |- _ ] => inversion H ; clear H
-      | [ H : Grade ?P ?psi (a_Abs ?psi2 ?b) |- _  ] => inversion H ; clear H
+      | [ H : Grade ?P ?psi (a_Abs ?psi2 ?A ?b) |- _  ] => inversion H ; clear H
       | [ H : Grade ?P ?psi (a_LetPair ?psi2 ?a ?b) |- _ ] => inversion H ; clear H
       | [ H : Grade ?P ?psi (a_App ?a ?psi1 ?b) |- _ ] => inversion H ; clear H
       | [ H : Grade ?P ?psi (a_Sum ?a ?b) |- _ ] => inversion H ; clear H
@@ -222,4 +239,24 @@ Ltac invert_Grade :=
       | [ H : Grade ?P ?psi (a_SPair ?a ?psi1 ?b) |- _ ] => inversion H ; clear H
       | [ H : Grade ?P ?psi (a_Proj1 ?a ?b) |- _ ] => inversion H ; clear H
       | [ H : Grade ?P ?psi (a_Proj2 ?a ?b) |- _ ] => inversion H ; clear H
+    end.
+
+
+Ltac invert_GEq := 
+  match goal with 
+      | [ H : GEq ?P ?psi (a_Var_f ?x) _ |- _ ] => inversion H ; clear H
+      | [ H : GEq ?P ?psi (a_Pi ?psi2 ?a ?b) _ |- _ ] => inversion H ; clear H
+      | [ H : GEq ?P ?psi (a_WSigma ?psi2 ?a ?b)  _ |- _  ] => inversion H ; clear H
+      | [ H : GEq ?P ?psi (a_SSigma ?psi2 ?a ?b)  _ |- _ ] => inversion H ; clear H
+      | [ H : GEq ?P ?psi (a_Abs ?psi2 ?A ?b) _ |- _  ] => inversion H ; clear H
+      | [ H : GEq ?P ?psi (a_LetPair ?psi2 ?a ?b) _ |- _ ] => inversion H ; clear H
+      | [ H : GEq ?P ?psi (a_App ?a ?psi1 ?b) _ |- _ ] => inversion H ; clear H
+      | [ H : GEq ?P ?psi (a_Sum ?a ?b) _ |- _ ] => inversion H ; clear H
+      | [ H : GEq ?P ?psi (a_Inj1 ?a ) _ |- _ ] => inversion H ; clear H
+      | [ H : GEq ?P ?psi (a_Inj2 ?a ) _ |- _ ] => inversion H ; clear H
+      | [ H : GEq ?P ?psi (a_Case ?psi1 ?a ?b1 ?b2) _ |- _ ] => inversion H ; clear H  
+      | [ H : GEq ?P ?psi (a_WPair ?a ?psi1 ?b) _ |- _ ] => inversion H ; clear H
+      | [ H : GEq ?P ?psi (a_SPair ?a ?psi1 ?b) _ |- _ ] => inversion H ; clear H
+      | [ H : GEq ?P ?psi (a_Proj1 ?a ?b) _ |- _ ] => inversion H ; clear H
+      | [ H : GEq ?P ?psi (a_Proj2 ?a ?b) _ |- _ ] => inversion H ; clear H
     end.

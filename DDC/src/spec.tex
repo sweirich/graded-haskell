@@ -26,22 +26,22 @@ This document is created directly from the definitions in the file
 {\texttt{Qualitative.ott}}, with minor modifications as listed below.
 
 This document is intended to specify, in a readable form, the subject of the
-proofs of the submitted paper as well as explain the slight differences
-between this rendering, the submission, and the generated Coq files
+proofs of the paper as well as explain the slight differences
+between this rendering, the paper, and the generated Coq files
 \texttt{Qualitative\_ott.v} and \texttt{Qualitative\_inf.v}.
 
 The reason for these slight differences is partly due to the restrictions of
 the Ott locally nameless backend and the LNgen theory generation tool.
 \begin{enumerate}
 \item All parts of the syntax must be defined concretely in the Ott source file. 
-\item All bound variables need to be explicitly determined
+\item All bound variables need to be explicitly determined.
 \item All syntactic forms must bind at most one variable at a time.
 \end{enumerate}
 
 The first limitation is simply to accommodate through minor manual edits of
-the outputs of Ott and LNgen. These edits allow us to parameterize the
-development on an arbitrary semiring (see \texttt{grade\_sig.v}) instead of
-working with a specific, concrete semiring. 
+the outputs of Ott and LNgen. These edits allow us, for example, to
+parameterize the development on an arbitrary semiring (see
+\texttt{grade\_sig.v}) instead of working with a specific, concrete semiring.
 
 The second limitation affects our generation of the typing rules for pattern
 matching elimination forms, i.e. \textsc{T-Case} and \textsc{T-LetPair}
@@ -55,16 +55,12 @@ is the form that is used in the submission. To accommodate Ott, in the
 mechanization we replace the pattern matching elimination form for $\Sigma$
 types with a slightly more general, but less familiar, form.
 
-Other differences between the paper and this specification are due to the
-avoidance of mutually recursive inductive definitions. While guarded equality
-and extended equality are mutually defined, as in the paper, others, such as
-the conditional typing judgement, has been inlined into the typing rules. As a
-result, rules such as \textsc{T-AppC} in the paper appear as two rules
-(\rref{T-AppRel,T-AppIrrel}).
-
 \section{System Specification}
 
 \subsection{Grammar}
+
+This language is parameterized over a lattics of grades, written $\ell$,
+and a set of sorts, $\ottnt{s}$, which at must be nonempty.
 
 \ottgrammartabular{
 \otttm\ottinterrule
@@ -81,25 +77,39 @@ result, rules such as \textsc{T-AppC} in the paper appear as two rules
 
 \subsection{Definitional equality}
 
-\drules[Eq]{$ \Phi  \vdash  \ottnt{a}  \equiv_{ \ell }  \ottnt{b} $}{Definitional Equality}{Refl,Sym,Trans,SubstIrrel,Beta,Pi,Abs,AppRel,AppIrrel,PiFst,PiSnd,
-    WSigma,WSigmaFst,WSigmaSnd,WPairRel,WPairIrrel,LetPair,
+\drules[CDefEq]{$ \Phi  \vdash  \ottnt{a}  \equiv_{ \ell }  \ottnt{b} $}{Conditional Definitional Equality}{Leq,Nleq}
+
+\drules[Eq]{$ \Phi  \vdash  \ottnt{a}  \equiv_{ \ell }  \ottnt{b} $}{Definitional Equality}{Refl,Sym,Trans,SubstIrrel,Beta,Pi,Abs,App,PiFst,PiSnd,
+    WSigma,WSigmaFst,WSigmaSnd,WPair,LetPair,
     Sum,SumFst,SumSnd,InjOne,InjTwo,Case,TyUnit,TmUnit}
 
 
-\drules[G]{$ \Phi  \vdash_{ k }  \ottnt{a} $}{Grading}{Type,Var,Pi,Abs,AppRel,AppIrrel,WSigma,WPairRel,WPairIrrel,LetPair,
+\drules[CG]{$ \Phi  \vdash_{ k }^{ \ell }  \ottnt{a} $}{Conditional Grading}{Leq,Nleq}
+
+\drules[G]{$ \Phi  \vdash_{ k }  \ottnt{a} $}{Grading}{Type,Var,Pi,Abs,App,WSigma,WPair,LetPair,
                              Sum,InjOne,InjTwo,Case,TyUnit,TmUnit}
 
-\subsection{Type Systems}
+\subsection{Type System}
 
-\drules[T]{$ \Omega  \vdash  \ottnt{a} :^{ \ell }  \ottnt{A} $}{Typing}{Type,Conv,Var,Pi,Abs,App,AppIrrel,WSigma,WPair,WPairIrrel,LetPair,
+As in pure type systems, this type system is parameterized by a set of axioms
+($\ottkw{axiom} \, \ottnt{s_{{\mathrm{1}}}} \, \ottnt{s_{{\mathrm{2}}}}$) and rules ($\ottkw{rule} \, \ottnt{s_{{\mathrm{1}}}} \, \ottnt{s_{{\mathrm{2}}}} \, \ottnt{s_{{\mathrm{3}}}}$) that govern the treatment
+of sorts.
+
+\drules[CT]{$ \Omega \Vdash   \ottnt{a} :^{ \ell }  \ottnt{A} $}{Conditional Typing}{Leq,Top}
+
+\drules[T]{$ \Omega  \vdash  \ottnt{a} :^{ \ell }  \ottnt{A} $}{Typing}{Type,Conv,Var,Pi,Abs,App,AppIrrel,WSigma,WPair,WPairIrrel,LetPairC,
               Sum,InjOne,InjTwo,CaseC,TmUnit,TyUnit}
+
 
 \subsection{Auxiliary Judgements}
 
-\drules[CEq]{$ \Phi  \vdash^{ \ell_{{\mathrm{0}}} }_{ \ell }  \ottnt{a}  \sim  \ottnt{b} $}{Conditional Syntactic Equality}{Leq,Nleq}
-\drules[GEq]{$ \Phi  \vdash  \ottnt{a}  \sim_{ \ell }  \ottnt{b} $}{Guarded Syntactic Equality}{Type,Var,Pi,Abs,App,WSigma,WPair,LetPair,Sum,InjOne,InjTwo,Case,TyUnit,TmUnit}
-\drules[Par]{$ \Phi   \vdash    \ottnt{a}  \Rightarrow_{ \ell }  \ottnt{b} $}{Parallel reduction}{Refl,Pi,AppBetaRel,AppBetaIrrel,AppRel,AppIrrel,Abs,WSigma,WPairRel,WPairIrrel,WPairBeta,LetPair,
+\drules[CEq]{$ \Phi  \vdash^{ \ell_{{\mathrm{0}}} }_{ \ell }  \ottnt{a}  \sim  \ottnt{b} $}{Conditional Graded Equality}{Leq,Nleq}
+\drules[GEq]{$ \Phi  \vdash  \ottnt{a}  \sim_{ \ell }  \ottnt{b} $}{Graded Syntactic Equality}{Type,Var,Pi,Abs,App,WSigma,WPair,LetPair,Sum,InjOne,InjTwo,Case,TyUnit,TmUnit}
+
+\drules[CPar]{$ \Phi  \vdash^{ \ell_{{\mathrm{0}}} }_{ \ell }  \ottnt{a}   \Rightarrow   \ottnt{b} $}{Conditional Parallel Reduction}{Leq,Nleq}
+\drules[Par]{$ \Phi   \vdash    \ottnt{a}  \Rightarrow_{ \ell }  \ottnt{b} $}{Parallel reduction}{Refl,Pi,AppBeta,App,Abs,WSigma,WPair,WPairBeta,LetPair,
   Sum,InjOne,InjTwo,CaseBetaOne,CaseBetaTwo,Case}
+
 \drules[MP]{$ \Phi   \vdash   \ottnt{a}   \Rightarrow^{\ast} _{ \ell }  \ottnt{b} $}{Parallel reduction, reflexive transitive closure}
    {Refl,Step}
 \drules[]{$ \Phi \vdash   \ottnt{a}   \Leftrightarrow _{ \ell }   \ottnt{b} $}{Joinability}

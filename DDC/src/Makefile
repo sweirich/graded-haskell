@@ -1,36 +1,36 @@
-OTT_SOURCE = Qualitative
+OTT_SOURCE = Qualitative Auxiliary
 OTT_LOC    = ..
 FILES      = Qualitative_ott Qualitative_inf
 OTTFILES   = $(foreach i, $(OTT_SOURCE), $(OTT_LOC)/$(i).ott)
-OTTIFLAGS  = $(foreach i, $(OTT_SOURCE), -i $(OTT_LOC)/$(i).ott)
-OTTOFLAGS  = $(foreach i, $(OTT_SOURCE), -o $(i)_ott.v)
+OTTIFLAGS  = $(foreach i, $(OTT_SOURCE), -i $(OTT_LOC)/$(i).ott) -merge true
+OTTOFLAGS  = -o Qualitative_ott.v
+
 
 all: coq
 
 ################ latex ####################
 
-SPEC = $(OTT_LOC)/$(OTT_SOURCE).ott
+SPEC = spec.mng
 SPECFILE = spec.tex
-RULESFILE = qualitative-rules.tex
+RULESFILE = qualitative-rules.tex 
 
 spec.pdf: $(SPEC) $(SPECFILE)
-	ott -o $(RULESFILE) \
-					-tex_wrap false \
-					-tex_show_meta false $(SPEC)
+	ott $(OTTIFLAGS) \
+	    -tex_wrap false -tex_show_meta false -tex_filter $(SPEC) $(SPECFILE)
 	pdflatex -interaction nonstopmode $(SPECFILE)
 	mv spec.pdf ..
 
 
-$(RULESFILE): $(SPEC)
+$(RULESFILE) : $(OTTFILES)
 	ott $(OTTIFLAGS) -o $(RULESFILE) \
-					-tex_wrap false \
-					-tex_show_meta false
+	          -tex_wrap false \
+		  -tex_show_meta false
 
 %.tex: $(RULESFILE) %.mng Makefile
 	ott $(OTTIFLAGS) \
-										-tex_wrap false \
-										-tex_show_meta false \
-										-tex_filter $*.mng $*.tex
+            -tex_wrap false \
+	    -tex_show_meta false \
+	    -tex_filter $*.mng $*.tex
 
 %.pdf : %.tex $(RULESFILE)
 	latexmk -bibtex -pdf $*.tex
@@ -83,12 +83,11 @@ coq: $(COQMKFILENAME) $(VFILES)
 	@$(MAKE) -f CoqSrc.mk $*.vo
 
 
-%_ott.v: $(OTT_LOC)/%.ott Makefile typing.patch
-	ott $(OTTIFLAGS)  $(OTTOFLAGS) -coq_lngen true -coq_expand_list_types true
-	make METALIB.FIX_$*_ott
+%_ott.v: $(OTT_LOC)/%.ott typing.patch
+	ott -i $(OTT_LOC)/Qualitative.ott  $(OTTOFLAGS) -coq_lngen true -coq_expand_list_types true
 	make PATCH_TYPING_$*_ott
 
-%_inf.v: $(OTT_LOC)/%.ott Makefile 
+%_inf.v: $(OTT_LOC)/%.ott  
 	$(LNGEN) --coq-no-proofs --coq $*_inf.v --coq-ott $*_ott $(OTT_LOC)/$*.ott 
 	make GRADE.FIX_$*_inf
 
@@ -107,14 +106,10 @@ clean: coqclean
 	@rm -f *~
 	@rm -f *.log *.aux *.fls *.fdb_latexmk
 
-METALIB.FIX_%:
-	sed -i -e 's/Metalib.Metatheory./Metalib.Metatheory. Require Export Metalib.LibLNgen. Require Export Qual.grade_sig. /g' $*.v
-	sed '1d' $*.v > __TMP__; mv __TMP__ $*.v
-
 PATCH_TYPING_%:
 	patch -R $*.v < typing.patch
 
 # delete lines from _inf.v file corresponding to "grade".  Need to update this 
 # when .ott file is changed
 GRADE.FIX_%:
-	sed '76,80d' $*.v | sed '18,29d' > __TMP__; mv __TMP__ $*.v
+	sed '87,96d' $*.v | sed '18,41d' > __TMP__; mv __TMP__ $*.v

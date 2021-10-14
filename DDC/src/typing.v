@@ -30,22 +30,47 @@ Proof.
     simpl_env in H1.
     move: (Grade_uniq H1) => u. destruct_uniq.
     eapply Grade_narrowing; eauto. econstructor; eauto using leq_join_l, P_sub_refl, Typing_uniq. 
+    inversion IHh. subst.
+    pick fresh x. repeat spec x. 
+    have LC: psi <= q_C. { eapply Typing_leq_C; eauto. }
+    destruct (q_leb q_Top psi) eqn: LE.
+    + assert (q_Top = q_C). { apply q_leb_antisym; auto. transitivity psi; auto.      
+                              eapply leq_Top. }
+      assert (q_C = psi).  { apply q_leb_antisym; auto. rewrite <- H. auto. }
+      subst. 
+      
+
+      have Lemma: forall W, (meet_ctx_l q_Top W) = W.
+      { clear. intro W. induction W. simpl; auto.
+        destruct a. destruct p. simpl.
+        rewrite meet_comm.
+        rewrite meet_leq.
+        eapply leq_Top. f_equal. auto. }
+      rewrite <- H in H5.
+      rewrite Lemma in H5.
+      eapply CG_Leq; eauto. 
+      rewrite <- H. auto.
+    + eapply CG_Nleq; eauto using Grade_lc.
+      rewrite LE. done.
+      apply Grade_uniq in H2. simpl_env in H2. destruct_uniq. auto.
   - (* App *)
+    eapply G_App; eauto.
     destruct (q_leb psi0 psi) eqn:LE.
-    eapply G_AppRel; eauto. rewrite join_leq in IHh2. rewrite LE. auto. auto.
-    eapply G_AppIrrel; eauto. eapply Typing_lc1; eauto. rewrite LE. done.
+    rewrite join_leq in IHh2. rewrite LE. auto. auto.
+    eapply CG_Nleq; eauto using Typing_lc1, Grade_uniq. rewrite LE. done.
   - (* AppI *)
-    eapply G_AppIrrel; eauto. eapply Typing_lc1; eauto. 
+    eapply G_App; eauto. eapply CG_Nleq; eauto using  Typing_lc1, Grade_uniq.
     move: (Typing_leq_C h1) => LE. 
     move: (lt_not_leq ltac:(eassumption)) => NLQ.
     eapply not_leq_lower; eauto.
   - (* WPair *)
     destruct (q_leb psi0 psi) eqn:LE.
-    eapply G_WPairRel; eauto. rewrite join_leq in IHh2. rewrite LE. auto. auto.
-    eapply G_WPairIrrel; eauto. eapply Typing_lc1; eauto. rewrite LE. done.
+    eapply G_WPair; eauto. rewrite join_leq in IHh2. rewrite LE. auto. auto.
+    eapply G_WPair; eauto.  eapply CG_Nleq; eauto using Typing_lc1, Grade_uniq. rewrite LE. done.
   - (* WPairI *)
-    eapply G_WPairIrrel; eauto. eapply Typing_lc1; eauto.  
-    move: (Typing_leq_C h3) => LE.
+    eapply G_WPair; eauto. 
+    eapply CG_Nleq; eauto using  Typing_lc1, Grade_uniq.
+    move: (Typing_leq_C h3) => LE. 
     move: (lt_not_leq ltac:(eassumption)) => NLQ.
     eapply not_leq_lower; eauto.
   - (* LetPair *)
@@ -55,8 +80,8 @@ Proof.
     simpl; econstructor; eauto using leq_join_l, P_sub_refl, Typing_uniq. 
   - (* SPair *)
     destruct (q_leb psi0 psi) eqn:LE.
-    eapply G_SPairRel; eauto. rewrite join_leq in IHh2. rewrite LE. auto. auto.
-    eapply G_SPairIrrel; eauto. eapply Typing_lc1; eauto. rewrite LE. done.
+    eapply G_SPair; eauto. rewrite join_leq in IHh2. rewrite LE. auto. auto.
+    eapply G_SPair; eauto.  eapply CG_Nleq; eauto using Typing_lc1, Grade_uniq. rewrite LE. done.
  Qed.
 
 
@@ -82,19 +107,21 @@ Proof.
   - (* pi *)
     fresh_apply_Typing x; auto.
     repeat spec x.
-    specialize (H4 psi2 ltac:(auto) ltac:(auto)).
-    apply Typing_pumping with (psi1:=psi2) in H4; try reflexivity.
+    specialize (H5 psi2 ltac:(auto) ltac:(auto)).
+    apply Typing_pumping with (psi1:=psi2) in H5; try reflexivity.
     eapply Typing_narrowing; eauto.
     econstructor; eauto using ctx_sub_refl, Typing_uniq.
     eapply leq_join_r.
+    auto.
   - (* abs *)
-    fresh_apply_Typing x; auto.
+    fresh_apply_Typing x; eauto.
     repeat spec x.
     specialize (H4 psi2 ltac:(auto) ltac:(auto)).
     apply Typing_pumping with (psi1:=psi2) in H4; try reflexivity.
     rewrite <- join_assoc in H4.
-    rewrite (join_leq psi psi2) in H4. auto.
-    auto.
+    rewrite (join_leq psi psi2) in H4. eauto.
+    eauto.
+   
   - (* app *)
     have LE: psi0 * psi2 <= q_C.
     { eapply join_lub; auto. }
@@ -102,10 +129,10 @@ Proof.
     eapply IHTyping2; eauto.
     eauto using po_join_r.
   - (* wsigma *)
-    fresh_apply_Typing x; auto.
+    fresh_apply_Typing x; eauto.
     repeat spec x.
-    specialize (H4 psi2 ltac:(auto) ltac:(auto)).
-    apply Typing_pumping with (psi1:=psi2) in H4; try reflexivity.
+    specialize (H5 psi2 ltac:(auto) ltac:(auto)).
+    apply Typing_pumping with (psi1:=psi2) in H5; try reflexivity.
     eapply Typing_narrowing; eauto.
     econstructor; eauto using ctx_sub_refl, Typing_uniq.
     eapply leq_join_r.
@@ -126,10 +153,10 @@ Proof.
     rewrite (join_leq psi psi2) in H0. auto.
     auto.
   - (* SSigma *)
-    fresh_apply_Typing x; auto.
+    fresh_apply_Typing x; eauto.
     repeat spec x.
-    specialize (H4 psi2 ltac:(auto) ltac:(auto)).
-    apply Typing_pumping with (psi1:=psi2) in H4; try reflexivity.
+    specialize (H5 psi2 ltac:(auto) ltac:(auto)).
+    apply Typing_pumping with (psi1:=psi2) in H5; try reflexivity.
     eapply Typing_narrowing; eauto.
     econstructor; eauto using ctx_sub_refl, Typing_uniq.
     eapply leq_join_r.
@@ -186,18 +213,21 @@ Proof.
   rewrite dom_meet_ctx_l. auto.
 Qed.  
 
-Lemma Ctx_regularity : forall G x psi A, Ctx G -> binds x (psi, A) G -> Typing (meet_ctx_l q_C G) q_C A a_Type.
+Lemma Ctx_regularity : forall G x psi A, Ctx G -> binds x (psi, A) G 
+                                    -> exists s, Typing (meet_ctx_l q_C G) q_C A (a_Type s).
 Proof.
   induction 1; intros; eauto. inversion H.
   simpl in H2.
   destruct (binds_cons_1 _ _ _ _ _ _ H2).
   + split_hyp. inversion H4. subst.
-    simpl_env.
+    simpl_env. eexists.
     eapply Typing_weakening; eauto.
     unfold meet_ctx_l; auto.
     move: (Typing_uniq H0) => u. unfold meet_ctx_l in u. 
     simpl. solve_uniq.
   + simpl_env.
+    destruct IHCtx as [s0 T]; auto.
+    eexists.
     eapply Typing_weakening; eauto.
     unfold meet_ctx_l; auto.
     move: (Typing_uniq H0) => u. unfold meet_ctx_l in u. 
@@ -268,13 +298,15 @@ Proof.
          eapply binds_app_2. auto.
       ++ eapply binds_app_3.   
          rewrite subst_tm_tm_fresh_eq; eauto.
-         move: (Ctx_regularity _ _ _ ltac:(eassumption) H5) => h1.
+         move: (Ctx_regularity _ _ _ ltac:(eassumption) H5) => [s0 h1].
          move: (Typing_ctx_fv h1 (Ctx_meet_ctx_l H3)) => [h2 h3].
          destruct_uniq.
          rewrite dom_meet_ctx_l in h2.
          fsetdec.
   - (* pi *)
-    fresh_apply_Typing y. eauto. repeat spec y.
+    fresh_apply_Typing y; eauto.
+    eapply IHTyping; eauto.
+    repeat spec y.
     subst_CTyping_ih.
   - (* abs *)
     fresh_apply_Typing y.  repeat spec y.
@@ -301,7 +333,9 @@ Proof.
       unfold subst_ctx in *.
       eapply uniq_app; eauto.
   - (* WSigma *)
-    fresh_apply_Typing y. eauto. repeat spec y.
+    fresh_apply_Typing y; eauto.
+    eapply IHTyping; eauto.
+    repeat spec y.
     subst_CTyping_ih.
   - (* WPair *)
     eapply T_WPair; eauto.
@@ -362,7 +396,9 @@ Proof.
       unfold subst_ctx.
       solve_uniq.
   - (* SSigma *)
-    fresh_apply_Typing y; eauto. repeat spec y.
+    fresh_apply_Typing y; eauto. 
+    eapply IHTyping; eauto.
+    repeat spec y.
     subst_CTyping_ih.
   - (* SPair *)
     eapply T_SPair; eauto.
@@ -405,7 +441,7 @@ Proof.
       }
     have LCa: lc_tm a. eauto using CTyping_lc1.
     rewrite subst_tm_tm_open_tm_wrt_tm; eauto using CTyping_lc1.    
-    pick fresh y and apply T_Case. 
+    pick fresh y and apply T_Case; auto. 
     3: { instantiate (1 := subst_tm_tm a x B1). 
          replace (a_Var_f y) with (subst_tm_tm a x (a_Var_f y)).
          rewrite <- subst_tm_tm_open_tm_wrt_tm; eauto using CTyping_lc1.    
@@ -420,6 +456,7 @@ Proof.
          rewrite -> subst_tm_tm_open_tm_wrt_tm; eauto using CTyping_lc1.    
          rewrite subst_tm_tm_var_neq; auto.
     } 
+
     + simpl_env.
       repeat spec y.
       specialize (H2 x (q_C + psi0) A (meet_ctx_l q_C W1) ([(y, (q_C, a_Sum A1 A2))] ++ (meet_ctx_l q_C W2))).
@@ -434,8 +471,7 @@ Proof.
     + eapply IHTyping1; eauto.
     + eapply IHTyping2; eauto.
     + eapply IHTyping3; eauto.
-    + auto.
-Qed.
+Qed. 
 
 
 
@@ -511,18 +547,18 @@ Proof.
 Qed.
 
 
-Lemma Typing_rename_Type : forall x y W psi0 A psi b, 
+Lemma Typing_rename_Type : forall x y W psi0 A psi b s, 
    x `notin` fv_tm_tm b  ->
    y `notin` fv_tm_tm b \u dom W \u {{x}} ->
-   Typing ([(x, (psi0, A))] ++ W) psi (open_tm_wrt_tm b (a_Var_f x)) a_Type ->
+   Typing ([(x, (psi0, A))] ++ W) psi (open_tm_wrt_tm b (a_Var_f x)) (a_Type s)->
    Ctx ([(y, (psi0, A))] ++ W) -> 
-   Typing ([(y, (psi0, A))] ++ W) psi (open_tm_wrt_tm b (a_Var_f y)) a_Type.
+   Typing ([(y, (psi0, A))] ++ W) psi (open_tm_wrt_tm b (a_Var_f y)) (a_Type s).
 Proof.
   intros.
   move: (Typing_uniq H1) => u. destruct_uniq.
   apply Typing_weakening_middle with (W := [(y,(psi0,A))]) in H1.
   rewrite (subst_tm_tm_intro x b); auto.
-  replace a_Type with (subst_tm_tm (a_Var_f y) x a_Type).
+  replace (a_Type s) with (subst_tm_tm (a_Var_f y) x (a_Type s)).
   eapply Typing_substitution_CTyping with (W2 := nil); simpl_env; eauto.
   eapply CTyping_Var; eauto.
   reflexivity.
@@ -533,27 +569,30 @@ Lemma T_Pi_inversion: forall (x : atom) W (psi psi1 : grade) (A B C : tm),
     x `notin` dom W \u fv_tm_tm B ->
     Typing W psi (a_Pi psi1 A B) C ->
     Ctx W -> 
-    Typing W psi A a_Type /\ 
-            Typing ([(x, (psi, A))] ++ W) psi (open_tm_wrt_tm B (a_Var_f x)) a_Type /\
-            DefEq (labels (meet_ctx_l q_C W)) q_C  C a_Type.
+    exists s1, exists s2, exists s3, rule s1 s2 s3 /\
+  Typing W psi A (a_Type s1) /\ 
+  Typing ([(x, (psi, A))] ++ W) psi (open_tm_wrt_tm B (a_Var_f x)) (a_Type s2) /\
+  DefEq (labels (meet_ctx_l q_C W)) q_C  C (a_Type s3).
 Proof. 
   intros.
   dependent induction H0.  
   - (* conv *) 
-    edestruct IHTyping1 as [hA [psi0 hh]]; eauto.
+    edestruct IHTyping1 as [s1 [s2 [s3 [r [hA [psi0 hh]]]]]]; eauto.
+    repeat eexists; eauto.
   - (* Pi *) 
     pick fresh y.
     repeat spec y.  clear IHTyping. 
     eapply (@Typing_rename_Type y) in H1; eauto.
-    split. eauto. split. auto.
+    repeat eexists.    
+    eauto. eauto. eauto.
     eapply Eq_Refl; eauto.
     econstructor.
     apply labels_uniq. move: (Typing_uniq H0) => u. unfold meet_ctx_l. auto.
-    econstructor; eauto using Typing_lift.
-    
+    econstructor; eauto using Typing_lift.    
 Qed.
 
 (* This is from Misha-Linger's thesis. I don't know if we need it. *)
+(*
 Lemma Sq_Pi_inversion: forall (x : atom) W (psi psi1 : grade) (A B C : tm),
     x `notin` dom W \u fv_tm_tm B ->
     q_C < psi ->
@@ -581,24 +620,28 @@ Proof.
     unfold meet_ctx_l. auto.
     eauto using Ctx_meet_ctx_l.
 Qed.
+*)
 
 Lemma T_SSigma_inversion: forall (x : atom) W (psi psi1 : grade) (A B C : tm),
     x `notin` dom W \u fv_tm_tm B ->
     Typing W psi (a_SSigma psi1 A B) C ->
     Ctx W ->
-    Typing W psi A a_Type /\ 
-    Typing ([(x, (psi, A))] ++ W) psi (open_tm_wrt_tm B (a_Var_f x)) a_Type /\
-    DefEq (labels (meet_ctx_l q_C W)) q_C C a_Type.
+     exists s1, exists s2, exists s3, rule s1 s2 s3 /\
+    Typing W psi A (a_Type s1) /\ 
+    Typing ([(x, (psi, A))] ++ W) psi (open_tm_wrt_tm B (a_Var_f x)) (a_Type s2) /\
+    DefEq (labels (meet_ctx_l q_C W)) q_C C (a_Type s3).
 Proof.
   intros.
   dependent induction H0.  
   - (* conv *) 
-    edestruct IHTyping1 as [hA [psi0 hh]]; split_hyp; eauto.
+    edestruct IHTyping1 as [s1 [s2 [s3 [r [hA [psi0 hh]]]]]]; split_hyp; eauto.
+    repeat eexists; eauto.
   - (* Pi *) 
     pick fresh y.
     repeat spec y.  clear IHTyping. 
     eapply (@Typing_rename_Type y) in H1; eauto.
-    repeat split; auto.
+    repeat eexists.    
+    eauto. eauto. eauto.
     eapply Eq_Refl; eauto.
     econstructor.
     apply labels_uniq. move: (Typing_uniq H0) => u. unfold meet_ctx_l. auto.
@@ -610,19 +653,21 @@ Lemma T_WSigma_inversion: forall (x : atom) W (psi psi1 : grade) (A B C : tm),
    x `notin` dom W \u fv_tm_tm B ->
    Typing W psi (a_WSigma psi1 A B) C ->
    Ctx W ->
-   Typing W psi A a_Type /\ 
-   Typing ([(x, (psi, A))] ++ W) psi (open_tm_wrt_tm B (a_Var_f x)) a_Type /\
-   DefEq (labels (meet_ctx_l q_C W)) q_C C a_Type.
+   exists s1, exists s2, exists s3, rule s1 s2 s3 /\
+   Typing W psi A (a_Type s1) /\ 
+   Typing ([(x, (psi, A))] ++ W) psi (open_tm_wrt_tm B (a_Var_f x)) (a_Type s2) /\
+   DefEq (labels (meet_ctx_l q_C W)) q_C C (a_Type s3).
 Proof.
   intros.
   dependent induction H0.  
   - (* conv *) 
-    edestruct IHTyping1 as [hA [psi0 hh]]; split_hyp; eauto.
+    edestruct IHTyping1 as [s1 [s2 [s3 [r [hA [psi0 hh]]]]]]; split_hyp; eauto.
+    repeat eexists; eauto.
   - (* Pi *) 
     pick fresh y.
     repeat spec y.  clear IHTyping. 
     eapply (@Typing_rename_Type y) in H1; eauto.
-    repeat split; auto.
+    repeat eexists. eauto. eauto. eauto.
     eapply Eq_Refl; eauto.
     econstructor.
     apply labels_uniq. move: (Typing_uniq H0) => u. unfold meet_ctx_l. auto.
@@ -632,20 +677,29 @@ Qed.
 
 (* Coherence *)
 Lemma Typing_regularity : 
-  forall G psi a A, Typing G psi a A -> Ctx G -> Typing (meet_ctx_l q_C G) q_C A a_Type.
+  forall G psi a A, Typing G psi a A -> Ctx G -> exists s, Typing (meet_ctx_l q_C G) q_C A (a_Type s).
 Proof. 
   induction 1; split_hyp; intros.
-  all: eauto.
+  all: try solve [eexists; eauto].
   all: try solve [ unfold meet_ctx_l; eauto using q_leb_refl ].
+  - (* sort *) 
+    destruct (sort_regularity s2).
+    exists x. eapply T_Type; eauto. reflexivity. 
   - (* var *) eapply Ctx_regularity; eauto.
+  - (* pi *)
+    destruct (IHTyping ltac:(assumption)).
+    destruct (sort_regularity s3).
+    exists x0. eapply T_Type; eauto using Typing_uniq. reflexivity.
   - (* app *)
     clear IHTyping2. clear H.
+    destruct IHTyping1 as [s h]; auto.
     pick fresh x.
     have Fr2: x `notin` dom (meet_ctx_l q_C W). unfold meet_ctx_l; eauto.
-    move: (@T_Pi_inversion x (meet_ctx_l q_C W) q_C psi0 A B a_Type ltac:(auto) ltac:(eauto) ltac:(eauto using Ctx_meet_ctx_l)) => hh.
+    move: (@T_Pi_inversion x (meet_ctx_l q_C W) q_C psi0 A B (a_Type s) ltac:(auto) ltac:(eauto) ltac:(eauto using Ctx_meet_ctx_l)) => [s1 [s2 [s3 [r hh]]]].
+    exists s2.
     split_hyp.
-    rewrite (subst_tm_tm_intro x); auto.
-    replace a_Type with (subst_tm_tm a x a_Type).
+    rewrite (subst_tm_tm_intro x); eauto.
+    replace (a_Type s2) with (subst_tm_tm a x (a_Type s2)).
     eapply Typing_substitution; eauto 3.
     eapply Typing_meet_ctx_l; eauto.
     eapply Typing_subsumption; eauto.
@@ -655,15 +709,21 @@ Proof.
     auto.
   - (* AppI *)
     clear IHTyping2. clear H.
+    destruct IHTyping1 as [s h]; auto.
+
     pick fresh x.
     have Fr2: x `notin` dom (meet_ctx_l q_C W). unfold meet_ctx_l; eauto.
-    move: (@T_Pi_inversion x (meet_ctx_l q_C W) q_C psi0 A B a_Type ltac:(auto) ltac:(eauto)  ltac:(eauto using Ctx_meet_ctx_l)) => hh.
+    move: (@T_Pi_inversion x (meet_ctx_l q_C W) q_C psi0 A B (a_Type s) ltac:(auto) ltac:(eauto)  ltac:(eauto using Ctx_meet_ctx_l)) => [s1 [s2 [s3 [r hh]]]].
+    exists s2.
     split_hyp.
     rewrite (subst_tm_tm_intro x); auto.
-    replace a_Type with (subst_tm_tm a x a_Type).
+    replace (a_Type s2) with (subst_tm_tm a x (a_Type s2)).
     eapply Typing_substitution; eauto.
     eauto using Ctx_meet_ctx_l.
     auto.
+  - (* ... *)
+    destruct (sort_regularity s3).
+    exists x. eapply T_Type; eauto using Typing_uniq. reflexivity. 
   - (* LetPair *)
     pick fresh x.
     repeat spec x.
@@ -671,7 +731,9 @@ Proof.
     repeat spec y.
     rewrite (subst_tm_tm_intro x); auto.
     clear H2. clear H3.
-    replace a_Type with (subst_tm_tm a x a_Type).
+    destruct (IHTyping ltac:(assumption)) as [s1 hh].
+    exists s.
+    replace (a_Type s) with (subst_tm_tm a x (a_Type s)).
     eapply Typing_substitution; eauto 3.
     eapply Typing_meet_ctx_l; eauto.
     eapply Typing_subsumption; eauto.
@@ -679,20 +741,27 @@ Proof.
     reflexivity.
     eauto using Ctx_meet_ctx_l.
     auto.
+  - (* sigma *)
+    destruct (IHTyping ltac:(assumption)).
+    destruct (sort_regularity s3).
+    exists x0. eapply T_Type; eauto using Typing_uniq. reflexivity.
   - (* Proj1 *)
     pick fresh x.
     specialize (IHTyping ltac:(eauto)).
+    destruct IHTyping as [s hT].
     have Fr2: x `notin` dom (meet_ctx_l q_C W). unfold meet_ctx_l; eauto.
-    move: (@T_SSigma_inversion x (meet_ctx_l q_C W) q_C psi0 A B a_Type ltac:(auto) ltac:(eauto)  ltac:(eauto using Ctx_meet_ctx_l)) => [h [psi1 hh]].
+    move: (@T_SSigma_inversion x (meet_ctx_l q_C W) q_C psi0 A B (a_Type s) ltac:(auto) ltac:(eauto)  ltac:(eauto using Ctx_meet_ctx_l)) => [s1 [s2 [s3 [r [h [psi1 hh]]]]]].
     split_hyp.
-    auto.
+    eauto.
   - (* Proj2 *)
     pick fresh x.
     have Fr2: x `notin` dom (meet_ctx_l q_C W) \u fv_tm_tm B. unfold meet_ctx_l; eauto.
-    move: (@T_SSigma_inversion x _ _ psi0 A B a_Type ltac:(auto) ltac:(eauto)  ltac:(eauto using Ctx_meet_ctx_l)) => [h [psi1 hh]].
+    destruct IHTyping as [s hT]; auto.
+    move: (@T_SSigma_inversion x _ _ psi0 A B (a_Type s) ltac:(auto) ltac:(eauto)  ltac:(eauto using Ctx_meet_ctx_l)) => [s1 [s2 [s3 [r [h [psi1 hh]]]]]].
     split_hyp.
     rewrite (subst_tm_tm_intro x); auto.
-    replace a_Type with (subst_tm_tm (a_Proj1 psi0 a) x a_Type).
+    exists s2.
+    replace (a_Type s2) with (subst_tm_tm (a_Proj1 psi0 a) x (a_Type s2)).
     eapply Typing_substitution; eauto 1.
     eapply T_Proj1; eauto.
     eapply Typing_meet_ctx_l; eauto.
@@ -700,10 +769,11 @@ Proof.
     eapply Typing_leq_C; eauto. reflexivity.
     eauto using Ctx_meet_ctx_l.
     auto.
-  - (* case -- skip b/c we don't have the right rule *)
-    pick fresh x. 
+  - (* case *)
+    pick fresh x. exists s. 
+    repeat spec x.
     rewrite (subst_tm_tm_intro x); auto.
-    replace a_Type with (subst_tm_tm a x a_Type).
+    replace (a_Type s) with (subst_tm_tm a x (a_Type s)).
     eapply Typing_substitution; eauto 3.
     eapply Typing_meet_ctx_l; eauto.
     eapply Typing_subsumption; eauto.
@@ -711,6 +781,9 @@ Proof.
     reflexivity.
     eauto using Ctx_meet_ctx_l.
     auto.
+  -  destruct (sort_regularity s).
+    exists x. eapply T_Type; eauto using Typing_uniq. reflexivity.
+Unshelve. exact star.
 Qed.
 
 Lemma T_App_inversion: forall W (psi psi0 : grade) (a b C : tm),
@@ -731,7 +804,7 @@ Proof.
     exists A. exists B.
     have LT: (psi0 * psi) <= q_C. eauto using Typing_leq_C.
     repeat split; auto.
-    move: (Typing_regularity H ltac:(auto)) => hh.
+    move: (Typing_regularity H ltac:(auto)) => [s0 hh].
     eapply Eq_PiSnd.
     eapply Eq_Refl.
     eapply Typing_Grade. eauto.
@@ -748,11 +821,13 @@ Proof.
     { eapply still_higher; eauto using Typing_leq_C. } 
     eapply CT_Top; eauto.
     apply Typing_regularity in H.
+    move: H => [s0 HH].
     pick fresh x.
-    apply (@T_Pi_inversion x) in H; auto.
+    apply (@T_Pi_inversion x) in HH; auto.
+    move: HH => [s1 [s2 [s3 [r TH]]]].
     split_hyp.
     eapply Eq_Refl; eauto.
-    eapply Typing_Grade with (A := subst_tm_tm a x a_Type) ; eauto.
+    eapply Typing_Grade with (A := subst_tm_tm a x (a_Type s2)) ; eauto.
     rewrite (subst_tm_tm_intro x); auto.
     eapply Typing_substitution; eauto using Ctx_meet_ctx_l.
     unfold meet_ctx_l; eauto.
@@ -761,39 +836,42 @@ Proof.
 Qed.
 
 
-Lemma T_Abs_inversion: forall W (psi psi0 : grade) (b C : tm),
-    Typing W psi (a_Abs psi0 b) C -> 
+Lemma T_Abs_inversion: forall W (psi psi0 : grade) (b C A : tm),
+    Typing W psi (a_Abs psi0 A b) C -> 
     Ctx W ->
     forall x, x `notin` dom W \u fv_tm_tm b ->
-         exists A B, 
+         exists s B, 
            Typing ([(x, (psi0 * psi, A))] ++ W) psi (open_tm_wrt_tm b (a_Var_f x)) (open_tm_wrt_tm B (a_Var_f x)) /\
            (DefEq (labels (meet_ctx_l q_C W)) q_C C (a_Pi psi0 A B) /\ 
-            Typing (meet_ctx_l q_C W) q_C (a_Pi psi0 A B) a_Type) /\
+            Typing (meet_ctx_l q_C W) q_C (a_Pi psi0 A B) (a_Type s)) /\
             x `notin` fv_tm_tm B.
 Proof. 
   intros.
   dependent induction H.
   + (* conv *)
-    edestruct IHTyping1 as [A1 [B1 hh]]; auto; try reflexivity. 
+    edestruct IHTyping1 as [s0 [B1 hh]]; auto; try reflexivity. 
     split_hyp.
     repeat eexists; eauto 2.
-    eapply Eq_Trans with (b:=A); auto.
+    eapply Eq_Trans with (b:=A0); auto.
   + (* abs *)
     clear IHTyping. 
     move: (Typing_ctx_fv H1 ltac:(eauto using Ctx_meet_ctx_l)) => [h0 _]. 
     simpl in h0. rewrite dom_meet_ctx_l in h0.
-    exists A. exists B.
-    repeat split; eauto 3.
     pick fresh y. repeat spec y.
+    have Fr1: y `notin` dom (meet_ctx_l q_C W). {     rewrite dom_meet_ctx_l. auto. }
+
+    move: (@T_Pi_inversion y (meet_ctx_l q_C W) q_C psi0 A B (a_Type s) ltac:(auto) ltac:(eauto)  ltac:(eauto using Ctx_meet_ctx_l)) => [s1 [s2 [s3 [r [h [hh1 hh2]]]]]].    
+    exists s. exists B.
+    repeat split; eauto 3.
     eapply (@Typing_rename y); auto 2.
     fsetdec.
     econstructor; eauto.
-    eapply (@T_Pi_inversion y) in H1. split_hyp. auto.
-    rewrite dom_meet_ctx_l. auto.
-    eauto using Ctx_meet_ctx_l.
     eapply Eq_Refl.
     eapply Typing_Grade.
     eauto.
+    eauto.
+    eauto using Ctx_meet_ctx_l.
+
     fsetdec.
 Qed.
 
@@ -801,17 +879,17 @@ Qed.
 
 Lemma T_SPair_inversion : forall W psi a psi0 b C,
        Typing W psi (a_SPair a psi0 b) C ->
-       exists A B, Typing (meet_ctx_l q_C W) q_C (a_SSigma psi0 A B) a_Type /\
+       exists s A B, Typing (meet_ctx_l q_C W) q_C (a_SSigma psi0 A B) (a_Type s) /\
               Typing W (psi0 * psi) a A /\
               Typing W psi b (open_tm_wrt_tm B a) /\
               DefEq (labels (meet_ctx_l q_C W)) q_C C (a_SSigma psi0 A B).
 Proof.
   intros. 
   dependent induction H.
-  - edestruct IHTyping1 as [A1 [B1 hh]]; auto; try reflexivity. 
+  - edestruct IHTyping1 as [s0 [A1 [B1 hh]]]; auto; try reflexivity. 
     split_hyp.
     repeat eexists; eauto. 
-  - exists A. exists B.
+  - exists s. exists A. exists B.
     repeat split; eauto 1.
     eapply Eq_Refl; eauto.
     eapply Typing_Grade; eauto.
@@ -820,22 +898,22 @@ Qed.
 
 Lemma T_WPair_inversion : forall W psi a psi0 b C,
        Typing W psi (a_WPair a psi0 b) C ->
-       exists A B, Typing (meet_ctx_l q_C W) q_C (a_WSigma psi0 A B) a_Type /\
+       exists s A B, Typing (meet_ctx_l q_C W) q_C (a_WSigma psi0 A B) (a_Type s) /\
               CTyping W (psi0 * psi) a A /\
               Typing W psi b (open_tm_wrt_tm B a) /\
               DefEq (labels (meet_ctx_l q_C W)) q_C C (a_WSigma psi0 A B).
 Proof.
   intros. 
   dependent induction H.
-  - edestruct IHTyping1 as [A1 [B1 hh]]; auto; try reflexivity. 
+  - edestruct IHTyping1 as [s0 [A1 [B1 hh]]]; auto; try reflexivity. 
     split_hyp.
     repeat eexists; eauto. 
-  - exists A. exists B.
+  - exists s. exists A. exists B.
     have LT: (psi0 * psi <= q_C) by eauto using Typing_leq_C.
     repeat split; eauto 3.
     eapply Eq_Refl; eauto.
     eapply Typing_Grade; eauto.
-  - exists A. exists B.
+  - exists s. exists A. exists B.
     repeat split; eauto 3.
     eapply CT_Top; eauto using still_higher, Typing_leq_C.
     eapply Eq_Refl; eauto.
@@ -885,10 +963,11 @@ Proof.
     clear IHh1. clear IHh2.
     move: (T_Abs_inversion h1) => hh.
     pick fresh x.
-    destruct (hh ltac:(auto) x ltac:(auto)) as [A0 [B0 hh1]]. split_hyp.
+    destruct (hh ltac:(auto) x ltac:(auto)) as [s [B0 hh1]]. split_hyp.
     have FrB0: x `notin` fv_tm_tm B0. eauto. clear hh.
     have FrW : x `notin` dom (meet_ctx_l q_C W) \u fv_tm_tm B0. unfold meet_ctx_l. auto.
-    move: (T_Pi_inversion FrW ltac:(eassumption) ltac:(eauto using Ctx_meet_ctx_l)) => hh. split_hyp.
+    move: (T_Pi_inversion FrW ltac:(eassumption) ltac:(eauto using Ctx_meet_ctx_l)) =>
+    [s1 [s2 [s3 [r hh]]]]. split_hyp.
     have EA: DefEq (labels (meet_ctx_l q_C W)) q_C A A0.
       { 
         eapply Eq_PiFst; eauto.
@@ -907,17 +986,18 @@ Proof.
         eauto.
         reflexivity.
       }
+      move: (Typing_regularity h1 ltac:(auto)) => [s4 TAB].
+      have FrW1 : x `notin` dom (meet_ctx_l q_C W) \u fv_tm_tm B. unfold meet_ctx_l. auto.
+      move: (T_Pi_inversion FrW1 TAB ltac:(eauto using Ctx_meet_ctx_l)) => 
+         [s1' [s2' [s3' [r' hh]]]]. split_hyp.
+
       eapply Eq_Sym in DO.
-      eapply T_Conv with (A := open_tm_wrt_tm B0 a); auto.
+      eapply T_Conv with (A := open_tm_wrt_tm B0 a) (s:= s2'); auto.      
       rewrite (subst_tm_tm_intro x _ a). eauto.
       rewrite (subst_tm_tm_intro x _ a). eauto.
       eapply Typing_substitution; eauto using Ctx_meet_ctx_l.
-
-      move: (Typing_regularity h1 ltac:(auto)) => TAB.
-      have FrW1 : x `notin` dom (meet_ctx_l q_C W) \u fv_tm_tm B. unfold meet_ctx_l. auto.
-      move: (T_Pi_inversion FrW1 TAB ltac:(eauto using Ctx_meet_ctx_l)) => hh. split_hyp.
       rewrite (subst_tm_tm_intro x _ a). eauto.
-      replace a_Type with (subst_tm_tm a x a_Type).
+      replace (a_Type s2') with (subst_tm_tm a x (a_Type s2')).
       eapply Typing_substitution; eauto using Ctx_meet_ctx_l.
    
       eapply Typing_subsumption with (psi1 := psi0 * psi); eauto.
@@ -930,10 +1010,10 @@ Proof.
   - (* AppI *)
     move: (T_Abs_inversion h1 ltac:(auto)) => hh.
     pick fresh x.
-    destruct (hh x ltac:(auto)) as [A0 [B0 hh1]]. split_hyp.
+    destruct (hh x ltac:(auto)) as [s0 [B0 hh1]]. split_hyp.
     have FrB0: x `notin` fv_tm_tm B0. auto. clear hh.
     have FrW : x `notin` dom (meet_ctx_l q_C W) \u fv_tm_tm B0. unfold meet_ctx_l. auto.
-    move: (T_Pi_inversion FrW ltac:(eassumption) ltac:(eauto using Ctx_meet_ctx_l)) => hh. split_hyp.
+    move: (T_Pi_inversion FrW ltac:(eassumption) ltac:(eauto using Ctx_meet_ctx_l)) =>  [s1 [s2 [s3 [r hh]]]]. split_hyp.
     have EA: DefEq (labels (meet_ctx_l q_C W)) q_C A A0.
       { 
         eapply Eq_PiFst; eauto.
@@ -944,19 +1024,21 @@ Proof.
         eapply Eq_Refl.
         eapply Typing_Grade; eauto.
       }
+      move: (Typing_regularity h1 ltac:(auto)) => [s4 TAB].
+      have FrW1 : x `notin` dom (meet_ctx_l q_C W) \u fv_tm_tm B. unfold meet_ctx_l. auto.
+      move: (T_Pi_inversion FrW1 TAB ltac:(eauto using Ctx_meet_ctx_l)) =>
+      [s1' [s2' [s3' [r' hh']]]]. split_hyp.
+
       eapply Eq_Sym in DO.
-      eapply T_Conv with (A := open_tm_wrt_tm B0 a); auto.
+      eapply T_Conv with (A := open_tm_wrt_tm B0 a)(s:=s2'); auto.
       rewrite (subst_tm_tm_intro x _ a). eauto.
       rewrite (subst_tm_tm_intro x _ a). eauto.
       eapply Typing_substitution_irrel with (W2 := nil); eauto using Ctx_meet_ctx_l. 
       eapply still_higher; eauto using Typing_leq_C.
-      eapply T_Conv with (A := A); simpl_env; auto.
+      eapply T_Conv with (A := A); simpl_env; eauto. 
 
-      move: (Typing_regularity h1 ltac:(auto)) => TAB.
-      have FrW1 : x `notin` dom (meet_ctx_l q_C W) \u fv_tm_tm B. unfold meet_ctx_l. auto.
-      move: (T_Pi_inversion FrW1 TAB ltac:(eauto using Ctx_meet_ctx_l)) => hh. split_hyp.
       rewrite (subst_tm_tm_intro x _ a). eauto.
-      replace a_Type with (subst_tm_tm a x a_Type).
+      replace (a_Type s2') with (subst_tm_tm a x (a_Type s2')).
       eapply Typing_substitution; eauto using Ctx_meet_ctx_l.
       auto.
 
@@ -965,19 +1047,20 @@ Proof.
     specialize (IHh ltac:(auto) ltac:(auto) ltac:(auto)).
     move: (Typing_lift h) => L1.
     move: (Typing_lift IHh) => L2'.
-    have TCa: (Typing (meet_ctx_l q_C W) q_C (open_tm_wrt_tm C a) a_Type).
+    have TCa: (Typing (meet_ctx_l q_C W) q_C (open_tm_wrt_tm C a) (a_Type s)).
     { 
       pick fresh x. repeat spec x.
       rewrite (subst_tm_tm_intro x _ a). eauto.
-      replace a_Type with (subst_tm_tm a x a_Type). 2:auto.
+      replace (a_Type s) with (subst_tm_tm a x (a_Type s)). 2:auto.
       eapply Typing_substitution; eauto using Ctx_meet_ctx_l.
     } 
     have WE: DefEq (labels (meet_ctx_l q_C W)) q_C (a_SSigma psi0 A C) (a_SSigma psi0 A C).
       { eapply Eq_Refl.
-        pick fresh x. move: (@T_WSigma_inversion x) => hh.
-        specialize (hh  (meet_ctx_l q_C W) q_C psi0 A B a_Type).
-        move: (Typing_regularity h ltac:(auto)) => R.
+        pick fresh x. move: (@T_WSigma_inversion x) => hh. 
+        move: (Typing_regularity h ltac:(auto)) => [s' R].
+        specialize (hh  (meet_ctx_l q_C W) q_C psi0 A B (a_Type s')).
         specialize (hh ltac:(rewrite dom_meet_ctx_l; eauto) R ltac:(eauto using Ctx_meet_ctx_l)).
+        destruct hh as [s1 [s2 [s3 [r hh]]]].
         split_hyp.
         fresh_apply_Grade y. eapply Typing_Grade; eauto.
         specialize (H y ltac:(auto)).
@@ -993,9 +1076,10 @@ Proof.
     clear H0. clear H2. clear IHh.
     pick fresh x. repeat spec x.
     pick fresh y. repeat spec y.
-    move: (T_WPair_inversion h) => [A0 [B0 hh]]. split_hyp.
-    move: (Typing_regularity h ltac:(auto)) => TWS.
+    move: (T_WPair_inversion h) => [s0 [A0 [B0 hh]]]. split_hyp.
+    move: (Typing_regularity h ltac:(auto)) => [s' TWS].
     apply (@T_WSigma_inversion x) in TWS; try rewrite dom_meet_ctx_l; auto using Ctx_meet_ctx_l.
+    destruct TWS as [s1 [s2 [s3 [r TWS]]]].
     split_hyp. 
     
 
@@ -1010,7 +1094,7 @@ Proof.
       eapply T_Conv; eauto 1.
       simpl_env.
       eapply Eq_WSigmaFst; eauto.
-      simpl_env.  auto.
+      simpl_env.  eauto.
     }
 
     have Ta2 : Typing W psi a2 (open_tm_wrt_tm B a1).
@@ -1020,7 +1104,7 @@ Proof.
       eapply Typing_Grade; eauto.
       inversion H2; subst; eauto using Typing_lift.
       rewrite (subst_tm_tm_intro x); auto.
-      replace a_Type with (subst_tm_tm a1 x a_Type). 2: auto.
+      replace (a_Type _) with (subst_tm_tm a1 x (a_Type s2)). 2: reflexivity.
       inversion H2; subst.
       + eapply Typing_substitution; eauto 3 using Ctx_meet_ctx_l.
         eapply Typing_lift.
@@ -1030,7 +1114,7 @@ Proof.
         eapply T_Conv; eauto 1.
         simpl_env.
         eapply Eq_WSigmaFst; eauto.
-        simpl_env. auto.
+        simpl_env. eauto.
     }        
 
     have Tca1: Typing W psi (open_tm_wrt_tm c a1) 
@@ -1072,16 +1156,20 @@ Proof.
     rewrite subst_tm_tm_fresh_eq in Tb. auto.
     destruct (y == y) eqn:h1. rewrite h1 in Tb. auto. done.
   - (* Proj1 *)
-    move: (T_SPair_inversion h) => [A0 [B0 hh]]. split_hyp.
+    move: (T_SPair_inversion h) => [s0 [A0 [B0 hh]]]. split_hyp.
     move: (Eq_SSigmaFst _ _ _ _ _ _ _ ltac:(eassumption)) => h1.
+    apply Typing_regularity in h; auto. destruct h as [s tS].
+    pick fresh x.
+    apply (@T_SSigma_inversion x) in tS. move: tS => [s1 [s2 [s3 [r hh]]]]. split_hyp.
     eapply T_Conv; eauto.
     rewrite join_leq in H3; auto.
-    eapply Typing_regularity; eauto.
+    rewrite dom_meet_ctx_l. auto. eapply Ctx_meet_ctx_l; auto.
+
   - (* Proj2 Cong *)
-    move: (Typing_regularity h ltac:(auto)) => TSS.
+    move: (Typing_regularity h ltac:(auto)) => [s0 TSS].
     pick fresh x. 
     have FrW: x `notin` dom (meet_ctx_l q_C W) \u fv_tm_tm B.  unfold meet_ctx_l. auto.
-    move: (T_SSigma_inversion FrW TSS ltac: (eauto using Ctx_meet_ctx_l)) => hh. split_hyp.
+    move: (T_SSigma_inversion FrW TSS ltac: (eauto using Ctx_meet_ctx_l)) => [s1 [s2 [s3 [r hh]]]]. split_hyp.
 
     have ES: DefEq (labels (meet_ctx_l q_C W)) q_C (a_SSigma psi0 A B) (a_SSigma psi0 A B).
     { eapply Eq_Refl. eapply Typing_Grade; eauto. } 
@@ -1103,21 +1191,22 @@ Proof.
       [ H2 : Typing ([(?x, (q_C, ?A))] ++ _) _ _ _ |- _ ] =>  
         eapply Typing_substitution with (a := a_Proj1 psi0 a) in H2;
         simpl in H2;
-        try rewrite <- subst_tm_tm_intro in H2; auto
+        try rewrite <- subst_tm_tm_intro in H2; eauto
         end.
-    eapply T_Proj1; auto.
+
+    eapply T_Proj1; eauto.
     eapply Typing_lift; eauto.
     eauto using Ctx_meet_ctx_l.
   - (* Proj2 beta *)
     clear IHh.
-    move: (T_SPair_inversion h) => [A0 [B0 hh]]. split_hyp.
+    move: (T_SPair_inversion h) => [s0 [A0 [B0 hh]]]. split_hyp.
     subst.
     pick fresh x.
     have FrW : x `notin` dom (meet_ctx_l q_C W) \u fv_tm_tm B0. unfold meet_ctx_l. auto.
     move: (T_SSigma_inversion FrW H2 ltac:(eauto using Ctx_meet_ctx_l)) => ?. split_hyp.
-    move: (Typing_regularity h ltac:(auto)) => hh.
+    move: (Typing_regularity h ltac:(auto)) => [s1 hh].
     have FrW1 : x `notin` dom (meet_ctx_l q_C W) \u fv_tm_tm B. unfold meet_ctx_l. auto.
-    move: (T_SSigma_inversion FrW1 hh ltac:(eauto using Ctx_meet_ctx_l)) => ?. split_hyp.
+    move: (T_SSigma_inversion FrW1 hh ltac:(eauto using Ctx_meet_ctx_l)) => [s2 [s3 [s4 ?]]]. split_hyp.
 
     have TP : Typing (meet_ctx_l q_C W) q_C (a_Proj1 psi0 (a_SPair a1 psi0 b)) A0.
     {
@@ -1137,8 +1226,8 @@ Proof.
     eapply S_Proj1Beta; eauto.
     eapply Typing_Grade; eauto using Typing_lift.
     
-    eapply Typing_substitution with (a := (a_Proj1 psi0 (a_SPair a1 psi0 b))) in H12.
-    rewrite <- subst_tm_tm_intro in H12;  eauto. 
+    eapply Typing_substitution with (a := (a_Proj1 psi0 (a_SPair a1 psi0 b))) in H10.
+    rewrite <- subst_tm_tm_intro in H10;  eauto. 
     eapply T_Conv; simpl_env; eauto 2.
     eapply Eq_SSigmaFst; eauto 1.
     eapply Eq_Sym; eauto 1.
@@ -1148,7 +1237,7 @@ Proof.
     specialize (IHh1 ltac:(auto) _ ltac:(eauto)).
     clear IHh2 IHh3.
     move: (Typing_regularity IHh1) => TS.
-    specialize (TS ltac:(auto)).
+    specialize (TS ltac:(auto)). destruct TS as [s0 TS].
     pick fresh x. 
     move: (H x ltac:(auto)) => TB.
     have EP: DefEq (labels (meet_ctx_l q_C W)) q_C (a_Pi q_C (a_Sum A1 A2) B) (a_Pi q_C (a_Sum A1 A2) B).
@@ -1165,20 +1254,22 @@ Proof.
     eapply Eq_Sym.
     eapply Eq_Beta; eauto using Typing_lift, Typing_Grade.
     repeat spec x.
-    replace a_Type with (subst_tm_tm a x a_Type). 2: auto.
+    replace (a_Type _) with (subst_tm_tm a x (a_Type s)). 2: reflexivity.
     rewrite (subst_tm_tm_intro x). auto.
     eapply Typing_substitution; eauto using Typing_lift, Ctx_meet_ctx_l.
   - (* case inj1 *)
-    have TA1: Typing (meet_ctx_l q_C W) q_C A1 a_Type.
-    { move: (Typing_regularity h2 ltac:(auto)) => TP1.
+    have [s1 TA1]: exists s, Typing (meet_ctx_l q_C W) q_C A1 (a_Type s) .
+    { move: (Typing_regularity h2 ltac:(auto)) => [s0 TP1].
       pick fresh x.
       have F2: x `notin` dom (meet_ctx_l q_C W) \u fv_tm_tm B1.  rewrite dom_meet_ctx_l. auto.
-      move: (@T_Pi_inversion x _ _ _ A1 B1 _ F2 TP1 ltac:(eauto using Ctx_meet_ctx_l)) => h0.
-      split_hyp. auto. }
-    have TB : Typing (meet_ctx_l q_C W) q_C (open_tm_wrt_tm B (a_Inj1 a0)) a_Type.
+      move: (@T_Pi_inversion x _ _ _ A1 B1 _ F2 TP1 ltac:(eauto using Ctx_meet_ctx_l)) => 
+      [s1 [s2 [s3 h0]]].
+      split_hyp. eauto. }
+    have [sb TB] : exists s, Typing (meet_ctx_l q_C W) q_C (open_tm_wrt_tm B (a_Inj1 a0)) (a_Type s).
     { 
       pick fresh x.
-      replace a_Type with (subst_tm_tm (a_Inj1 a0) x a_Type). 2: auto.
+      exists s.
+      replace (a_Type s) with (subst_tm_tm (a_Inj1 a0) x (a_Type s)). 2: auto.
       rewrite (subst_tm_tm_intro x B); auto.
       eapply Typing_substitution; eauto 2.
       eapply Typing_lift; eauto.
@@ -1202,16 +1293,16 @@ Proof.
     eapply Typing_Grade; eauto.
     simpl. destruct (x == x) eqn:E. rewrite E.  auto. done.
   - (* case inj 2 *)
-    have TA2: Typing (meet_ctx_l q_C W) q_C A2 a_Type.
-    { move: (Typing_regularity h3 ltac:(auto)) => TP1.
+    have [s2 TA2] : exists s2, Typing (meet_ctx_l q_C W) q_C A2 (a_Type s2).
+    { move: (Typing_regularity h3 ltac:(auto)) => [s0 TP1].
       pick fresh x.
       have F2: x `notin` dom (meet_ctx_l q_C W) \u fv_tm_tm B2.  rewrite dom_meet_ctx_l. auto.
-      move: (@T_Pi_inversion x _ _ _ A2 B2 _ F2 TP1 ltac:(eauto using Ctx_meet_ctx_l)) => h0.
-      split_hyp. auto. }
-    have TB : Typing (meet_ctx_l q_C W) q_C (open_tm_wrt_tm B (a_Inj2 a0)) a_Type.
+      move: (@T_Pi_inversion x _ _ _ A2 B2 _ F2 TP1 ltac:(eauto using Ctx_meet_ctx_l)) => [s4 [s2 [s3 h0]]].
+      split_hyp. eauto. }
+    have [sb TB] : exists s, Typing (meet_ctx_l q_C W) q_C (open_tm_wrt_tm B (a_Inj2 a0)) (a_Type s).
     { 
-      pick fresh x.
-      replace a_Type with (subst_tm_tm (a_Inj2 a0) x a_Type). 2: auto.
+      pick fresh x. eexists.
+      replace (a_Type s) with (subst_tm_tm (a_Inj2 a0) x (a_Type s)). 2: auto.
       rewrite (subst_tm_tm_intro x B); auto.
       eapply Typing_substitution; eauto 2.
       eapply Typing_lift; eauto.
