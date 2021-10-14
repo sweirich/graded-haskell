@@ -3,7 +3,7 @@ Overview
 
 * System Specification 
 
-The full specification of the type system shown in Section 7.1 is in the file
+The full specification of the DDC type system is in the file
 Qualitative_ott.v. This file has been mechanically generated from the Ott
 specification, but then slightly edited. For convenience, we also provide the
 file spec.pdf that contains a typeset version of the system, also generated
