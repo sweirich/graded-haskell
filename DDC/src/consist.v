@@ -375,6 +375,7 @@ Proof.
        auto.
 Qed.
 
+(*
 Inductive CMultiPar : econtext -> grade -> grade -> tm -> tm -> Prop :=
     CMultiPar_Leq : forall (P : econtext) (psi psi0 : grade) (a1 a2 : tm),
                psi0 <= psi -> MultiPar P psi a1 a2 -> CMultiPar P psi psi0 a1 a2
@@ -383,6 +384,7 @@ Inductive CMultiPar : econtext -> grade -> grade -> tm -> tm -> Prop :=
                 lc_tm a2 -> ~ psi0 <= psi -> uniq P -> CMultiPar P psi psi0 a1 a2.
 
 Hint Constructors CMultiPar : core.
+*)
 
 Lemma MultiPar_Abs : forall (L : atoms) (P : econtext) (psi psi0 : grade) (A1 A2 b1 b2 : tm),
        (forall x : atom,
@@ -956,11 +958,9 @@ Proof.
     rewrite (subst_tm_tm_intro x B1); eauto.
     rewrite (subst_tm_tm_intro x B2); eauto.
     eapply join.
-    eapply MultiPar_subst3; try eassumption.
-    eapply MultiPar_subst3; try eassumption.
-    move: CEq_GEq_equality_substitution => [_ sub].
-    eapply sub with (P2 := nil); simpl_env; eauto.
-    eapply CEq_Leq; eauto using MultiPar_lc2. reflexivity.
+    eapply MultiPar_subst3; try eassumption. eapply MultiPar_refl; eauto.
+    eapply MultiPar_subst3; try eassumption. eapply MultiPar_refl; eauto.
+    eapply GEq_substitution_same with (P2 := nil); eauto.
   - (* WSigma cong *)
     pick fresh x. repeat spec x.
     repeat invert_Joins.
@@ -1075,20 +1075,30 @@ Proof.
     eapply Joins_Case; eauto.
   - eapply join; eauto.
   - eapply join; eauto.    
-  - (* SubstIrrel *)
+  - (* Subst *)
     pick fresh x. repeat spec x.
     invert_Joins.
-    move: (GEq_uniq H3) => u. destruct_uniq.
-    rewrite (subst_tm_tm_intro x); auto.
+    move: (GEq_uniq H4) => u. destruct_uniq.
+    rewrite (subst_tm_tm_intro x b1); auto.
     rewrite (subst_tm_tm_intro x b2); auto.
-    eapply join.
-    instantiate (1 := (subst_tm_tm a1 x b0)).
-    eapply MultiPar_subst3_CMultiPar; try eassumption.
-    eapply CMP_Nleq; auto.
-    instantiate (1 := (subst_tm_tm a1 x b3)).
-    eapply MultiPar_subst3_CMultiPar; try eassumption.
-    eapply CMP_Nleq; auto.
-    eapply GEq_substitution_irrel with (P2 := nil); eauto.
+    inversion H0; subst. 
+    + invert_Joins.
+      eapply join.
+      instantiate (1 := (subst_tm_tm b4 x b0)).
+      eapply MultiPar_subst3_CMultiPar; try eassumption.
+      eauto using DefEq_Grade1.
+      eapply MultiPar_subst3_CMultiPar; try eassumption.
+      eauto using DefEq_Grade1.
+      move: CEq_GEq_equality_substitution => [_ h].
+      eapply h with (P2 := nil); simpl_env; eauto.
+    + 
+      eapply join.
+      instantiate (1 := (subst_tm_tm a1 x b0)).
+      eapply MultiPar_subst3_CMultiPar; try eassumption.
+      eauto.
+      eapply MultiPar_subst3_CMultiPar; try eassumption.
+      eauto.
+      eapply GEq_substitution_irrel with (P2 := nil); eauto.
 Qed.
 
 Lemma DefEq_Consistent : forall S D A B, DefEq S D A B -> Consistent A B.

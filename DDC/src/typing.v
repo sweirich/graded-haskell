@@ -805,12 +805,13 @@ Proof.
     have LT: (psi0 * psi) <= q_C. eauto using Typing_leq_C.
     repeat split; auto.
     move: (Typing_regularity H ltac:(auto)) => [s0 hh].
-    eapply Eq_PiSnd.
     eapply Eq_Refl.
-    eapply Typing_Grade. eauto.
-    eapply Eq_Refl.
-    eapply Typing_Grade.
-    eapply Typing_narrowing.
+    move: (Typing_Grade hh) => gh.
+    inversion gh. subst. 
+    pick fresh y. rewrite (subst_tm_tm_intro y); eauto. repeat spec y.
+    eapply Grade_substitution_same with (P2:=nil); eauto.
+    eapply Typing_Grade. 
+    eapply Typing_narrowing; eauto.
     eapply Typing_subsumption; eauto.
     eapply Typing_leq_C; eauto.
     eapply meet_ctx_l_ctx_sub.
@@ -975,7 +976,6 @@ Proof.
       have DO: DefEq (labels (meet_ctx_l q_C W)) q_C (open_tm_wrt_tm B a) (open_tm_wrt_tm B0 a).
       { 
         eapply Eq_PiSnd; eauto 2.
-        eapply Eq_Refl; eauto.
         eapply Typing_Grade; eauto.
         eapply Typing_subsumption with (psi1 := psi0 *psi); eauto.
         eapply Typing_narrowing; eauto.
@@ -1021,7 +1021,6 @@ Proof.
       have DO: DefEq (labels (meet_ctx_l q_C W)) q_C (open_tm_wrt_tm B a) (open_tm_wrt_tm B0 a).
       { 
         eapply Eq_PiSnd; eauto 2.
-        eapply Eq_Refl.
         eapply Typing_Grade; eauto.
       }
       move: (Typing_regularity h1 ltac:(auto)) => [s4 TAB].
@@ -1250,9 +1249,15 @@ Proof.
     }      
     eapply T_Conv.
     eapply T_Case; eauto.
-    eapply Eq_PiSnd; eauto 2.
-    eapply Eq_Sym.
-    eapply Eq_Beta; eauto using Typing_lift, Typing_Grade.
+    + pick fresh y and apply Eq_Subst; auto.
+      eapply Eq_Refl.
+      eapply Typing_Grade in TB. simpl_env in TB.
+      eapply Grade_renaming with (x:=y)(y:=x); eauto. simpl_env. rewrite dom_meet_ctx_l. auto.
+      simpl_env. rewrite dom_meet_ctx_l. auto.
+      eapply CDefEq_Leq. reflexivity.
+      eapply Eq_Sym.
+      eapply Eq_Beta; eauto using Typing_lift, Typing_Grade.
+    + 
     repeat spec x.
     replace (a_Type _) with (subst_tm_tm a x (a_Type s)). 2: reflexivity.
     rewrite (subst_tm_tm_intro x). auto.

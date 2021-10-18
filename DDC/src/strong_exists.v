@@ -582,6 +582,9 @@ Proof.
        eapply T_Conv with (A := open_tm_wrt_tm B (a_Var_f x)).
        eapply T_Var with (psi0:= psi); auto. reflexivity. 
        eapply Eq_Sym.
+       pick fresh z0 and apply Eq_Subst; auto.
+Admitted. 
+(*
        eapply Eq_PiSnd.
        eapply Eq_Refl.
        inversion GW; subst.
@@ -699,3 +702,4 @@ Proof.
       eauto.
 Unshelve. exact q_C.
 Qed.
+*)

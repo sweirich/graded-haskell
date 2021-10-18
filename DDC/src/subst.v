@@ -373,8 +373,7 @@ Proof.
     simpl in H; eauto.
   - repeat rewrite subst_tm_tm_open_tm_wrt_tm; eauto 2 using CGrade_lc.
     match goal with [H2 : CGrade _ _ _ _|- _ ] => 
-    specialize (H0 _ _ _ _ ltac:(eauto) _ H2);
-    specialize (H _ _ _ _ ltac:(eauto) _ H2) end. simpl in H0.
+    specialize (H _ _ _ _ ltac:(eauto) _ H1) end. simpl in H.
     eapply Eq_PiSnd; eauto 3 using Grade_substitution_CGrade, subst_tm_tm_lc_tm, CGrade_lc.    
   - repeat rewrite subst_tm_tm_open_tm_wrt_tm; eauto 2 using CGrade_lc.
     specialize (H _ _ _ _ ltac:(eauto) _ H1); simpl in H; eauto.
@@ -397,16 +396,16 @@ Proof.
   - repeat invert_Grade; subst;
     simpl.
     repeat rewrite subst_tm_tm_open_tm_wrt_tm; eauto 2 using CGrade_lc.
-    pick fresh y and apply Eq_SubstIrrel; eauto 2. 
-    eauto using subst_tm_tm_lc_tm, CGrade_lc.    
-    eauto using subst_tm_tm_lc_tm, CGrade_lc.    
+    pick fresh y and apply Eq_Subst; eauto 2. 
+(*    eauto using subst_tm_tm_lc_tm, CGrade_lc.    
+    eauto using subst_tm_tm_lc_tm, CGrade_lc.     *)
     repeat spec y.
-    specialize (H2 P1 ([(y, psi)] ++ P2) x psi0).
-    simpl_env in H2. specialize (H2 ltac:(auto)).
-    specialize (H2 _ ltac:(eassumption)).
-    repeat rewrite subst_tm_tm_open_tm_wrt_tm in H2; eauto 2 using CGrade_lc.
-    rewrite subst_tm_tm_var_neq in H2. auto.
-    auto.
+    specialize (H3 P1 ([(y, psi)] ++ P2) x psi0).
+    simpl_env in H3. specialize (H3 ltac:(auto)).
+    specialize (H3 _ ltac:(eassumption)).
+    repeat rewrite subst_tm_tm_open_tm_wrt_tm in H3; eauto 2 using CGrade_lc.
+    rewrite subst_tm_tm_var_neq in H3. auto.
+    eauto.
   - eapply CDefEq_Nleq; eauto using subst_tm_tm_lc_tm, CGrade_lc.
 Qed.
 

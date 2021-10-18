@@ -165,11 +165,10 @@ Proof with  eauto 3 using Grade_pumping_middle, helper_uniq.
   eapply Eq_Sum...
   eapply Eq_Case...
 
-  pick fresh y and apply Eq_SubstIrrel; eauto 1; repeat spec y;
-  match goal with [ H3 : forall P3 x0 psi2 P4, [(?y,?psi0)] ++ ?P2 ++ [(?x, ?psi1)] ++ ?P1 = _ -> _ |- _ ] => 
-                  specialize (H3 ([(y, psi0)] ++ P2) x psi1 P1 ltac:(simpl_env; eauto)
-                                                              _ ltac:(eassumption)); simpl_env in H3 end; eauto.
-  
+  pick fresh y and apply Eq_Subst; eauto 1; repeat spec y.
+  specialize (H3 ([(y, psi)] ++ P2) x psi0 P1 ltac:(simpl_env; eauto) _ ltac:(eassumption)). 
+  simpl_env in H3; eauto.
+  eauto...
 Qed.
 
 Lemma DefEq_pumping_middle : 

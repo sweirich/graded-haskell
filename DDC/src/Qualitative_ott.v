@@ -522,10 +522,10 @@ with DefEq : econtext -> grade -> tm -> tm -> Prop :=    (* defn DefEq *)
  | Eq_PiFst : forall (P:econtext) (psi:grade) (A1 A2:tm) (psi0:grade) (B1 B2:tm),
      DefEq P psi (a_Pi psi0 A1 B1) (a_Pi psi0 A2 B2) ->
      DefEq P psi A1 A2
- | Eq_PiSnd : forall (P:econtext) (psi:grade) (B1 a1 B2 a2:tm) (psi0:grade) (A1 A2:tm),
+ | Eq_PiSnd : forall (P:econtext) (psi:grade) (B1 a B2:tm) (psi0:grade) (A1 A2:tm),
      DefEq P psi (a_Pi psi0 A1 B1) (a_Pi psi0 A2 B2) ->
-     DefEq P psi a1 a2 ->
-     DefEq P psi  (open_tm_wrt_tm  B1   a1 )   (open_tm_wrt_tm  B2   a2 ) 
+     Grade P psi a ->
+     DefEq P psi  (open_tm_wrt_tm  B1   a )   (open_tm_wrt_tm  B2   a ) 
  | Eq_WSigma : forall (L:vars) (P:econtext) (psi psi0:grade) (A1 B1 A2 B2:tm),
      DefEq P psi A1 A2 ->
       ( forall x , x \notin  L  -> DefEq  (  ( x ~ psi )  ++ P )  psi  ( open_tm_wrt_tm B1 (a_Var_f x) )   ( open_tm_wrt_tm B2 (a_Var_f x) )  )  ->
@@ -595,13 +595,11 @@ with DefEq : econtext -> grade -> tm -> tm -> Prop :=    (* defn DefEq *)
  | Eq_TmUnit : forall (P:econtext) (psi:grade),
       uniq  P  ->
      DefEq P psi a_TmUnit a_TmUnit
- | Eq_SubstIrrel : forall (L:vars) (P:econtext) (phi:grade) (b1 a1 b2 a2:tm) (psi:grade),
-     lc_tm a1 ->
-     lc_tm a2 ->
+ | Eq_Subst : forall (L:vars) (P:econtext) (phi:grade) (b1 a1 b2 a2:tm) (psi:grade),
       True  ->
       True  ->
       ( forall x , x \notin  L  -> DefEq  (  ( x ~ psi )  ++ P )  phi  ( open_tm_wrt_tm b1 (a_Var_f x) )   ( open_tm_wrt_tm b2 (a_Var_f x) )  )  ->
-      not (  (  ( psi  <=  phi )  )  )  ->
+     CDefEq P phi psi a1 a2 ->
      DefEq P phi  (open_tm_wrt_tm  b1   a1 )   (open_tm_wrt_tm  b2   a2 ) .
 
 (* defns JTyping *)

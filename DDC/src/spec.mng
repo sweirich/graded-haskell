@@ -81,7 +81,7 @@ and a set of sorts, $[[s]]$, which at must be nonempty.
 
 \drules[Eq]{$[[P |- psi a == b ]]$}{Definitional Equality}{Refl,Sym,Trans,SubstIrrel,Beta,Pi,Abs,App,PiFst,PiSnd,
     WSigma,WSigmaFst,WSigmaSnd,WPair,LetPair,
-    Sum,SumFst,SumSnd,InjOne,InjTwo,Case,TyUnit,TmUnit}
+    Sum,SumFst,SumSnd,InjOne,InjTwo,Case,TyUnit,TmUnit,SubstIrrel}
 
 
 \drules[CG]{$[[P |- phi psi a]]$}{Conditional Grading}{Leq,Nleq}

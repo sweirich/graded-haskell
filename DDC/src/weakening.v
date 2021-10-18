@@ -98,7 +98,7 @@ Proof.
     geq_weakening_ih;
     eauto].
   all: try solve [
-             pick fresh x and apply Eq_SubstIrrel; eauto 2;
+             pick fresh x and apply Eq_Subst; eauto 2;
              repeat spec x;
              geq_weakening_ih;
              eauto].

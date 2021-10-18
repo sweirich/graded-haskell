@@ -20,11 +20,15 @@ Proof.
     pick fresh x; repeat spec x;
     eapply Grade_open; eauto using leq_join_r].
 
-  all: try solve [pick fresh x;
+  all: pick fresh x;
   repeat spec x;
-  split_hyp;
-  eapply Grade_open_irrel with (y := x); eauto].
-
+  split_hyp.
+  inversion H0; subst.
+  eapply Grade_open with (y := x); eauto.
+  eapply Grade_open_irrel with (y := x); eauto.
+  inversion H1; subst.
+  eapply Grade_open with (y := x); eauto.
+  eapply Grade_open_irrel with (y := x); eauto.
 Qed.
 
 Lemma DefEq_Grade : forall P psi a b, DefEq P psi a b -> Grade P psi a /\ Grade P psi b.
@@ -76,21 +80,16 @@ Lemma DefEq_equality_substitution : (forall P phi b1 b2,
        -> psi <= phi
        -> DefEq P1 phi (subst_tm_tm a1 x b1) (subst_tm_tm a2 x b2)). 
 Proof. 
-  intros.
-  subst.
-  move: (DefEq_uniq H) => h. destruct_uniq.
-  have RE: DefEq P1 phi (a_Pi psi (a_Type star) (close_tm_wrt_tm x b1))
-                        (a_Pi psi (a_Type star) (close_tm_wrt_tm x b2)).
-  + pick fresh y and apply Eq_Pi. eapply Eq_Refl; eauto.
-    rewrite <- subst_tm_tm_spec.
-    rewrite <- subst_tm_tm_spec.
-    eapply DefEq_substitution_same with (P2 := nil) (P1 := [(y,phi)] ++ P1).
-    2: { simpl_env; eauto. }
-    eapply DefEq_weakening_middle; eauto.
-    eapply G_Var with (psi0:=phi); auto. reflexivity.
-  + rewrite subst_tm_tm_spec.
-    rewrite subst_tm_tm_spec.
-    eapply Eq_PiSnd; eauto.
+  intros. subst.
+  move: (DefEq_uniq H) => u. destruct_uniq.
+  repeat rewrite subst_tm_tm_spec.
+  pick fresh y and apply Eq_Subst; eauto 2.
+  eapply (@DefEq_renaming x). 
+  repeat rewrite fv_tm_tm_close_tm_wrt_tm. fsetdec.
+  repeat rewrite fv_tm_tm_close_tm_wrt_tm. fsetdec.
+  rewrite open_tm_wrt_tm_close_tm_wrt_tm.
+  rewrite open_tm_wrt_tm_close_tm_wrt_tm.
+  auto.
 Qed.
 
 Lemma DefEq_substitution_irrel2 : (forall P phi b1 b2,
@@ -104,7 +103,7 @@ Proof.
   move: (DefEq_uniq H) => u. destruct_uniq.
   rewrite subst_tm_tm_spec.
   rewrite subst_tm_tm_spec.
-  pick fresh y and apply Eq_SubstIrrel; eauto 2.
+  pick fresh y and apply Eq_Subst; eauto 2.
   eapply (@DefEq_renaming x). repeat rewrite fv_tm_tm_close_tm_wrt_tm. fsetdec.
   repeat rewrite fv_tm_tm_close_tm_wrt_tm. fsetdec.
   rewrite open_tm_wrt_tm_close_tm_wrt_tm.

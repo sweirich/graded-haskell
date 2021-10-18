@@ -783,9 +783,9 @@ P |- psi Pi x :psi0 A1. B1 == Pi x :psi0 A2. B2
 P |- psi A1 == A2
 
 P |- psi Pi x :psi0 A1. B1 == Pi x :psi0 A2. B2
-P |- psi a1 == a2
+P |- psi a
 -------------------------------------------- :: PiSnd
-P |- psi B1 {a1 / x} == B2 {a2 / x}
+P |- psi B1 {a / x} == B2 {a / x}
 
 % P |- psi Pi x :psi0 A1. B1 == Pi x :psi0 A2. B2
 % P |- psi a1 == a2
@@ -904,8 +904,8 @@ P |- psi unit == unit
 nolc (\top x:type star.b1)
 nolc (\top x:type star.b2)
 P ++ x : psi |- phi b1 == b2
-not (psi <= phi)
---------------------------------------- :: SubstIrrel
+P |- phi psi a1 == a2
+--------------------------------------- :: Subst
 P |- phi b1 {a1/x} == b2 {a2/x} 
 
 
