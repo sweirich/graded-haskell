@@ -126,11 +126,9 @@ Proof with eauto using ctx_sub_meet_ctx_l.
     eapply H3;
     econstructor; eauto;
     reflexivity .
-  - (* WPair *)
-    eapply T_WPair...
-  - (* WPairI *)
-    eapply T_WPairIrrel...
   - (* LetPair *)
+    admit.
+(*
     fresh_apply_Typing x; 
     eauto using po_join_r, ctx_sub_meet_ctx_l.
     + clear H2 H3. repeat spec x. eapply H2; econstructor; eauto. 
@@ -140,15 +138,14 @@ Proof with eauto using ctx_sub_meet_ctx_l.
     + move=> y Fry.
       clear H H0 H2.
       spec x. spec y.
-      eapply H0. econstructor; eauto. reflexivity.
-  - (* SPair *)
-    eapply T_SPair...
+      eapply H0. econstructor; eauto. reflexivity. *)
   - (* case *)
-    fresh_apply_Typing x; eauto using po_join_r, ctx_sub_meet_ctx_l.
+    admit. 
+(*    fresh_apply_Typing x; eauto using po_join_r, ctx_sub_meet_ctx_l.
     repeat spec x.
     eapply H2.
     econstructor; eauto; try reflexivity.
     eapply ctx_sub_meet_ctx_l; auto.
     rewrite dom_meet_ctx_l. auto.
-    rewrite dom_meet_ctx_l. auto.
-Qed.
+    rewrite dom_meet_ctx_l. auto. *)
+Admitted.

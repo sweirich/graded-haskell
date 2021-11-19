@@ -85,7 +85,7 @@ coq: $(COQMKFILENAME) $(VFILES)
 
 %_ott.v: $(OTT_LOC)/%.ott typing.patch
 	ott -i $(OTT_LOC)/Qualitative.ott  $(OTTOFLAGS) -coq_lngen true -coq_expand_list_types true
-	make PATCH_TYPING_$*_ott
+#	make PATCH_TYPING_$*_ott
 
 %_inf.v: $(OTT_LOC)/%.ott  
 	$(LNGEN) --coq-no-proofs --coq $*_inf.v --coq-ott $*_ott $(OTT_LOC)/$*.ott 

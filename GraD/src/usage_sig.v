@@ -87,14 +87,6 @@ Variables A : Type.
 Local Open Scope usage_scope.
 
 
-Definition sort_mul (q: usage) (s : usage * A) : usage * A :=
-  match s with 
-  | (q1 , A) => (qmul q q1, A)
-  end.
-
-Definition ctx_mul (q : usage) G := 
-  map (sort_mul q) G.
-
 
 Definition add_usage (q : usage) (D: list (var * A)) : list (var * (usage * A)) :=
   map (fun x => (q, x)) D.
@@ -102,21 +94,8 @@ Definition add_usage (q : usage) (D: list (var * A)) : list (var * (usage * A)) 
 Definition ungrade (G: list (var * (usage * A))) : list (var * A) :=
   map snd G.
 
-Fixpoint ctx_plus (G1 G2 : list (var * (usage * A))) : list (var * (usage * A)) :=
-  match G1, G2 with 
-  | nil , nil => nil
-  | cons (x , (q1 , A)) G1' , cons (_, (q2, _)) G2' => cons (x, (q1 + q2, A)) (ctx_plus G1' G2')
-  | _ , _ => nil
-  end.
 
-Inductive ctx : list (atom * A) -> list (atom * (usage * A)) -> Prop :=  
- | ctx_nil : 
-     ctx nil nil 
- | ctx_cons : forall D (x:atom) G (q:usage) a,
-     ctx D G ->
-      ~ AtomSetImpl.In x (dom  D)  ->
-     ctx (x ~ a ++ D ) (x ~ (q,a) ++ G).
-
+(*
 Inductive ctx_sub : list (atom * A) -> list (atom * (usage * A))-> list (atom * (usage * A)) -> Prop :=  
  | CS_Empty :  ctx_sub  nil   nil   nil 
  | CS_ConsTm : forall D (x:atom) (a:A) G1 (q1:usage) G2 q2,
@@ -124,7 +103,7 @@ Inductive ctx_sub : list (atom * A) -> list (atom * (usage * A))-> list (atom * 
      ctx_sub D G1 G2 ->
       ~ AtomSetImpl.In  x  (dom  D)  ->
      ctx_sub (x ~ a ++ D) (x ~ (q1 ,a) ++ G1) (x ~ (q2,a) ++ G2).
-
+*)
 End UsageCtx.
 
 
@@ -155,15 +134,9 @@ Qed.
 
 End UsageList.
 
-Arguments sort_mul {_}.
-Arguments ctx_mul {_}.
-Arguments ctx_plus {_}.
-Arguments ctx {_}.
-Arguments ctx_sub {_}.
+
 Arguments add_usage {_}.
 Arguments ungrade {_}.
 
-Hint Constructors ctx : core.
-Hint Constructors ctx_sub : core.
 
 

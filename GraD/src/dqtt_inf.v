@@ -15,22 +15,44 @@ Require Export dqtt_ott.
 (* *********************************************************************** *)
 (** * Induction principles for nonterminals *)
 
+Scheme q_ind' := Induction for q Sort Prop.
+
+Definition q_mutind :=
+  fun H1 H2 H3 H4 H5 H6 =>
+  q_ind' H1 H2 H3 H4 H5 H6.
+
+Scheme q_rec' := Induction for q Sort Set.
+
+Definition q_mutrec :=
+  fun H1 H2 H3 H4 H5 H6 =>
+  q_rec' H1 H2 H3 H4 H5 H6.
 
 Scheme tm_ind' := Induction for tm Sort Prop.
 
 Definition tm_mutind :=
-  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 =>
-  tm_ind' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21.
+  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 =>
+  tm_ind' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24.
 
 Scheme tm_rec' := Induction for tm Sort Set.
 
 Definition tm_mutrec :=
-  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 =>
-  tm_rec' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21.
+  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 =>
+  tm_rec' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24.
 
 
 (* *********************************************************************** *)
 (** * Close *)
+
+Fixpoint close_q_wrt_q_rec (n1 : nat) (m1 : qvar) (q1 : q) {struct q1} : q :=
+  match q1 with
+    | q_Var_f m2 => if (m1 == m2) then (q_Var_b n1) else (q_Var_f m2)
+    | q_Var_b n2 => if (lt_ge_dec n2 n1) then (q_Var_b n2) else (q_Var_b (S n2))
+    | q_Const u1 => q_Const u1
+    | q_Plus q2 q3 => q_Plus (close_q_wrt_q_rec n1 m1 q2) (close_q_wrt_q_rec n1 m1 q3)
+    | q_Mul q2 q3 => q_Mul (close_q_wrt_q_rec n1 m1 q2) (close_q_wrt_q_rec n1 m1 q3)
+  end.
+
+Definition close_q_wrt_q m1 q1 := close_q_wrt_q_rec 0 m1 q1.
 
 Fixpoint close_tm_wrt_tm_rec (n1 : nat) (x1 : tmvar) (a1 : tm) {struct a1} : tm :=
   match a1 with
@@ -54,36 +76,80 @@ Fixpoint close_tm_wrt_tm_rec (n1 : nat) (x1 : tmvar) (a1 : tm) {struct a1} : tm 
     | a_Sigma q1 A1 B1 => a_Sigma q1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 B1)
     | a_Tensor a2 b1 => a_Tensor (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1)
     | a_Spread a2 b1 B1 => a_Spread (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec (S n1) x1 b1) (close_tm_wrt_tm_rec n1 x1 B1)
+    | a_AllU A1 => a_AllU (close_tm_wrt_tm_rec n1 x1 A1)
+    | a_LamU a2 => a_LamU (close_tm_wrt_tm_rec n1 x1 a2)
+    | a_AppU a2 q1 => a_AppU (close_tm_wrt_tm_rec n1 x1 a2) q1
+  end.
+
+Fixpoint close_tm_wrt_q_rec (n1 : nat) (m1 : qvar) (a1 : tm) {struct a1} : tm :=
+  match a1 with
+    | a_TyUnit => a_TyUnit
+    | a_TmUnit => a_TmUnit
+    | a_letunitB a2 b1 B1 => a_letunitB (close_tm_wrt_q_rec n1 m1 a2) (close_tm_wrt_q_rec n1 m1 b1) (close_tm_wrt_q_rec n1 m1 B1)
+    | a_Pi q1 A1 B1 => a_Pi (close_q_wrt_q_rec n1 m1 q1) (close_tm_wrt_q_rec n1 m1 A1) (close_tm_wrt_q_rec n1 m1 B1)
+    | a_Lam q1 A1 a2 => a_Lam (close_q_wrt_q_rec n1 m1 q1) (close_tm_wrt_q_rec n1 m1 A1) (close_tm_wrt_q_rec n1 m1 a2)
+    | a_App a2 b1 => a_App (close_tm_wrt_q_rec n1 m1 a2) (close_tm_wrt_q_rec n1 m1 b1)
+    | a_Box q1 A1 => a_Box (close_q_wrt_q_rec n1 m1 q1) (close_tm_wrt_q_rec n1 m1 A1)
+    | a_LetBoxB a2 b1 B1 => a_LetBoxB (close_tm_wrt_q_rec n1 m1 a2) (close_tm_wrt_q_rec n1 m1 b1) (close_tm_wrt_q_rec n1 m1 B1)
+    | a_Type => a_Type
+    | a_Var_f x1 => a_Var_f x1
+    | a_Var_b n2 => a_Var_b n2
+    | a_box q1 a2 => a_box (close_q_wrt_q_rec n1 m1 q1) (close_tm_wrt_q_rec n1 m1 a2)
+    | a_Let a2 b1 => a_Let (close_tm_wrt_q_rec n1 m1 a2) (close_tm_wrt_q_rec n1 m1 b1)
+    | a_Sum A1 A2 => a_Sum (close_tm_wrt_q_rec n1 m1 A1) (close_tm_wrt_q_rec n1 m1 A2)
+    | a_Inj1 a2 => a_Inj1 (close_tm_wrt_q_rec n1 m1 a2)
+    | a_Inj2 a2 => a_Inj2 (close_tm_wrt_q_rec n1 m1 a2)
+    | a_Case q1 a2 b1 b2 B1 => a_Case (close_q_wrt_q_rec n1 m1 q1) (close_tm_wrt_q_rec n1 m1 a2) (close_tm_wrt_q_rec n1 m1 b1) (close_tm_wrt_q_rec n1 m1 b2) (close_tm_wrt_q_rec n1 m1 B1)
+    | a_Sigma q1 A1 B1 => a_Sigma (close_q_wrt_q_rec n1 m1 q1) (close_tm_wrt_q_rec n1 m1 A1) (close_tm_wrt_q_rec n1 m1 B1)
+    | a_Tensor a2 b1 => a_Tensor (close_tm_wrt_q_rec n1 m1 a2) (close_tm_wrt_q_rec n1 m1 b1)
+    | a_Spread a2 b1 B1 => a_Spread (close_tm_wrt_q_rec n1 m1 a2) (close_tm_wrt_q_rec n1 m1 b1) (close_tm_wrt_q_rec n1 m1 B1)
+    | a_AllU A1 => a_AllU (close_tm_wrt_q_rec (S n1) m1 A1)
+    | a_LamU a2 => a_LamU (close_tm_wrt_q_rec (S n1) m1 a2)
+    | a_AppU a2 q1 => a_AppU (close_tm_wrt_q_rec n1 m1 a2) (close_q_wrt_q_rec n1 m1 q1)
   end.
 
 Definition close_tm_wrt_tm x1 a1 := close_tm_wrt_tm_rec 0 x1 a1.
 
+Definition close_tm_wrt_q m1 a1 := close_tm_wrt_q_rec 0 m1 a1.
+
 
 (* *********************************************************************** *)
 (** * Size *)
+
+Fixpoint size_q (q1 : q) {struct q1} : nat :=
+  match q1 with
+    | q_Var_f m1 => 1
+    | q_Var_b n1 => 1
+    | q_Const u1 => 1
+    | q_Plus q2 q3 => 1 + (size_q q2) + (size_q q3)
+    | q_Mul q2 q3 => 1 + (size_q q2) + (size_q q3)
+  end.
 
 Fixpoint size_tm (a1 : tm) {struct a1} : nat :=
   match a1 with
     | a_TyUnit => 1
     | a_TmUnit => 1
     | a_letunitB a2 b1 B1 => 1 + (size_tm a2) + (size_tm b1) + (size_tm B1)
-    | a_Pi q1 A1 B1 => 1 + (size_usage q1) + (size_tm A1) + (size_tm B1)
-    | a_Lam q1 A1 a2 => 1 + (size_usage q1) + (size_tm A1) + (size_tm a2)
+    | a_Pi q1 A1 B1 => 1 + (size_q q1) + (size_tm A1) + (size_tm B1)
+    | a_Lam q1 A1 a2 => 1 + (size_q q1) + (size_tm A1) + (size_tm a2)
     | a_App a2 b1 => 1 + (size_tm a2) + (size_tm b1)
-    | a_Box q1 A1 => 1 + (size_usage q1) + (size_tm A1)
+    | a_Box q1 A1 => 1 + (size_q q1) + (size_tm A1)
     | a_LetBoxB a2 b1 B1 => 1 + (size_tm a2) + (size_tm b1) + (size_tm B1)
     | a_Type => 1
     | a_Var_f x1 => 1
     | a_Var_b n1 => 1
-    | a_box q1 a2 => 1 + (size_usage q1) + (size_tm a2)
+    | a_box q1 a2 => 1 + (size_q q1) + (size_tm a2)
     | a_Let a2 b1 => 1 + (size_tm a2) + (size_tm b1)
     | a_Sum A1 A2 => 1 + (size_tm A1) + (size_tm A2)
     | a_Inj1 a2 => 1 + (size_tm a2)
     | a_Inj2 a2 => 1 + (size_tm a2)
-    | a_Case q1 a2 b1 b2 B1 => 1 + (size_usage q1) + (size_tm a2) + (size_tm b1) + (size_tm b2) + (size_tm B1)
-    | a_Sigma q1 A1 B1 => 1 + (size_usage q1) + (size_tm A1) + (size_tm B1)
+    | a_Case q1 a2 b1 b2 B1 => 1 + (size_q q1) + (size_tm a2) + (size_tm b1) + (size_tm b2) + (size_tm B1)
+    | a_Sigma q1 A1 B1 => 1 + (size_q q1) + (size_tm A1) + (size_tm B1)
     | a_Tensor a2 b1 => 1 + (size_tm a2) + (size_tm b1)
     | a_Spread a2 b1 B1 => 1 + (size_tm a2) + (size_tm b1) + (size_tm B1)
+    | a_AllU A1 => 1 + (size_tm A1)
+    | a_LamU a2 => 1 + (size_tm a2)
+    | a_AppU a2 q1 => 1 + (size_tm a2) + (size_q q1)
   end.
 
 
@@ -91,6 +157,31 @@ Fixpoint size_tm (a1 : tm) {struct a1} : nat :=
 (** * Degree *)
 
 (** These define only an upper bound, not a strict upper bound. *)
+
+Inductive degree_q_wrt_q : nat -> q -> Prop :=
+  | degree_wrt_q_q_Var_f : forall n1 m1,
+    degree_q_wrt_q n1 (q_Var_f m1)
+  | degree_wrt_q_q_Var_b : forall n1 n2,
+    lt n2 n1 ->
+    degree_q_wrt_q n1 (q_Var_b n2)
+  | degree_wrt_q_q_Const : forall n1 u1,
+    degree_q_wrt_q n1 (q_Const u1)
+  | degree_wrt_q_q_Plus : forall n1 q1 q2,
+    degree_q_wrt_q n1 q1 ->
+    degree_q_wrt_q n1 q2 ->
+    degree_q_wrt_q n1 (q_Plus q1 q2)
+  | degree_wrt_q_q_Mul : forall n1 q1 q2,
+    degree_q_wrt_q n1 q1 ->
+    degree_q_wrt_q n1 q2 ->
+    degree_q_wrt_q n1 (q_Mul q1 q2).
+
+Scheme degree_q_wrt_q_ind' := Induction for degree_q_wrt_q Sort Prop.
+
+Definition degree_q_wrt_q_mutind :=
+  fun H1 H2 H3 H4 H5 H6 =>
+  degree_q_wrt_q_ind' H1 H2 H3 H4 H5 H6.
+
+Hint Constructors degree_q_wrt_q : core lngen.
 
 Inductive degree_tm_wrt_tm : nat -> tm -> Prop :=
   | degree_wrt_tm_a_TyUnit : forall n1,
@@ -164,19 +255,161 @@ Inductive degree_tm_wrt_tm : nat -> tm -> Prop :=
     degree_tm_wrt_tm n1 a1 ->
     degree_tm_wrt_tm (S n1) b1 ->
     degree_tm_wrt_tm n1 B1 ->
-    degree_tm_wrt_tm n1 (a_Spread a1 b1 B1).
+    degree_tm_wrt_tm n1 (a_Spread a1 b1 B1)
+  | degree_wrt_tm_a_AllU : forall n1 A1,
+    degree_tm_wrt_tm n1 A1 ->
+    degree_tm_wrt_tm n1 (a_AllU A1)
+  | degree_wrt_tm_a_LamU : forall n1 a1,
+    degree_tm_wrt_tm n1 a1 ->
+    degree_tm_wrt_tm n1 (a_LamU a1)
+  | degree_wrt_tm_a_AppU : forall n1 a1 q1,
+    degree_tm_wrt_tm n1 a1 ->
+    degree_tm_wrt_tm n1 (a_AppU a1 q1).
+
+Inductive degree_tm_wrt_q : nat -> tm -> Prop :=
+  | degree_wrt_q_a_TyUnit : forall n1,
+    degree_tm_wrt_q n1 (a_TyUnit)
+  | degree_wrt_q_a_TmUnit : forall n1,
+    degree_tm_wrt_q n1 (a_TmUnit)
+  | degree_wrt_q_a_letunitB : forall n1 a1 b1 B1,
+    degree_tm_wrt_q n1 a1 ->
+    degree_tm_wrt_q n1 b1 ->
+    degree_tm_wrt_q n1 B1 ->
+    degree_tm_wrt_q n1 (a_letunitB a1 b1 B1)
+  | degree_wrt_q_a_Pi : forall n1 q1 A1 B1,
+    degree_q_wrt_q n1 q1 ->
+    degree_tm_wrt_q n1 A1 ->
+    degree_tm_wrt_q n1 B1 ->
+    degree_tm_wrt_q n1 (a_Pi q1 A1 B1)
+  | degree_wrt_q_a_Lam : forall n1 q1 A1 a1,
+    degree_q_wrt_q n1 q1 ->
+    degree_tm_wrt_q n1 A1 ->
+    degree_tm_wrt_q n1 a1 ->
+    degree_tm_wrt_q n1 (a_Lam q1 A1 a1)
+  | degree_wrt_q_a_App : forall n1 a1 b1,
+    degree_tm_wrt_q n1 a1 ->
+    degree_tm_wrt_q n1 b1 ->
+    degree_tm_wrt_q n1 (a_App a1 b1)
+  | degree_wrt_q_a_Box : forall n1 q1 A1,
+    degree_q_wrt_q n1 q1 ->
+    degree_tm_wrt_q n1 A1 ->
+    degree_tm_wrt_q n1 (a_Box q1 A1)
+  | degree_wrt_q_a_LetBoxB : forall n1 a1 b1 B1,
+    degree_tm_wrt_q n1 a1 ->
+    degree_tm_wrt_q n1 b1 ->
+    degree_tm_wrt_q n1 B1 ->
+    degree_tm_wrt_q n1 (a_LetBoxB a1 b1 B1)
+  | degree_wrt_q_a_Type : forall n1,
+    degree_tm_wrt_q n1 (a_Type)
+  | degree_wrt_q_a_Var_f : forall n1 x1,
+    degree_tm_wrt_q n1 (a_Var_f x1)
+  | degree_wrt_q_a_Var_b : forall n1 n2,
+    degree_tm_wrt_q n1 (a_Var_b n2)
+  | degree_wrt_q_a_box : forall n1 q1 a1,
+    degree_q_wrt_q n1 q1 ->
+    degree_tm_wrt_q n1 a1 ->
+    degree_tm_wrt_q n1 (a_box q1 a1)
+  | degree_wrt_q_a_Let : forall n1 a1 b1,
+    degree_tm_wrt_q n1 a1 ->
+    degree_tm_wrt_q n1 b1 ->
+    degree_tm_wrt_q n1 (a_Let a1 b1)
+  | degree_wrt_q_a_Sum : forall n1 A1 A2,
+    degree_tm_wrt_q n1 A1 ->
+    degree_tm_wrt_q n1 A2 ->
+    degree_tm_wrt_q n1 (a_Sum A1 A2)
+  | degree_wrt_q_a_Inj1 : forall n1 a1,
+    degree_tm_wrt_q n1 a1 ->
+    degree_tm_wrt_q n1 (a_Inj1 a1)
+  | degree_wrt_q_a_Inj2 : forall n1 a1,
+    degree_tm_wrt_q n1 a1 ->
+    degree_tm_wrt_q n1 (a_Inj2 a1)
+  | degree_wrt_q_a_Case : forall n1 q1 a1 b1 b2 B1,
+    degree_q_wrt_q n1 q1 ->
+    degree_tm_wrt_q n1 a1 ->
+    degree_tm_wrt_q n1 b1 ->
+    degree_tm_wrt_q n1 b2 ->
+    degree_tm_wrt_q n1 B1 ->
+    degree_tm_wrt_q n1 (a_Case q1 a1 b1 b2 B1)
+  | degree_wrt_q_a_Sigma : forall n1 q1 A1 B1,
+    degree_q_wrt_q n1 q1 ->
+    degree_tm_wrt_q n1 A1 ->
+    degree_tm_wrt_q n1 B1 ->
+    degree_tm_wrt_q n1 (a_Sigma q1 A1 B1)
+  | degree_wrt_q_a_Tensor : forall n1 a1 b1,
+    degree_tm_wrt_q n1 a1 ->
+    degree_tm_wrt_q n1 b1 ->
+    degree_tm_wrt_q n1 (a_Tensor a1 b1)
+  | degree_wrt_q_a_Spread : forall n1 a1 b1 B1,
+    degree_tm_wrt_q n1 a1 ->
+    degree_tm_wrt_q n1 b1 ->
+    degree_tm_wrt_q n1 B1 ->
+    degree_tm_wrt_q n1 (a_Spread a1 b1 B1)
+  | degree_wrt_q_a_AllU : forall n1 A1,
+    degree_tm_wrt_q (S n1) A1 ->
+    degree_tm_wrt_q n1 (a_AllU A1)
+  | degree_wrt_q_a_LamU : forall n1 a1,
+    degree_tm_wrt_q (S n1) a1 ->
+    degree_tm_wrt_q n1 (a_LamU a1)
+  | degree_wrt_q_a_AppU : forall n1 a1 q1,
+    degree_tm_wrt_q n1 a1 ->
+    degree_q_wrt_q n1 q1 ->
+    degree_tm_wrt_q n1 (a_AppU a1 q1).
 
 Scheme degree_tm_wrt_tm_ind' := Induction for degree_tm_wrt_tm Sort Prop.
 
 Definition degree_tm_wrt_tm_mutind :=
-  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 =>
-  degree_tm_wrt_tm_ind' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21.
+  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 =>
+  degree_tm_wrt_tm_ind' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24.
+
+Scheme degree_tm_wrt_q_ind' := Induction for degree_tm_wrt_q Sort Prop.
+
+Definition degree_tm_wrt_q_mutind :=
+  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 =>
+  degree_tm_wrt_q_ind' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24.
 
 Hint Constructors degree_tm_wrt_tm : core lngen.
+
+Hint Constructors degree_tm_wrt_q : core lngen.
 
 
 (* *********************************************************************** *)
 (** * Local closure (version in [Set], induction principles) *)
+
+Inductive lc_set_q : q -> Set :=
+  | lc_set_q_Var_f : forall m1,
+    lc_set_q (q_Var_f m1)
+  | lc_set_q_Const : forall u1,
+    lc_set_q (q_Const u1)
+  | lc_set_q_Plus : forall q1 q2,
+    lc_set_q q1 ->
+    lc_set_q q2 ->
+    lc_set_q (q_Plus q1 q2)
+  | lc_set_q_Mul : forall q1 q2,
+    lc_set_q q1 ->
+    lc_set_q q2 ->
+    lc_set_q (q_Mul q1 q2).
+
+Scheme lc_q_ind' := Induction for lc_q Sort Prop.
+
+Definition lc_q_mutind :=
+  fun H1 H2 H3 H4 H5 =>
+  lc_q_ind' H1 H2 H3 H4 H5.
+
+Scheme lc_set_q_ind' := Induction for lc_set_q Sort Prop.
+
+Definition lc_set_q_mutind :=
+  fun H1 H2 H3 H4 H5 =>
+  lc_set_q_ind' H1 H2 H3 H4 H5.
+
+Scheme lc_set_q_rec' := Induction for lc_set_q Sort Set.
+
+Definition lc_set_q_mutrec :=
+  fun H1 H2 H3 H4 H5 =>
+  lc_set_q_rec' H1 H2 H3 H4 H5.
+
+Hint Constructors lc_q : core lngen.
+
+Hint Constructors lc_set_q : core lngen.
 
 Inductive lc_set_tm : tm -> Set :=
   | lc_set_a_TyUnit :
@@ -189,10 +422,12 @@ Inductive lc_set_tm : tm -> Set :=
     lc_set_tm B1 ->
     lc_set_tm (a_letunitB a1 b1 B1)
   | lc_set_a_Pi : forall q1 A1 B1,
+    lc_set_q q1 ->
     lc_set_tm A1 ->
     (forall x1 : tmvar, lc_set_tm (open_tm_wrt_tm B1 (a_Var_f x1))) ->
     lc_set_tm (a_Pi q1 A1 B1)
   | lc_set_a_Lam : forall q1 A1 a1,
+    lc_set_q q1 ->
     lc_set_tm A1 ->
     (forall x1 : tmvar, lc_set_tm (open_tm_wrt_tm a1 (a_Var_f x1))) ->
     lc_set_tm (a_Lam q1 A1 a1)
@@ -201,6 +436,7 @@ Inductive lc_set_tm : tm -> Set :=
     lc_set_tm b1 ->
     lc_set_tm (a_App a1 b1)
   | lc_set_a_Box : forall q1 A1,
+    lc_set_q q1 ->
     lc_set_tm A1 ->
     lc_set_tm (a_Box q1 A1)
   | lc_set_a_LetBoxB : forall a1 b1 B1,
@@ -213,6 +449,7 @@ Inductive lc_set_tm : tm -> Set :=
   | lc_set_a_Var_f : forall x1,
     lc_set_tm (a_Var_f x1)
   | lc_set_a_box : forall q1 a1,
+    lc_set_q q1 ->
     lc_set_tm a1 ->
     lc_set_tm (a_box q1 a1)
   | lc_set_a_Let : forall a1 b1,
@@ -230,12 +467,14 @@ Inductive lc_set_tm : tm -> Set :=
     lc_set_tm a1 ->
     lc_set_tm (a_Inj2 a1)
   | lc_set_a_Case : forall q1 a1 b1 b2 B1,
+    lc_set_q q1 ->
     lc_set_tm a1 ->
     lc_set_tm b1 ->
     lc_set_tm b2 ->
     lc_set_tm B1 ->
     lc_set_tm (a_Case q1 a1 b1 b2 B1)
   | lc_set_a_Sigma : forall q1 A1 B1,
+    lc_set_q q1 ->
     lc_set_tm A1 ->
     (forall x1 : tmvar, lc_set_tm (open_tm_wrt_tm B1 (a_Var_f x1))) ->
     lc_set_tm (a_Sigma q1 A1 B1)
@@ -247,25 +486,35 @@ Inductive lc_set_tm : tm -> Set :=
     lc_set_tm a1 ->
     (forall x1 : tmvar, lc_set_tm (open_tm_wrt_tm b1 (a_Var_f x1))) ->
     lc_set_tm B1 ->
-    lc_set_tm (a_Spread a1 b1 B1).
+    lc_set_tm (a_Spread a1 b1 B1)
+  | lc_set_a_AllU : forall A1,
+    (forall m1 : qvar, lc_set_tm (open_tm_wrt_q A1 (q_Var_f m1))) ->
+    lc_set_tm (a_AllU A1)
+  | lc_set_a_LamU : forall a1,
+    (forall m1 : qvar, lc_set_tm (open_tm_wrt_q a1 (q_Var_f m1))) ->
+    lc_set_tm (a_LamU a1)
+  | lc_set_a_AppU : forall a1 q1,
+    lc_set_tm a1 ->
+    lc_set_q q1 ->
+    lc_set_tm (a_AppU a1 q1).
 
 Scheme lc_tm_ind' := Induction for lc_tm Sort Prop.
 
 Definition lc_tm_mutind :=
-  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 =>
-  lc_tm_ind' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20.
+  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 =>
+  lc_tm_ind' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23.
 
 Scheme lc_set_tm_ind' := Induction for lc_set_tm Sort Prop.
 
 Definition lc_set_tm_mutind :=
-  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 =>
-  lc_set_tm_ind' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20.
+  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 =>
+  lc_set_tm_ind' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23.
 
 Scheme lc_set_tm_rec' := Induction for lc_set_tm Sort Set.
 
 Definition lc_set_tm_mutrec :=
-  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 =>
-  lc_set_tm_rec' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20.
+  fun H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 =>
+  lc_set_tm_rec' H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23.
 
 Hint Constructors lc_tm : core lngen.
 
@@ -275,9 +524,17 @@ Hint Constructors lc_set_tm : core lngen.
 (* *********************************************************************** *)
 (** * Body *)
 
+Definition body_q_wrt_q q1 := forall m1, lc_q (open_q_wrt_q q1 (q_Var_f m1)).
+
+Hint Unfold body_q_wrt_q : core.
+
 Definition body_tm_wrt_tm a1 := forall x1, lc_tm (open_tm_wrt_tm a1 (a_Var_f x1)).
 
+Definition body_tm_wrt_q a1 := forall m1, lc_tm (open_tm_wrt_q a1 (q_Var_f m1)).
+
 Hint Unfold body_tm_wrt_tm : core.
+
+Hint Unfold body_tm_wrt_q : core.
 
 
 (* *********************************************************************** *)
@@ -305,21 +562,22 @@ Ltac default_autorewrite ::= fail.
 
 (* begin hide *)
 
-Lemma size_usage_min_mutual :
-(forall q1, 1 <= size_usage q1).
+Lemma size_q_min_mutual :
+(forall q1, 1 <= size_q q1).
 Proof.
-intros. auto.
+apply_mutual_ind q_mutind;
+default_simp.
 Qed.
 
 (* end hide *)
 
-Lemma size_usage_min :
-forall q1, 1 <= size_usage q1.
+Lemma size_q_min :
+forall q1, 1 <= size_q q1.
 Proof.
-pose proof size_usage_min_mutual as H; intuition eauto.
+pose proof size_q_min_mutual as H; intuition eauto.
 Qed.
 
-Hint Resolve size_usage_min : lngen.
+Hint Resolve size_q_min : lngen.
 
 (* begin hide *)
 
@@ -339,6 +597,32 @@ pose proof size_tm_min_mutual as H; intuition eauto.
 Qed.
 
 Hint Resolve size_tm_min : lngen.
+
+(* begin hide *)
+
+Lemma size_q_close_q_wrt_q_rec_mutual :
+(forall q1 m1 n1,
+  size_q (close_q_wrt_q_rec n1 m1 q1) = size_q q1).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma size_q_close_q_wrt_q_rec :
+forall q1 m1 n1,
+  size_q (close_q_wrt_q_rec n1 m1 q1) = size_q q1.
+Proof.
+pose proof size_q_close_q_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve size_q_close_q_wrt_q_rec : lngen.
+Hint Rewrite size_q_close_q_wrt_q_rec using solve [auto] : lngen.
+
+(* end hide *)
 
 (* begin hide *)
 
@@ -366,6 +650,42 @@ Hint Rewrite size_tm_close_tm_wrt_tm_rec using solve [auto] : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma size_tm_close_tm_wrt_q_rec_mutual :
+(forall a1 m1 n1,
+  size_tm (close_tm_wrt_q_rec n1 m1 a1) = size_tm a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma size_tm_close_tm_wrt_q_rec :
+forall a1 m1 n1,
+  size_tm (close_tm_wrt_q_rec n1 m1 a1) = size_tm a1.
+Proof.
+pose proof size_tm_close_tm_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve size_tm_close_tm_wrt_q_rec : lngen.
+Hint Rewrite size_tm_close_tm_wrt_q_rec using solve [auto] : lngen.
+
+(* end hide *)
+
+Lemma size_q_close_q_wrt_q :
+forall q1 m1,
+  size_q (close_q_wrt_q m1 q1) = size_q q1.
+Proof.
+unfold close_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve size_q_close_q_wrt_q : lngen.
+Hint Rewrite size_q_close_q_wrt_q using solve [auto] : lngen.
+
 Lemma size_tm_close_tm_wrt_tm :
 forall a1 x1,
   size_tm (close_tm_wrt_tm x1 a1) = size_tm a1.
@@ -376,6 +696,41 @@ Qed.
 Hint Resolve size_tm_close_tm_wrt_tm : lngen.
 Hint Rewrite size_tm_close_tm_wrt_tm using solve [auto] : lngen.
 
+Lemma size_tm_close_tm_wrt_q :
+forall a1 m1,
+  size_tm (close_tm_wrt_q m1 a1) = size_tm a1.
+Proof.
+unfold close_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve size_tm_close_tm_wrt_q : lngen.
+Hint Rewrite size_tm_close_tm_wrt_q using solve [auto] : lngen.
+
+(* begin hide *)
+
+Lemma size_q_open_q_wrt_q_rec_mutual :
+(forall q1 q2 n1,
+  size_q q1 <= size_q (open_q_wrt_q_rec n1 q2 q1)).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma size_q_open_q_wrt_q_rec :
+forall q1 q2 n1,
+  size_q q1 <= size_q (open_q_wrt_q_rec n1 q2 q1).
+Proof.
+pose proof size_q_open_q_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve size_q_open_q_wrt_q_rec : lngen.
+
+(* end hide *)
+
 (* begin hide *)
 
 Lemma size_tm_open_tm_wrt_tm_rec_mutual :
@@ -384,10 +739,8 @@ Lemma size_tm_open_tm_wrt_tm_rec_mutual :
 Proof.
 apply_mutual_ind tm_mutind;
 default_simp.
-eapply le_n_S.
-eapply le_n_S.
-repeat eapply plus_le_compat; eauto.
 Qed.
+
 (* end hide *)
 
 (* begin hide *)
@@ -403,6 +756,40 @@ Hint Resolve size_tm_open_tm_wrt_tm_rec : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma size_tm_open_tm_wrt_q_rec_mutual :
+(forall a1 q1 n1,
+  size_tm a1 <= size_tm (open_tm_wrt_q_rec n1 q1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma size_tm_open_tm_wrt_q_rec :
+forall a1 q1 n1,
+  size_tm a1 <= size_tm (open_tm_wrt_q_rec n1 q1 a1).
+Proof.
+pose proof size_tm_open_tm_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve size_tm_open_tm_wrt_q_rec : lngen.
+
+(* end hide *)
+
+Lemma size_q_open_q_wrt_q :
+forall q1 q2,
+  size_q q1 <= size_q (open_q_wrt_q q1 q2).
+Proof.
+unfold open_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve size_q_open_q_wrt_q : lngen.
+
 Lemma size_tm_open_tm_wrt_tm :
 forall a1 a2,
   size_tm a1 <= size_tm (open_tm_wrt_tm a1 a2).
@@ -411,6 +798,41 @@ unfold open_tm_wrt_tm; default_simp.
 Qed.
 
 Hint Resolve size_tm_open_tm_wrt_tm : lngen.
+
+Lemma size_tm_open_tm_wrt_q :
+forall a1 q1,
+  size_tm a1 <= size_tm (open_tm_wrt_q a1 q1).
+Proof.
+unfold open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve size_tm_open_tm_wrt_q : lngen.
+
+(* begin hide *)
+
+Lemma size_q_open_q_wrt_q_rec_var_mutual :
+(forall q1 m1 n1,
+  size_q (open_q_wrt_q_rec n1 (q_Var_f m1) q1) = size_q q1).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma size_q_open_q_wrt_q_rec_var :
+forall q1 m1 n1,
+  size_q (open_q_wrt_q_rec n1 (q_Var_f m1) q1) = size_q q1.
+Proof.
+pose proof size_q_open_q_wrt_q_rec_var_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve size_q_open_q_wrt_q_rec_var : lngen.
+Hint Rewrite size_q_open_q_wrt_q_rec_var using solve [auto] : lngen.
+
+(* end hide *)
 
 (* begin hide *)
 
@@ -438,6 +860,42 @@ Hint Rewrite size_tm_open_tm_wrt_tm_rec_var using solve [auto] : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma size_tm_open_tm_wrt_q_rec_var_mutual :
+(forall a1 m1 n1,
+  size_tm (open_tm_wrt_q_rec n1 (q_Var_f m1) a1) = size_tm a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma size_tm_open_tm_wrt_q_rec_var :
+forall a1 m1 n1,
+  size_tm (open_tm_wrt_q_rec n1 (q_Var_f m1) a1) = size_tm a1.
+Proof.
+pose proof size_tm_open_tm_wrt_q_rec_var_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve size_tm_open_tm_wrt_q_rec_var : lngen.
+Hint Rewrite size_tm_open_tm_wrt_q_rec_var using solve [auto] : lngen.
+
+(* end hide *)
+
+Lemma size_q_open_q_wrt_q_var :
+forall q1 m1,
+  size_q (open_q_wrt_q q1 (q_Var_f m1)) = size_q q1.
+Proof.
+unfold open_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve size_q_open_q_wrt_q_var : lngen.
+Hint Rewrite size_q_open_q_wrt_q_var using solve [auto] : lngen.
+
 Lemma size_tm_open_tm_wrt_tm_var :
 forall a1 x1,
   size_tm (open_tm_wrt_tm a1 (a_Var_f x1)) = size_tm a1.
@@ -448,12 +906,45 @@ Qed.
 Hint Resolve size_tm_open_tm_wrt_tm_var : lngen.
 Hint Rewrite size_tm_open_tm_wrt_tm_var using solve [auto] : lngen.
 
+Lemma size_tm_open_tm_wrt_q_var :
+forall a1 m1,
+  size_tm (open_tm_wrt_q a1 (q_Var_f m1)) = size_tm a1.
+Proof.
+unfold open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve size_tm_open_tm_wrt_q_var : lngen.
+Hint Rewrite size_tm_open_tm_wrt_q_var using solve [auto] : lngen.
+
 
 (* *********************************************************************** *)
 (** * Theorems about [degree] *)
 
 Ltac default_auto ::= auto with lngen; tauto.
 Ltac default_autorewrite ::= fail.
+
+(* begin hide *)
+
+Lemma degree_q_wrt_q_S_mutual :
+(forall n1 q1,
+  degree_q_wrt_q n1 q1 ->
+  degree_q_wrt_q (S n1) q1).
+Proof.
+apply_mutual_ind degree_q_wrt_q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma degree_q_wrt_q_S :
+forall n1 q1,
+  degree_q_wrt_q n1 q1 ->
+  degree_q_wrt_q (S n1) q1.
+Proof.
+pose proof degree_q_wrt_q_S_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve degree_q_wrt_q_S : lngen.
 
 (* begin hide *)
 
@@ -478,6 +969,39 @@ Qed.
 
 Hint Resolve degree_tm_wrt_tm_S : lngen.
 
+(* begin hide *)
+
+Lemma degree_tm_wrt_q_S_mutual :
+(forall n1 a1,
+  degree_tm_wrt_q n1 a1 ->
+  degree_tm_wrt_q (S n1) a1).
+Proof.
+apply_mutual_ind degree_tm_wrt_q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma degree_tm_wrt_q_S :
+forall n1 a1,
+  degree_tm_wrt_q n1 a1 ->
+  degree_tm_wrt_q (S n1) a1.
+Proof.
+pose proof degree_tm_wrt_q_S_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve degree_tm_wrt_q_S : lngen.
+
+Lemma degree_q_wrt_q_O :
+forall n1 q1,
+  degree_q_wrt_q O q1 ->
+  degree_q_wrt_q n1 q1.
+Proof.
+induction n1; default_simp.
+Qed.
+
+Hint Resolve degree_q_wrt_q_O : lngen.
+
 Lemma degree_tm_wrt_tm_O :
 forall n1 a1,
   degree_tm_wrt_tm O a1 ->
@@ -487,6 +1011,43 @@ induction n1; default_simp.
 Qed.
 
 Hint Resolve degree_tm_wrt_tm_O : lngen.
+
+Lemma degree_tm_wrt_q_O :
+forall n1 a1,
+  degree_tm_wrt_q O a1 ->
+  degree_tm_wrt_q n1 a1.
+Proof.
+induction n1; default_simp.
+Qed.
+
+Hint Resolve degree_tm_wrt_q_O : lngen.
+
+(* begin hide *)
+
+Lemma degree_q_wrt_q_close_q_wrt_q_rec_mutual :
+(forall q1 m1 n1,
+  degree_q_wrt_q n1 q1 ->
+  degree_q_wrt_q (S n1) (close_q_wrt_q_rec n1 m1 q1)).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_q_wrt_q_close_q_wrt_q_rec :
+forall q1 m1 n1,
+  degree_q_wrt_q n1 q1 ->
+  degree_q_wrt_q (S n1) (close_q_wrt_q_rec n1 m1 q1).
+Proof.
+pose proof degree_q_wrt_q_close_q_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve degree_q_wrt_q_close_q_wrt_q_rec : lngen.
+
+(* end hide *)
 
 (* begin hide *)
 
@@ -515,6 +1076,97 @@ Hint Resolve degree_tm_wrt_tm_close_tm_wrt_tm_rec : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma degree_tm_wrt_tm_close_tm_wrt_q_rec_mutual :
+(forall a1 m1 n1 n2,
+  degree_tm_wrt_tm n2 a1 ->
+  degree_tm_wrt_tm n2 (close_tm_wrt_q_rec n1 m1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_tm_close_tm_wrt_q_rec :
+forall a1 m1 n1 n2,
+  degree_tm_wrt_tm n2 a1 ->
+  degree_tm_wrt_tm n2 (close_tm_wrt_q_rec n1 m1 a1).
+Proof.
+pose proof degree_tm_wrt_tm_close_tm_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve degree_tm_wrt_tm_close_tm_wrt_q_rec : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_q_close_tm_wrt_tm_rec_mutual :
+(forall a1 x1 n1 n2,
+  degree_tm_wrt_q n2 a1 ->
+  degree_tm_wrt_q n2 (close_tm_wrt_tm_rec n1 x1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_q_close_tm_wrt_tm_rec :
+forall a1 x1 n1 n2,
+  degree_tm_wrt_q n2 a1 ->
+  degree_tm_wrt_q n2 (close_tm_wrt_tm_rec n1 x1 a1).
+Proof.
+pose proof degree_tm_wrt_q_close_tm_wrt_tm_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve degree_tm_wrt_q_close_tm_wrt_tm_rec : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_q_close_tm_wrt_q_rec_mutual :
+(forall a1 m1 n1,
+  degree_tm_wrt_q n1 a1 ->
+  degree_tm_wrt_q (S n1) (close_tm_wrt_q_rec n1 m1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_q_close_tm_wrt_q_rec :
+forall a1 m1 n1,
+  degree_tm_wrt_q n1 a1 ->
+  degree_tm_wrt_q (S n1) (close_tm_wrt_q_rec n1 m1 a1).
+Proof.
+pose proof degree_tm_wrt_q_close_tm_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve degree_tm_wrt_q_close_tm_wrt_q_rec : lngen.
+
+(* end hide *)
+
+Lemma degree_q_wrt_q_close_q_wrt_q :
+forall q1 m1,
+  degree_q_wrt_q 0 q1 ->
+  degree_q_wrt_q 1 (close_q_wrt_q m1 q1).
+Proof.
+unfold close_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve degree_q_wrt_q_close_q_wrt_q : lngen.
+
 Lemma degree_tm_wrt_tm_close_tm_wrt_tm :
 forall a1 x1,
   degree_tm_wrt_tm 0 a1 ->
@@ -525,6 +1177,63 @@ Qed.
 
 Hint Resolve degree_tm_wrt_tm_close_tm_wrt_tm : lngen.
 
+Lemma degree_tm_wrt_tm_close_tm_wrt_q :
+forall a1 m1 n1,
+  degree_tm_wrt_tm n1 a1 ->
+  degree_tm_wrt_tm n1 (close_tm_wrt_q m1 a1).
+Proof.
+unfold close_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve degree_tm_wrt_tm_close_tm_wrt_q : lngen.
+
+Lemma degree_tm_wrt_q_close_tm_wrt_tm :
+forall a1 x1 n1,
+  degree_tm_wrt_q n1 a1 ->
+  degree_tm_wrt_q n1 (close_tm_wrt_tm x1 a1).
+Proof.
+unfold close_tm_wrt_tm; default_simp.
+Qed.
+
+Hint Resolve degree_tm_wrt_q_close_tm_wrt_tm : lngen.
+
+Lemma degree_tm_wrt_q_close_tm_wrt_q :
+forall a1 m1,
+  degree_tm_wrt_q 0 a1 ->
+  degree_tm_wrt_q 1 (close_tm_wrt_q m1 a1).
+Proof.
+unfold close_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve degree_tm_wrt_q_close_tm_wrt_q : lngen.
+
+(* begin hide *)
+
+Lemma degree_q_wrt_q_close_q_wrt_q_rec_inv_mutual :
+(forall q1 m1 n1,
+  degree_q_wrt_q (S n1) (close_q_wrt_q_rec n1 m1 q1) ->
+  degree_q_wrt_q n1 q1).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp; eauto with lngen.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_q_wrt_q_close_q_wrt_q_rec_inv :
+forall q1 m1 n1,
+  degree_q_wrt_q (S n1) (close_q_wrt_q_rec n1 m1 q1) ->
+  degree_q_wrt_q n1 q1.
+Proof.
+pose proof degree_q_wrt_q_close_q_wrt_q_rec_inv_mutual as H; intuition eauto.
+Qed.
+
+Hint Immediate degree_q_wrt_q_close_q_wrt_q_rec_inv : lngen.
+
+(* end hide *)
+
 (* begin hide *)
 
 Lemma degree_tm_wrt_tm_close_tm_wrt_tm_rec_inv_mutual :
@@ -534,7 +1243,6 @@ Lemma degree_tm_wrt_tm_close_tm_wrt_tm_rec_inv_mutual :
 Proof.
 apply_mutual_ind tm_mutind;
 default_simp; eauto with lngen.
-econstructor; eauto.
 Qed.
 
 (* end hide *)
@@ -553,6 +1261,97 @@ Hint Immediate degree_tm_wrt_tm_close_tm_wrt_tm_rec_inv : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma degree_tm_wrt_tm_close_tm_wrt_q_rec_inv_mutual :
+(forall a1 m1 n1 n2,
+  degree_tm_wrt_tm n2 (close_tm_wrt_q_rec n1 m1 a1) ->
+  degree_tm_wrt_tm n2 a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; eauto with lngen.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_tm_close_tm_wrt_q_rec_inv :
+forall a1 m1 n1 n2,
+  degree_tm_wrt_tm n2 (close_tm_wrt_q_rec n1 m1 a1) ->
+  degree_tm_wrt_tm n2 a1.
+Proof.
+pose proof degree_tm_wrt_tm_close_tm_wrt_q_rec_inv_mutual as H; intuition eauto.
+Qed.
+
+Hint Immediate degree_tm_wrt_tm_close_tm_wrt_q_rec_inv : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_q_close_tm_wrt_tm_rec_inv_mutual :
+(forall a1 x1 n1 n2,
+  degree_tm_wrt_q n2 (close_tm_wrt_tm_rec n1 x1 a1) ->
+  degree_tm_wrt_q n2 a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; eauto with lngen.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_q_close_tm_wrt_tm_rec_inv :
+forall a1 x1 n1 n2,
+  degree_tm_wrt_q n2 (close_tm_wrt_tm_rec n1 x1 a1) ->
+  degree_tm_wrt_q n2 a1.
+Proof.
+pose proof degree_tm_wrt_q_close_tm_wrt_tm_rec_inv_mutual as H; intuition eauto.
+Qed.
+
+Hint Immediate degree_tm_wrt_q_close_tm_wrt_tm_rec_inv : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_q_close_tm_wrt_q_rec_inv_mutual :
+(forall a1 m1 n1,
+  degree_tm_wrt_q (S n1) (close_tm_wrt_q_rec n1 m1 a1) ->
+  degree_tm_wrt_q n1 a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; eauto with lngen.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_q_close_tm_wrt_q_rec_inv :
+forall a1 m1 n1,
+  degree_tm_wrt_q (S n1) (close_tm_wrt_q_rec n1 m1 a1) ->
+  degree_tm_wrt_q n1 a1.
+Proof.
+pose proof degree_tm_wrt_q_close_tm_wrt_q_rec_inv_mutual as H; intuition eauto.
+Qed.
+
+Hint Immediate degree_tm_wrt_q_close_tm_wrt_q_rec_inv : lngen.
+
+(* end hide *)
+
+Lemma degree_q_wrt_q_close_q_wrt_q_inv :
+forall q1 m1,
+  degree_q_wrt_q 1 (close_q_wrt_q m1 q1) ->
+  degree_q_wrt_q 0 q1.
+Proof.
+unfold close_q_wrt_q; eauto with lngen.
+Qed.
+
+Hint Immediate degree_q_wrt_q_close_q_wrt_q_inv : lngen.
+
 Lemma degree_tm_wrt_tm_close_tm_wrt_tm_inv :
 forall a1 x1,
   degree_tm_wrt_tm 1 (close_tm_wrt_tm x1 a1) ->
@@ -562,6 +1361,65 @@ unfold close_tm_wrt_tm; eauto with lngen.
 Qed.
 
 Hint Immediate degree_tm_wrt_tm_close_tm_wrt_tm_inv : lngen.
+
+Lemma degree_tm_wrt_tm_close_tm_wrt_q_inv :
+forall a1 m1 n1,
+  degree_tm_wrt_tm n1 (close_tm_wrt_q m1 a1) ->
+  degree_tm_wrt_tm n1 a1.
+Proof.
+unfold close_tm_wrt_q; eauto with lngen.
+Qed.
+
+Hint Immediate degree_tm_wrt_tm_close_tm_wrt_q_inv : lngen.
+
+Lemma degree_tm_wrt_q_close_tm_wrt_tm_inv :
+forall a1 x1 n1,
+  degree_tm_wrt_q n1 (close_tm_wrt_tm x1 a1) ->
+  degree_tm_wrt_q n1 a1.
+Proof.
+unfold close_tm_wrt_tm; eauto with lngen.
+Qed.
+
+Hint Immediate degree_tm_wrt_q_close_tm_wrt_tm_inv : lngen.
+
+Lemma degree_tm_wrt_q_close_tm_wrt_q_inv :
+forall a1 m1,
+  degree_tm_wrt_q 1 (close_tm_wrt_q m1 a1) ->
+  degree_tm_wrt_q 0 a1.
+Proof.
+unfold close_tm_wrt_q; eauto with lngen.
+Qed.
+
+Hint Immediate degree_tm_wrt_q_close_tm_wrt_q_inv : lngen.
+
+(* begin hide *)
+
+Lemma degree_q_wrt_q_open_q_wrt_q_rec_mutual :
+(forall q1 q2 n1,
+  degree_q_wrt_q (S n1) q1 ->
+  degree_q_wrt_q n1 q2 ->
+  degree_q_wrt_q n1 (open_q_wrt_q_rec n1 q2 q1)).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_q_wrt_q_open_q_wrt_q_rec :
+forall q1 q2 n1,
+  degree_q_wrt_q (S n1) q1 ->
+  degree_q_wrt_q n1 q2 ->
+  degree_q_wrt_q n1 (open_q_wrt_q_rec n1 q2 q1).
+Proof.
+pose proof degree_q_wrt_q_open_q_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve degree_q_wrt_q_open_q_wrt_q_rec : lngen.
+
+(* end hide *)
 
 (* begin hide *)
 
@@ -592,6 +1450,102 @@ Hint Resolve degree_tm_wrt_tm_open_tm_wrt_tm_rec : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma degree_tm_wrt_tm_open_tm_wrt_q_rec_mutual :
+(forall a1 q1 n1 n2,
+  degree_tm_wrt_tm n1 a1 ->
+  degree_tm_wrt_tm n1 (open_tm_wrt_q_rec n2 q1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_tm_open_tm_wrt_q_rec :
+forall a1 q1 n1 n2,
+  degree_tm_wrt_tm n1 a1 ->
+  degree_tm_wrt_tm n1 (open_tm_wrt_q_rec n2 q1 a1).
+Proof.
+pose proof degree_tm_wrt_tm_open_tm_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve degree_tm_wrt_tm_open_tm_wrt_q_rec : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_q_open_tm_wrt_tm_rec_mutual :
+(forall a1 a2 n1 n2,
+  degree_tm_wrt_q n1 a1 ->
+  degree_tm_wrt_q n1 a2 ->
+  degree_tm_wrt_q n1 (open_tm_wrt_tm_rec n2 a2 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_q_open_tm_wrt_tm_rec :
+forall a1 a2 n1 n2,
+  degree_tm_wrt_q n1 a1 ->
+  degree_tm_wrt_q n1 a2 ->
+  degree_tm_wrt_q n1 (open_tm_wrt_tm_rec n2 a2 a1).
+Proof.
+pose proof degree_tm_wrt_q_open_tm_wrt_tm_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve degree_tm_wrt_q_open_tm_wrt_tm_rec : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_q_open_tm_wrt_q_rec_mutual :
+(forall a1 q1 n1,
+  degree_tm_wrt_q (S n1) a1 ->
+  degree_q_wrt_q n1 q1 ->
+  degree_tm_wrt_q n1 (open_tm_wrt_q_rec n1 q1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_q_open_tm_wrt_q_rec :
+forall a1 q1 n1,
+  degree_tm_wrt_q (S n1) a1 ->
+  degree_q_wrt_q n1 q1 ->
+  degree_tm_wrt_q n1 (open_tm_wrt_q_rec n1 q1 a1).
+Proof.
+pose proof degree_tm_wrt_q_open_tm_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve degree_tm_wrt_q_open_tm_wrt_q_rec : lngen.
+
+(* end hide *)
+
+Lemma degree_q_wrt_q_open_q_wrt_q :
+forall q1 q2,
+  degree_q_wrt_q 1 q1 ->
+  degree_q_wrt_q 0 q2 ->
+  degree_q_wrt_q 0 (open_q_wrt_q q1 q2).
+Proof.
+unfold open_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve degree_q_wrt_q_open_q_wrt_q : lngen.
+
 Lemma degree_tm_wrt_tm_open_tm_wrt_tm :
 forall a1 a2,
   degree_tm_wrt_tm 1 a1 ->
@@ -603,6 +1557,65 @@ Qed.
 
 Hint Resolve degree_tm_wrt_tm_open_tm_wrt_tm : lngen.
 
+Lemma degree_tm_wrt_tm_open_tm_wrt_q :
+forall a1 q1 n1,
+  degree_tm_wrt_tm n1 a1 ->
+  degree_tm_wrt_tm n1 (open_tm_wrt_q a1 q1).
+Proof.
+unfold open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve degree_tm_wrt_tm_open_tm_wrt_q : lngen.
+
+Lemma degree_tm_wrt_q_open_tm_wrt_tm :
+forall a1 a2 n1,
+  degree_tm_wrt_q n1 a1 ->
+  degree_tm_wrt_q n1 a2 ->
+  degree_tm_wrt_q n1 (open_tm_wrt_tm a1 a2).
+Proof.
+unfold open_tm_wrt_tm; default_simp.
+Qed.
+
+Hint Resolve degree_tm_wrt_q_open_tm_wrt_tm : lngen.
+
+Lemma degree_tm_wrt_q_open_tm_wrt_q :
+forall a1 q1,
+  degree_tm_wrt_q 1 a1 ->
+  degree_q_wrt_q 0 q1 ->
+  degree_tm_wrt_q 0 (open_tm_wrt_q a1 q1).
+Proof.
+unfold open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve degree_tm_wrt_q_open_tm_wrt_q : lngen.
+
+(* begin hide *)
+
+Lemma degree_q_wrt_q_open_q_wrt_q_rec_inv_mutual :
+(forall q1 q2 n1,
+  degree_q_wrt_q n1 (open_q_wrt_q_rec n1 q2 q1) ->
+  degree_q_wrt_q (S n1) q1).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp; eauto with lngen.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_q_wrt_q_open_q_wrt_q_rec_inv :
+forall q1 q2 n1,
+  degree_q_wrt_q n1 (open_q_wrt_q_rec n1 q2 q1) ->
+  degree_q_wrt_q (S n1) q1.
+Proof.
+pose proof degree_q_wrt_q_open_q_wrt_q_rec_inv_mutual as H; intuition eauto.
+Qed.
+
+Hint Immediate degree_q_wrt_q_open_q_wrt_q_rec_inv : lngen.
+
+(* end hide *)
+
 (* begin hide *)
 
 Lemma degree_tm_wrt_tm_open_tm_wrt_tm_rec_inv_mutual :
@@ -612,7 +1625,6 @@ Lemma degree_tm_wrt_tm_open_tm_wrt_tm_rec_inv_mutual :
 Proof.
 apply_mutual_ind tm_mutind;
 default_simp; eauto with lngen.
-econstructor; eauto.
 Qed.
 
 (* end hide *)
@@ -631,6 +1643,97 @@ Hint Immediate degree_tm_wrt_tm_open_tm_wrt_tm_rec_inv : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma degree_tm_wrt_tm_open_tm_wrt_q_rec_inv_mutual :
+(forall a1 q1 n1 n2,
+  degree_tm_wrt_tm n1 (open_tm_wrt_q_rec n2 q1 a1) ->
+  degree_tm_wrt_tm n1 a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; eauto with lngen.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_tm_open_tm_wrt_q_rec_inv :
+forall a1 q1 n1 n2,
+  degree_tm_wrt_tm n1 (open_tm_wrt_q_rec n2 q1 a1) ->
+  degree_tm_wrt_tm n1 a1.
+Proof.
+pose proof degree_tm_wrt_tm_open_tm_wrt_q_rec_inv_mutual as H; intuition eauto.
+Qed.
+
+Hint Immediate degree_tm_wrt_tm_open_tm_wrt_q_rec_inv : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_q_open_tm_wrt_tm_rec_inv_mutual :
+(forall a1 a2 n1 n2,
+  degree_tm_wrt_q n1 (open_tm_wrt_tm_rec n2 a2 a1) ->
+  degree_tm_wrt_q n1 a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; eauto with lngen.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_q_open_tm_wrt_tm_rec_inv :
+forall a1 a2 n1 n2,
+  degree_tm_wrt_q n1 (open_tm_wrt_tm_rec n2 a2 a1) ->
+  degree_tm_wrt_q n1 a1.
+Proof.
+pose proof degree_tm_wrt_q_open_tm_wrt_tm_rec_inv_mutual as H; intuition eauto.
+Qed.
+
+Hint Immediate degree_tm_wrt_q_open_tm_wrt_tm_rec_inv : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_q_open_tm_wrt_q_rec_inv_mutual :
+(forall a1 q1 n1,
+  degree_tm_wrt_q n1 (open_tm_wrt_q_rec n1 q1 a1) ->
+  degree_tm_wrt_q (S n1) a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; eauto with lngen.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma degree_tm_wrt_q_open_tm_wrt_q_rec_inv :
+forall a1 q1 n1,
+  degree_tm_wrt_q n1 (open_tm_wrt_q_rec n1 q1 a1) ->
+  degree_tm_wrt_q (S n1) a1.
+Proof.
+pose proof degree_tm_wrt_q_open_tm_wrt_q_rec_inv_mutual as H; intuition eauto.
+Qed.
+
+Hint Immediate degree_tm_wrt_q_open_tm_wrt_q_rec_inv : lngen.
+
+(* end hide *)
+
+Lemma degree_q_wrt_q_open_q_wrt_q_inv :
+forall q1 q2,
+  degree_q_wrt_q 0 (open_q_wrt_q q1 q2) ->
+  degree_q_wrt_q 1 q1.
+Proof.
+unfold open_q_wrt_q; eauto with lngen.
+Qed.
+
+Hint Immediate degree_q_wrt_q_open_q_wrt_q_inv : lngen.
+
 Lemma degree_tm_wrt_tm_open_tm_wrt_tm_inv :
 forall a1 a2,
   degree_tm_wrt_tm 0 (open_tm_wrt_tm a1 a2) ->
@@ -641,12 +1744,72 @@ Qed.
 
 Hint Immediate degree_tm_wrt_tm_open_tm_wrt_tm_inv : lngen.
 
+Lemma degree_tm_wrt_tm_open_tm_wrt_q_inv :
+forall a1 q1 n1,
+  degree_tm_wrt_tm n1 (open_tm_wrt_q a1 q1) ->
+  degree_tm_wrt_tm n1 a1.
+Proof.
+unfold open_tm_wrt_q; eauto with lngen.
+Qed.
+
+Hint Immediate degree_tm_wrt_tm_open_tm_wrt_q_inv : lngen.
+
+Lemma degree_tm_wrt_q_open_tm_wrt_tm_inv :
+forall a1 a2 n1,
+  degree_tm_wrt_q n1 (open_tm_wrt_tm a1 a2) ->
+  degree_tm_wrt_q n1 a1.
+Proof.
+unfold open_tm_wrt_tm; eauto with lngen.
+Qed.
+
+Hint Immediate degree_tm_wrt_q_open_tm_wrt_tm_inv : lngen.
+
+Lemma degree_tm_wrt_q_open_tm_wrt_q_inv :
+forall a1 q1,
+  degree_tm_wrt_q 0 (open_tm_wrt_q a1 q1) ->
+  degree_tm_wrt_q 1 a1.
+Proof.
+unfold open_tm_wrt_q; eauto with lngen.
+Qed.
+
+Hint Immediate degree_tm_wrt_q_open_tm_wrt_q_inv : lngen.
+
 
 (* *********************************************************************** *)
 (** * Theorems about [open] and [close] *)
 
 Ltac default_auto ::= auto with lngen brute_force; tauto.
 Ltac default_autorewrite ::= fail.
+
+(* begin hide *)
+
+Lemma close_q_wrt_q_rec_inj_mutual :
+(forall q1 q2 m1 n1,
+  close_q_wrt_q_rec n1 m1 q1 = close_q_wrt_q_rec n1 m1 q2 ->
+  q1 = q2).
+Proof.
+apply_mutual_ind q_mutind;
+intros; match goal with
+          | |- _ = ?term => destruct term
+        end;
+default_simp; eauto with lngen.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma close_q_wrt_q_rec_inj :
+forall q1 q2 m1 n1,
+  close_q_wrt_q_rec n1 m1 q1 = close_q_wrt_q_rec n1 m1 q2 ->
+  q1 = q2.
+Proof.
+pose proof close_q_wrt_q_rec_inj_mutual as H; intuition eauto.
+Qed.
+
+Hint Immediate close_q_wrt_q_rec_inj : lngen.
+
+(* end hide *)
 
 (* begin hide *)
 
@@ -678,6 +1841,46 @@ Hint Immediate close_tm_wrt_tm_rec_inj : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma close_tm_wrt_q_rec_inj_mutual :
+(forall a1 a2 m1 n1,
+  close_tm_wrt_q_rec n1 m1 a1 = close_tm_wrt_q_rec n1 m1 a2 ->
+  a1 = a2).
+Proof.
+apply_mutual_ind tm_mutind;
+intros; match goal with
+          | |- _ = ?term => destruct term
+        end;
+default_simp; eauto with lngen.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma close_tm_wrt_q_rec_inj :
+forall a1 a2 m1 n1,
+  close_tm_wrt_q_rec n1 m1 a1 = close_tm_wrt_q_rec n1 m1 a2 ->
+  a1 = a2.
+Proof.
+pose proof close_tm_wrt_q_rec_inj_mutual as H; intuition eauto.
+Qed.
+
+Hint Immediate close_tm_wrt_q_rec_inj : lngen.
+
+(* end hide *)
+
+Lemma close_q_wrt_q_inj :
+forall q1 q2 m1,
+  close_q_wrt_q m1 q1 = close_q_wrt_q m1 q2 ->
+  q1 = q2.
+Proof.
+unfold close_q_wrt_q; eauto with lngen.
+Qed.
+
+Hint Immediate close_q_wrt_q_inj : lngen.
+
 Lemma close_tm_wrt_tm_inj :
 forall a1 a2 x1,
   close_tm_wrt_tm x1 a1 = close_tm_wrt_tm x1 a2 ->
@@ -687,6 +1890,44 @@ unfold close_tm_wrt_tm; eauto with lngen.
 Qed.
 
 Hint Immediate close_tm_wrt_tm_inj : lngen.
+
+Lemma close_tm_wrt_q_inj :
+forall a1 a2 m1,
+  close_tm_wrt_q m1 a1 = close_tm_wrt_q m1 a2 ->
+  a1 = a2.
+Proof.
+unfold close_tm_wrt_q; eauto with lngen.
+Qed.
+
+Hint Immediate close_tm_wrt_q_inj : lngen.
+
+(* begin hide *)
+
+Lemma close_q_wrt_q_rec_open_q_wrt_q_rec_mutual :
+(forall q1 m1 n1,
+  m1 `notin` fv_q_q q1 ->
+  close_q_wrt_q_rec n1 m1 (open_q_wrt_q_rec n1 (q_Var_f m1) q1) = q1).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma close_q_wrt_q_rec_open_q_wrt_q_rec :
+forall q1 m1 n1,
+  m1 `notin` fv_q_q q1 ->
+  close_q_wrt_q_rec n1 m1 (open_q_wrt_q_rec n1 (q_Var_f m1) q1) = q1.
+Proof.
+pose proof close_q_wrt_q_rec_open_q_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve close_q_wrt_q_rec_open_q_wrt_q_rec : lngen.
+Hint Rewrite close_q_wrt_q_rec_open_q_wrt_q_rec using solve [auto] : lngen.
+
+(* end hide *)
 
 (* begin hide *)
 
@@ -716,6 +1957,45 @@ Hint Rewrite close_tm_wrt_tm_rec_open_tm_wrt_tm_rec using solve [auto] : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma close_tm_wrt_q_rec_open_tm_wrt_q_rec_mutual :
+(forall a1 m1 n1,
+  m1 `notin` fv_q_tm a1 ->
+  close_tm_wrt_q_rec n1 m1 (open_tm_wrt_q_rec n1 (q_Var_f m1) a1) = a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma close_tm_wrt_q_rec_open_tm_wrt_q_rec :
+forall a1 m1 n1,
+  m1 `notin` fv_q_tm a1 ->
+  close_tm_wrt_q_rec n1 m1 (open_tm_wrt_q_rec n1 (q_Var_f m1) a1) = a1.
+Proof.
+pose proof close_tm_wrt_q_rec_open_tm_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve close_tm_wrt_q_rec_open_tm_wrt_q_rec : lngen.
+Hint Rewrite close_tm_wrt_q_rec_open_tm_wrt_q_rec using solve [auto] : lngen.
+
+(* end hide *)
+
+Lemma close_q_wrt_q_open_q_wrt_q :
+forall q1 m1,
+  m1 `notin` fv_q_q q1 ->
+  close_q_wrt_q m1 (open_q_wrt_q q1 (q_Var_f m1)) = q1.
+Proof.
+unfold close_q_wrt_q; unfold open_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve close_q_wrt_q_open_q_wrt_q : lngen.
+Hint Rewrite close_q_wrt_q_open_q_wrt_q using solve [auto] : lngen.
+
 Lemma close_tm_wrt_tm_open_tm_wrt_tm :
 forall a1 x1,
   x1 `notin` fv_tm_tm a1 ->
@@ -726,6 +2006,43 @@ Qed.
 
 Hint Resolve close_tm_wrt_tm_open_tm_wrt_tm : lngen.
 Hint Rewrite close_tm_wrt_tm_open_tm_wrt_tm using solve [auto] : lngen.
+
+Lemma close_tm_wrt_q_open_tm_wrt_q :
+forall a1 m1,
+  m1 `notin` fv_q_tm a1 ->
+  close_tm_wrt_q m1 (open_tm_wrt_q a1 (q_Var_f m1)) = a1.
+Proof.
+unfold close_tm_wrt_q; unfold open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve close_tm_wrt_q_open_tm_wrt_q : lngen.
+Hint Rewrite close_tm_wrt_q_open_tm_wrt_q using solve [auto] : lngen.
+
+(* begin hide *)
+
+Lemma open_q_wrt_q_rec_close_q_wrt_q_rec_mutual :
+(forall q1 m1 n1,
+  open_q_wrt_q_rec n1 (q_Var_f m1) (close_q_wrt_q_rec n1 m1 q1) = q1).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma open_q_wrt_q_rec_close_q_wrt_q_rec :
+forall q1 m1 n1,
+  open_q_wrt_q_rec n1 (q_Var_f m1) (close_q_wrt_q_rec n1 m1 q1) = q1.
+Proof.
+pose proof open_q_wrt_q_rec_close_q_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve open_q_wrt_q_rec_close_q_wrt_q_rec : lngen.
+Hint Rewrite open_q_wrt_q_rec_close_q_wrt_q_rec using solve [auto] : lngen.
+
+(* end hide *)
 
 (* begin hide *)
 
@@ -753,6 +2070,42 @@ Hint Rewrite open_tm_wrt_tm_rec_close_tm_wrt_tm_rec using solve [auto] : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma open_tm_wrt_q_rec_close_tm_wrt_q_rec_mutual :
+(forall a1 m1 n1,
+  open_tm_wrt_q_rec n1 (q_Var_f m1) (close_tm_wrt_q_rec n1 m1 a1) = a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma open_tm_wrt_q_rec_close_tm_wrt_q_rec :
+forall a1 m1 n1,
+  open_tm_wrt_q_rec n1 (q_Var_f m1) (close_tm_wrt_q_rec n1 m1 a1) = a1.
+Proof.
+pose proof open_tm_wrt_q_rec_close_tm_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve open_tm_wrt_q_rec_close_tm_wrt_q_rec : lngen.
+Hint Rewrite open_tm_wrt_q_rec_close_tm_wrt_q_rec using solve [auto] : lngen.
+
+(* end hide *)
+
+Lemma open_q_wrt_q_close_q_wrt_q :
+forall q1 m1,
+  open_q_wrt_q (close_q_wrt_q m1 q1) (q_Var_f m1) = q1.
+Proof.
+unfold close_q_wrt_q; unfold open_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve open_q_wrt_q_close_q_wrt_q : lngen.
+Hint Rewrite open_q_wrt_q_close_q_wrt_q using solve [auto] : lngen.
+
 Lemma open_tm_wrt_tm_close_tm_wrt_tm :
 forall a1 x1,
   open_tm_wrt_tm (close_tm_wrt_tm x1 a1) (a_Var_f x1) = a1.
@@ -762,6 +2115,50 @@ Qed.
 
 Hint Resolve open_tm_wrt_tm_close_tm_wrt_tm : lngen.
 Hint Rewrite open_tm_wrt_tm_close_tm_wrt_tm using solve [auto] : lngen.
+
+Lemma open_tm_wrt_q_close_tm_wrt_q :
+forall a1 m1,
+  open_tm_wrt_q (close_tm_wrt_q m1 a1) (q_Var_f m1) = a1.
+Proof.
+unfold close_tm_wrt_q; unfold open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve open_tm_wrt_q_close_tm_wrt_q : lngen.
+Hint Rewrite open_tm_wrt_q_close_tm_wrt_q using solve [auto] : lngen.
+
+(* begin hide *)
+
+Lemma open_q_wrt_q_rec_inj_mutual :
+(forall q2 q1 m1 n1,
+  m1 `notin` fv_q_q q2 ->
+  m1 `notin` fv_q_q q1 ->
+  open_q_wrt_q_rec n1 (q_Var_f m1) q2 = open_q_wrt_q_rec n1 (q_Var_f m1) q1 ->
+  q2 = q1).
+Proof.
+apply_mutual_ind q_mutind;
+intros; match goal with
+          | |- _ = ?term => destruct term
+        end;
+default_simp; eauto with lngen.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma open_q_wrt_q_rec_inj :
+forall q2 q1 m1 n1,
+  m1 `notin` fv_q_q q2 ->
+  m1 `notin` fv_q_q q1 ->
+  open_q_wrt_q_rec n1 (q_Var_f m1) q2 = open_q_wrt_q_rec n1 (q_Var_f m1) q1 ->
+  q2 = q1.
+Proof.
+pose proof open_q_wrt_q_rec_inj_mutual as H; intuition eauto.
+Qed.
+
+Hint Immediate open_q_wrt_q_rec_inj : lngen.
+
+(* end hide *)
 
 (* begin hide *)
 
@@ -797,6 +2194,52 @@ Hint Immediate open_tm_wrt_tm_rec_inj : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma open_tm_wrt_q_rec_inj_mutual :
+(forall a2 a1 m1 n1,
+  m1 `notin` fv_q_tm a2 ->
+  m1 `notin` fv_q_tm a1 ->
+  open_tm_wrt_q_rec n1 (q_Var_f m1) a2 = open_tm_wrt_q_rec n1 (q_Var_f m1) a1 ->
+  a2 = a1).
+Proof.
+apply_mutual_ind tm_mutind;
+intros; match goal with
+          | |- _ = ?term => destruct term
+        end;
+default_simp; eauto with lngen.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma open_tm_wrt_q_rec_inj :
+forall a2 a1 m1 n1,
+  m1 `notin` fv_q_tm a2 ->
+  m1 `notin` fv_q_tm a1 ->
+  open_tm_wrt_q_rec n1 (q_Var_f m1) a2 = open_tm_wrt_q_rec n1 (q_Var_f m1) a1 ->
+  a2 = a1.
+Proof.
+pose proof open_tm_wrt_q_rec_inj_mutual as H; intuition eauto.
+Qed.
+
+Hint Immediate open_tm_wrt_q_rec_inj : lngen.
+
+(* end hide *)
+
+Lemma open_q_wrt_q_inj :
+forall q2 q1 m1,
+  m1 `notin` fv_q_q q2 ->
+  m1 `notin` fv_q_q q1 ->
+  open_q_wrt_q q2 (q_Var_f m1) = open_q_wrt_q q1 (q_Var_f m1) ->
+  q2 = q1.
+Proof.
+unfold open_q_wrt_q; eauto with lngen.
+Qed.
+
+Hint Immediate open_q_wrt_q_inj : lngen.
+
 Lemma open_tm_wrt_tm_inj :
 forall a2 a1 x1,
   x1 `notin` fv_tm_tm a2 ->
@@ -809,12 +2252,52 @@ Qed.
 
 Hint Immediate open_tm_wrt_tm_inj : lngen.
 
+Lemma open_tm_wrt_q_inj :
+forall a2 a1 m1,
+  m1 `notin` fv_q_tm a2 ->
+  m1 `notin` fv_q_tm a1 ->
+  open_tm_wrt_q a2 (q_Var_f m1) = open_tm_wrt_q a1 (q_Var_f m1) ->
+  a2 = a1.
+Proof.
+unfold open_tm_wrt_q; eauto with lngen.
+Qed.
+
+Hint Immediate open_tm_wrt_q_inj : lngen.
+
 
 (* *********************************************************************** *)
 (** * Theorems about [lc] *)
 
 Ltac default_auto ::= auto with lngen brute_force; tauto.
 Ltac default_autorewrite ::= autorewrite with lngen.
+
+(* begin hide *)
+
+Lemma degree_q_wrt_q_of_lc_q_mutual :
+(forall q1,
+  lc_q q1 ->
+  degree_q_wrt_q 0 q1).
+Proof.
+apply_mutual_ind lc_q_mutind;
+intros;
+let m1 := fresh "m1" in pick_fresh m1;
+repeat (match goal with
+          | H1 : _, H2 : _ |- _ => specialize H1 with H2
+        end);
+default_simp; eauto with lngen.
+Qed.
+
+(* end hide *)
+
+Lemma degree_q_wrt_q_of_lc_q :
+forall q1,
+  lc_q q1 ->
+  degree_q_wrt_q 0 q1.
+Proof.
+pose proof degree_q_wrt_q_of_lc_q_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve degree_q_wrt_q_of_lc_q : lngen.
 
 (* begin hide *)
 
@@ -826,6 +2309,7 @@ Proof.
 apply_mutual_ind lc_tm_mutind;
 intros;
 let x1 := fresh "x1" in pick_fresh x1;
+let m1 := fresh "m1" in pick_fresh m1;
 repeat (match goal with
           | H1 : _, H2 : _ |- _ => specialize H1 with H2
         end);
@@ -846,11 +2330,80 @@ Hint Resolve degree_tm_wrt_tm_of_lc_tm : lngen.
 
 (* begin hide *)
 
+Lemma degree_tm_wrt_q_of_lc_tm_mutual :
+(forall a1,
+  lc_tm a1 ->
+  degree_tm_wrt_q 0 a1).
+Proof.
+apply_mutual_ind lc_tm_mutind;
+intros;
+let x1 := fresh "x1" in pick_fresh x1;
+let m1 := fresh "m1" in pick_fresh m1;
+repeat (match goal with
+          | H1 : _, H2 : _ |- _ => specialize H1 with H2
+        end);
+default_simp; eauto with lngen.
+Qed.
+
+(* end hide *)
+
+Lemma degree_tm_wrt_q_of_lc_tm :
+forall a1,
+  lc_tm a1 ->
+  degree_tm_wrt_q 0 a1.
+Proof.
+pose proof degree_tm_wrt_q_of_lc_tm_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve degree_tm_wrt_q_of_lc_tm : lngen.
+
+(* begin hide *)
+
+Lemma lc_q_of_degree_size_mutual :
+forall i1,
+(forall q1,
+  size_q q1 = i1 ->
+  degree_q_wrt_q 0 q1 ->
+  lc_q q1).
+Proof.
+intros i1; pattern i1; apply lt_wf_rec;
+clear i1; intros i1 H1;
+apply_mutual_ind q_mutind;
+default_simp;
+(* non-trivial cases *)
+constructor; default_simp; eapply_first_lt_hyp;
+(* instantiate the size *)
+match goal with
+  | |- _ = _ => reflexivity
+  | _ => idtac
+end;
+instantiate;
+(* everything should be easy now *)
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma lc_q_of_degree :
+forall q1,
+  degree_q_wrt_q 0 q1 ->
+  lc_q q1.
+Proof.
+intros q1; intros;
+pose proof (lc_q_of_degree_size_mutual (size_q q1));
+intuition eauto.
+Qed.
+
+Hint Resolve lc_q_of_degree : lngen.
+
+(* begin hide *)
+
 Lemma lc_tm_of_degree_size_mutual :
 forall i1,
 (forall a1,
   size_tm a1 = i1 ->
   degree_tm_wrt_tm 0 a1 ->
+  degree_tm_wrt_q 0 a1 ->
   lc_tm a1).
 Proof.
 intros i1; pattern i1; apply lt_wf_rec;
@@ -874,6 +2427,7 @@ Qed.
 Lemma lc_tm_of_degree :
 forall a1,
   degree_tm_wrt_tm 0 a1 ->
+  degree_tm_wrt_q 0 a1 ->
   lc_tm a1.
 Proof.
 intros a1; intros;
@@ -883,34 +2437,37 @@ Qed.
 
 Hint Resolve lc_tm_of_degree : lngen.
 
-Ltac usage_lc_exists_tac :=
+Ltac q_lc_exists_tac :=
   repeat (match goal with
             | H : _ |- _ =>
-              fail 1
+              let J1 := fresh in pose proof H as J1; apply degree_q_wrt_q_of_lc_q in J1; clear H
           end).
 
 Ltac tm_lc_exists_tac :=
   repeat (match goal with
             | H : _ |- _ =>
-              let J1 := fresh in pose proof H as J1; apply degree_tm_wrt_tm_of_lc_tm in J1; clear H
+              let J1 := fresh in pose proof H as J1; apply degree_tm_wrt_tm_of_lc_tm in J1;
+              let J2 := fresh in pose proof H as J2; apply degree_tm_wrt_q_of_lc_tm in J2; clear H
           end).
 
 Lemma lc_a_Pi_exists :
 forall x1 q1 A1 B1,
+  lc_q q1 ->
   lc_tm A1 ->
   lc_tm (open_tm_wrt_tm B1 (a_Var_f x1)) ->
   lc_tm (a_Pi q1 A1 B1).
 Proof.
-intros; tm_lc_exists_tac; eauto with lngen.
+intros; tm_lc_exists_tac; eauto 6 with lngen.
 Qed.
 
 Lemma lc_a_Lam_exists :
 forall x1 q1 A1 a1,
+  lc_q q1 ->
   lc_tm A1 ->
   lc_tm (open_tm_wrt_tm a1 (a_Var_f x1)) ->
   lc_tm (a_Lam q1 A1 a1).
 Proof.
-intros; tm_lc_exists_tac; eauto with lngen.
+intros; tm_lc_exists_tac; eauto 6 with lngen.
 Qed.
 
 Lemma lc_a_LetBoxB_exists :
@@ -920,7 +2477,7 @@ forall x1 a1 b1 B1,
   lc_tm B1 ->
   lc_tm (a_LetBoxB a1 b1 B1).
 Proof.
-intros; tm_lc_exists_tac; eauto with lngen.
+intros; tm_lc_exists_tac; eauto 6 with lngen.
 Qed.
 
 Lemma lc_a_Let_exists :
@@ -929,16 +2486,17 @@ forall x1 a1 b1,
   lc_tm (open_tm_wrt_tm b1 (a_Var_f x1)) ->
   lc_tm (a_Let a1 b1).
 Proof.
-intros; tm_lc_exists_tac; eauto with lngen.
+intros; tm_lc_exists_tac; eauto 6 with lngen.
 Qed.
 
 Lemma lc_a_Sigma_exists :
 forall x1 q1 A1 B1,
+  lc_q q1 ->
   lc_tm A1 ->
   lc_tm (open_tm_wrt_tm B1 (a_Var_f x1)) ->
   lc_tm (a_Sigma q1 A1 B1).
 Proof.
-intros; tm_lc_exists_tac; eauto with lngen.
+intros; tm_lc_exists_tac; eauto 6 with lngen.
 Qed.
 
 Lemma lc_a_Spread_exists :
@@ -948,7 +2506,23 @@ forall x1 a1 b1 B1,
   lc_tm B1 ->
   lc_tm (a_Spread a1 b1 B1).
 Proof.
-intros; tm_lc_exists_tac; eauto with lngen.
+intros; tm_lc_exists_tac; eauto 6 with lngen.
+Qed.
+
+Lemma lc_a_AllU_exists :
+forall m1 A1,
+  lc_tm (open_tm_wrt_q A1 (q_Var_f m1)) ->
+  lc_tm (a_AllU A1).
+Proof.
+intros; tm_lc_exists_tac; eauto 6 with lngen.
+Qed.
+
+Lemma lc_a_LamU_exists :
+forall m1 a1,
+  lc_tm (open_tm_wrt_q a1 (q_Var_f m1)) ->
+  lc_tm (a_LamU a1).
+Proof.
+intros; tm_lc_exists_tac; eauto 6 with lngen.
 Qed.
 
 Hint Extern 1 (lc_tm (a_Pi _ _ _)) =>
@@ -981,6 +2555,33 @@ Hint Extern 1 (lc_tm (a_Spread _ _ _)) =>
   pick_fresh x1;
   apply (lc_a_Spread_exists x1) : core.
 
+Hint Extern 1 (lc_tm (a_AllU _)) =>
+  let m1 := fresh in
+  pick_fresh m1;
+  apply (lc_a_AllU_exists m1) : core.
+
+Hint Extern 1 (lc_tm (a_LamU _)) =>
+  let m1 := fresh in
+  pick_fresh m1;
+  apply (lc_a_LamU_exists m1) : core.
+
+Lemma lc_body_q_wrt_q :
+forall q1 q2,
+  body_q_wrt_q q1 ->
+  lc_q q2 ->
+  lc_q (open_q_wrt_q q1 q2).
+Proof.
+unfold body_q_wrt_q;
+default_simp;
+let m1 := fresh "x" in
+pick_fresh m1;
+specialize_all m1;
+q_lc_exists_tac;
+eauto 7 with lngen.
+Qed.
+
+Hint Resolve lc_body_q_wrt_q : lngen.
+
 Lemma lc_body_tm_wrt_tm :
 forall a1 a2,
   body_tm_wrt_tm a1 ->
@@ -993,10 +2594,27 @@ let x1 := fresh "x" in
 pick_fresh x1;
 specialize_all x1;
 tm_lc_exists_tac;
-eauto with lngen.
+eauto 7 with lngen.
 Qed.
 
 Hint Resolve lc_body_tm_wrt_tm : lngen.
+
+Lemma lc_body_tm_wrt_q :
+forall a1 q1,
+  body_tm_wrt_q a1 ->
+  lc_q q1 ->
+  lc_tm (open_tm_wrt_q a1 q1).
+Proof.
+unfold body_tm_wrt_q;
+default_simp;
+let m1 := fresh "x" in
+pick_fresh m1;
+specialize_all m1;
+tm_lc_exists_tac;
+eauto 7 with lngen.
+Qed.
+
+Hint Resolve lc_body_tm_wrt_q : lngen.
 
 Lemma lc_body_a_Pi_3 :
 forall q1 A1 B1,
@@ -1058,6 +2676,48 @@ Qed.
 
 Hint Resolve lc_body_a_Spread_2 : lngen.
 
+Lemma lc_body_a_AllU_1 :
+forall A1,
+  lc_tm (a_AllU A1) ->
+  body_tm_wrt_q A1.
+Proof.
+default_simp.
+Qed.
+
+Hint Resolve lc_body_a_AllU_1 : lngen.
+
+Lemma lc_body_a_LamU_1 :
+forall a1,
+  lc_tm (a_LamU a1) ->
+  body_tm_wrt_q a1.
+Proof.
+default_simp.
+Qed.
+
+Hint Resolve lc_body_a_LamU_1 : lngen.
+
+(* begin hide *)
+
+Lemma lc_q_unique_mutual :
+(forall q1 (proof2 proof3 : lc_q q1), proof2 = proof3).
+Proof.
+apply_mutual_ind lc_q_mutind;
+intros;
+let proof1 := fresh "proof1" in
+rename_last_into proof1; dependent destruction proof1;
+f_equal; default_simp; auto using @functional_extensionality_dep with lngen.
+Qed.
+
+(* end hide *)
+
+Lemma lc_q_unique :
+forall q1 (proof2 proof3 : lc_q q1), proof2 = proof3.
+Proof.
+pose proof lc_q_unique_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve lc_q_unique : lngen.
+
 (* begin hide *)
 
 Lemma lc_tm_unique_mutual :
@@ -1082,6 +2742,25 @@ Hint Resolve lc_tm_unique : lngen.
 
 (* begin hide *)
 
+Lemma lc_q_of_lc_set_q_mutual :
+(forall q1, lc_set_q q1 -> lc_q q1).
+Proof.
+apply_mutual_ind lc_set_q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma lc_q_of_lc_set_q :
+forall q1, lc_set_q q1 -> lc_q q1.
+Proof.
+pose proof lc_q_of_lc_set_q_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve lc_q_of_lc_set_q : lngen.
+
+(* begin hide *)
+
 Lemma lc_tm_of_lc_set_tm_mutual :
 (forall a1, lc_set_tm a1 -> lc_tm a1).
 Proof.
@@ -1101,6 +2780,48 @@ Hint Resolve lc_tm_of_lc_set_tm : lngen.
 
 (* begin hide *)
 
+Lemma lc_set_q_of_lc_q_size_mutual :
+forall i1,
+(forall q1,
+  size_q q1 = i1 ->
+  lc_q q1 ->
+  lc_set_q q1).
+Proof.
+intros i1; pattern i1; apply lt_wf_rec;
+clear i1; intros i1 H1;
+apply_mutual_ind q_mutrec;
+default_simp;
+try solve [assert False by default_simp; tauto];
+(* non-trivial cases *)
+constructor; default_simp;
+try first [apply lc_set_q_of_lc_q];
+default_simp; eapply_first_lt_hyp;
+(* instantiate the size *)
+match goal with
+  | |- _ = _ => reflexivity
+  | _ => idtac
+end;
+instantiate;
+(* everything should be easy now *)
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma lc_set_q_of_lc_q :
+forall q1,
+  lc_q q1 ->
+  lc_set_q q1.
+Proof.
+intros q1; intros;
+pose proof (lc_set_q_of_lc_q_size_mutual (size_q q1));
+intuition eauto.
+Qed.
+
+Hint Resolve lc_set_q_of_lc_q : lngen.
+
+(* begin hide *)
+
 Lemma lc_set_tm_of_lc_tm_size_mutual :
 forall i1,
 (forall a1,
@@ -1116,7 +2837,7 @@ try solve [assert False by default_simp; tauto];
 (* non-trivial cases *)
 constructor; default_simp;
 try first [apply lc_set_tm_of_lc_tm
- | apply lc_set_usage_of_lc_usage];
+ | apply lc_set_q_of_lc_q];
 default_simp; eapply_first_lt_hyp;
 (* instantiate the size *)
 match goal with
@@ -1151,6 +2872,36 @@ Ltac default_autorewrite ::= fail.
 
 (* begin hide *)
 
+Lemma close_q_wrt_q_rec_degree_q_wrt_q_mutual :
+(forall q1 m1 n1,
+  degree_q_wrt_q n1 q1 ->
+  m1 `notin` fv_q_q q1 ->
+  close_q_wrt_q_rec n1 m1 q1 = q1).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma close_q_wrt_q_rec_degree_q_wrt_q :
+forall q1 m1 n1,
+  degree_q_wrt_q n1 q1 ->
+  m1 `notin` fv_q_q q1 ->
+  close_q_wrt_q_rec n1 m1 q1 = q1.
+Proof.
+pose proof close_q_wrt_q_rec_degree_q_wrt_q_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve close_q_wrt_q_rec_degree_q_wrt_q : lngen.
+Hint Rewrite close_q_wrt_q_rec_degree_q_wrt_q using solve [auto] : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
 Lemma close_tm_wrt_tm_rec_degree_tm_wrt_tm_mutual :
 (forall a1 x1 n1,
   degree_tm_wrt_tm n1 a1 ->
@@ -1179,6 +2930,48 @@ Hint Rewrite close_tm_wrt_tm_rec_degree_tm_wrt_tm using solve [auto] : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma close_tm_wrt_q_rec_degree_tm_wrt_q_mutual :
+(forall a1 m1 n1,
+  degree_tm_wrt_q n1 a1 ->
+  m1 `notin` fv_q_tm a1 ->
+  close_tm_wrt_q_rec n1 m1 a1 = a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma close_tm_wrt_q_rec_degree_tm_wrt_q :
+forall a1 m1 n1,
+  degree_tm_wrt_q n1 a1 ->
+  m1 `notin` fv_q_tm a1 ->
+  close_tm_wrt_q_rec n1 m1 a1 = a1.
+Proof.
+pose proof close_tm_wrt_q_rec_degree_tm_wrt_q_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve close_tm_wrt_q_rec_degree_tm_wrt_q : lngen.
+Hint Rewrite close_tm_wrt_q_rec_degree_tm_wrt_q using solve [auto] : lngen.
+
+(* end hide *)
+
+Lemma close_q_wrt_q_lc_q :
+forall q1 m1,
+  lc_q q1 ->
+  m1 `notin` fv_q_q q1 ->
+  close_q_wrt_q m1 q1 = q1.
+Proof.
+unfold close_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve close_q_wrt_q_lc_q : lngen.
+Hint Rewrite close_q_wrt_q_lc_q using solve [auto] : lngen.
+
 Lemma close_tm_wrt_tm_lc_tm :
 forall a1 x1,
   lc_tm a1 ->
@@ -1190,6 +2983,46 @@ Qed.
 
 Hint Resolve close_tm_wrt_tm_lc_tm : lngen.
 Hint Rewrite close_tm_wrt_tm_lc_tm using solve [auto] : lngen.
+
+Lemma close_tm_wrt_q_lc_tm :
+forall a1 m1,
+  lc_tm a1 ->
+  m1 `notin` fv_q_tm a1 ->
+  close_tm_wrt_q m1 a1 = a1.
+Proof.
+unfold close_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve close_tm_wrt_q_lc_tm : lngen.
+Hint Rewrite close_tm_wrt_q_lc_tm using solve [auto] : lngen.
+
+(* begin hide *)
+
+Lemma open_q_wrt_q_rec_degree_q_wrt_q_mutual :
+(forall q2 q1 n1,
+  degree_q_wrt_q n1 q2 ->
+  open_q_wrt_q_rec n1 q1 q2 = q2).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma open_q_wrt_q_rec_degree_q_wrt_q :
+forall q2 q1 n1,
+  degree_q_wrt_q n1 q2 ->
+  open_q_wrt_q_rec n1 q1 q2 = q2.
+Proof.
+pose proof open_q_wrt_q_rec_degree_q_wrt_q_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve open_q_wrt_q_rec_degree_q_wrt_q : lngen.
+Hint Rewrite open_q_wrt_q_rec_degree_q_wrt_q using solve [auto] : lngen.
+
+(* end hide *)
 
 (* begin hide *)
 
@@ -1219,6 +3052,45 @@ Hint Rewrite open_tm_wrt_tm_rec_degree_tm_wrt_tm using solve [auto] : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma open_tm_wrt_q_rec_degree_tm_wrt_q_mutual :
+(forall a1 q1 n1,
+  degree_tm_wrt_q n1 a1 ->
+  open_tm_wrt_q_rec n1 q1 a1 = a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma open_tm_wrt_q_rec_degree_tm_wrt_q :
+forall a1 q1 n1,
+  degree_tm_wrt_q n1 a1 ->
+  open_tm_wrt_q_rec n1 q1 a1 = a1.
+Proof.
+pose proof open_tm_wrt_q_rec_degree_tm_wrt_q_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve open_tm_wrt_q_rec_degree_tm_wrt_q : lngen.
+Hint Rewrite open_tm_wrt_q_rec_degree_tm_wrt_q using solve [auto] : lngen.
+
+(* end hide *)
+
+Lemma open_q_wrt_q_lc_q :
+forall q2 q1,
+  lc_q q2 ->
+  open_q_wrt_q q2 q1 = q2.
+Proof.
+unfold open_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve open_q_wrt_q_lc_q : lngen.
+Hint Rewrite open_q_wrt_q_lc_q using solve [auto] : lngen.
+
 Lemma open_tm_wrt_tm_lc_tm :
 forall a2 a1,
   lc_tm a2 ->
@@ -1230,12 +3102,49 @@ Qed.
 Hint Resolve open_tm_wrt_tm_lc_tm : lngen.
 Hint Rewrite open_tm_wrt_tm_lc_tm using solve [auto] : lngen.
 
+Lemma open_tm_wrt_q_lc_tm :
+forall a1 q1,
+  lc_tm a1 ->
+  open_tm_wrt_q a1 q1 = a1.
+Proof.
+unfold open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve open_tm_wrt_q_lc_tm : lngen.
+Hint Rewrite open_tm_wrt_q_lc_tm using solve [auto] : lngen.
+
 
 (* *********************************************************************** *)
 (** * Theorems about [fv] *)
 
 Ltac default_auto ::= auto with set lngen; tauto.
 Ltac default_autorewrite ::= autorewrite with lngen.
+
+(* begin hide *)
+
+Lemma fv_q_q_close_q_wrt_q_rec_mutual :
+(forall q1 m1 n1,
+  fv_q_q (close_q_wrt_q_rec n1 m1 q1) [=] remove m1 (fv_q_q q1)).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_q_q_close_q_wrt_q_rec :
+forall q1 m1 n1,
+  fv_q_q (close_q_wrt_q_rec n1 m1 q1) [=] remove m1 (fv_q_q q1).
+Proof.
+pose proof fv_q_q_close_q_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_q_close_q_wrt_q_rec : lngen.
+Hint Rewrite fv_q_q_close_q_wrt_q_rec using solve [auto] : lngen.
+
+(* end hide *)
 
 (* begin hide *)
 
@@ -1263,6 +3172,94 @@ Hint Rewrite fv_tm_tm_close_tm_wrt_tm_rec using solve [auto] : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma fv_tm_tm_close_tm_wrt_q_rec_mutual :
+(forall a1 m1 n1,
+  fv_tm_tm (close_tm_wrt_q_rec n1 m1 a1) [=] fv_tm_tm a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_tm_tm_close_tm_wrt_q_rec :
+forall a1 m1 n1,
+  fv_tm_tm (close_tm_wrt_q_rec n1 m1 a1) [=] fv_tm_tm a1.
+Proof.
+pose proof fv_tm_tm_close_tm_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_tm_tm_close_tm_wrt_q_rec : lngen.
+Hint Rewrite fv_tm_tm_close_tm_wrt_q_rec using solve [auto] : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_q_tm_close_tm_wrt_tm_rec_mutual :
+(forall a1 x1 n1,
+  fv_q_tm (close_tm_wrt_tm_rec n1 x1 a1) [=] fv_q_tm a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_q_tm_close_tm_wrt_tm_rec :
+forall a1 x1 n1,
+  fv_q_tm (close_tm_wrt_tm_rec n1 x1 a1) [=] fv_q_tm a1.
+Proof.
+pose proof fv_q_tm_close_tm_wrt_tm_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_tm_close_tm_wrt_tm_rec : lngen.
+Hint Rewrite fv_q_tm_close_tm_wrt_tm_rec using solve [auto] : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_q_tm_close_tm_wrt_q_rec_mutual :
+(forall a1 m1 n1,
+  fv_q_tm (close_tm_wrt_q_rec n1 m1 a1) [=] remove m1 (fv_q_tm a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_q_tm_close_tm_wrt_q_rec :
+forall a1 m1 n1,
+  fv_q_tm (close_tm_wrt_q_rec n1 m1 a1) [=] remove m1 (fv_q_tm a1).
+Proof.
+pose proof fv_q_tm_close_tm_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_tm_close_tm_wrt_q_rec : lngen.
+Hint Rewrite fv_q_tm_close_tm_wrt_q_rec using solve [auto] : lngen.
+
+(* end hide *)
+
+Lemma fv_q_q_close_q_wrt_q :
+forall q1 m1,
+  fv_q_q (close_q_wrt_q m1 q1) [=] remove m1 (fv_q_q q1).
+Proof.
+unfold close_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve fv_q_q_close_q_wrt_q : lngen.
+Hint Rewrite fv_q_q_close_q_wrt_q using solve [auto] : lngen.
+
 Lemma fv_tm_tm_close_tm_wrt_tm :
 forall a1 x1,
   fv_tm_tm (close_tm_wrt_tm x1 a1) [=] remove x1 (fv_tm_tm a1).
@@ -1272,6 +3269,61 @@ Qed.
 
 Hint Resolve fv_tm_tm_close_tm_wrt_tm : lngen.
 Hint Rewrite fv_tm_tm_close_tm_wrt_tm using solve [auto] : lngen.
+
+Lemma fv_tm_tm_close_tm_wrt_q :
+forall a1 m1,
+  fv_tm_tm (close_tm_wrt_q m1 a1) [=] fv_tm_tm a1.
+Proof.
+unfold close_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve fv_tm_tm_close_tm_wrt_q : lngen.
+Hint Rewrite fv_tm_tm_close_tm_wrt_q using solve [auto] : lngen.
+
+Lemma fv_q_tm_close_tm_wrt_tm :
+forall a1 x1,
+  fv_q_tm (close_tm_wrt_tm x1 a1) [=] fv_q_tm a1.
+Proof.
+unfold close_tm_wrt_tm; default_simp.
+Qed.
+
+Hint Resolve fv_q_tm_close_tm_wrt_tm : lngen.
+Hint Rewrite fv_q_tm_close_tm_wrt_tm using solve [auto] : lngen.
+
+Lemma fv_q_tm_close_tm_wrt_q :
+forall a1 m1,
+  fv_q_tm (close_tm_wrt_q m1 a1) [=] remove m1 (fv_q_tm a1).
+Proof.
+unfold close_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve fv_q_tm_close_tm_wrt_q : lngen.
+Hint Rewrite fv_q_tm_close_tm_wrt_q using solve [auto] : lngen.
+
+(* begin hide *)
+
+Lemma fv_q_q_open_q_wrt_q_rec_lower_mutual :
+(forall q1 q2 n1,
+  fv_q_q q1 [<=] fv_q_q (open_q_wrt_q_rec n1 q2 q1)).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_q_q_open_q_wrt_q_rec_lower :
+forall q1 q2 n1,
+  fv_q_q q1 [<=] fv_q_q (open_q_wrt_q_rec n1 q2 q1).
+Proof.
+pose proof fv_q_q_open_q_wrt_q_rec_lower_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_q_open_q_wrt_q_rec_lower : lngen.
+
+(* end hide *)
 
 (* begin hide *)
 
@@ -1298,6 +3350,90 @@ Hint Resolve fv_tm_tm_open_tm_wrt_tm_rec_lower : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma fv_tm_tm_open_tm_wrt_q_rec_lower_mutual :
+(forall a1 q1 n1,
+  fv_tm_tm a1 [<=] fv_tm_tm (open_tm_wrt_q_rec n1 q1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_tm_tm_open_tm_wrt_q_rec_lower :
+forall a1 q1 n1,
+  fv_tm_tm a1 [<=] fv_tm_tm (open_tm_wrt_q_rec n1 q1 a1).
+Proof.
+pose proof fv_tm_tm_open_tm_wrt_q_rec_lower_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_tm_tm_open_tm_wrt_q_rec_lower : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_q_tm_open_tm_wrt_tm_rec_lower_mutual :
+(forall a1 a2 n1,
+  fv_q_tm a1 [<=] fv_q_tm (open_tm_wrt_tm_rec n1 a2 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_q_tm_open_tm_wrt_tm_rec_lower :
+forall a1 a2 n1,
+  fv_q_tm a1 [<=] fv_q_tm (open_tm_wrt_tm_rec n1 a2 a1).
+Proof.
+pose proof fv_q_tm_open_tm_wrt_tm_rec_lower_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_tm_open_tm_wrt_tm_rec_lower : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_q_tm_open_tm_wrt_q_rec_lower_mutual :
+(forall a1 q1 n1,
+  fv_q_tm a1 [<=] fv_q_tm (open_tm_wrt_q_rec n1 q1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_q_tm_open_tm_wrt_q_rec_lower :
+forall a1 q1 n1,
+  fv_q_tm a1 [<=] fv_q_tm (open_tm_wrt_q_rec n1 q1 a1).
+Proof.
+pose proof fv_q_tm_open_tm_wrt_q_rec_lower_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_tm_open_tm_wrt_q_rec_lower : lngen.
+
+(* end hide *)
+
+Lemma fv_q_q_open_q_wrt_q_lower :
+forall q1 q2,
+  fv_q_q q1 [<=] fv_q_q (open_q_wrt_q q1 q2).
+Proof.
+unfold open_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve fv_q_q_open_q_wrt_q_lower : lngen.
+
 Lemma fv_tm_tm_open_tm_wrt_tm_lower :
 forall a1 a2,
   fv_tm_tm a1 [<=] fv_tm_tm (open_tm_wrt_tm a1 a2).
@@ -1306,6 +3442,58 @@ unfold open_tm_wrt_tm; default_simp.
 Qed.
 
 Hint Resolve fv_tm_tm_open_tm_wrt_tm_lower : lngen.
+
+Lemma fv_tm_tm_open_tm_wrt_q_lower :
+forall a1 q1,
+  fv_tm_tm a1 [<=] fv_tm_tm (open_tm_wrt_q a1 q1).
+Proof.
+unfold open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve fv_tm_tm_open_tm_wrt_q_lower : lngen.
+
+Lemma fv_q_tm_open_tm_wrt_tm_lower :
+forall a1 a2,
+  fv_q_tm a1 [<=] fv_q_tm (open_tm_wrt_tm a1 a2).
+Proof.
+unfold open_tm_wrt_tm; default_simp.
+Qed.
+
+Hint Resolve fv_q_tm_open_tm_wrt_tm_lower : lngen.
+
+Lemma fv_q_tm_open_tm_wrt_q_lower :
+forall a1 q1,
+  fv_q_tm a1 [<=] fv_q_tm (open_tm_wrt_q a1 q1).
+Proof.
+unfold open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve fv_q_tm_open_tm_wrt_q_lower : lngen.
+
+(* begin hide *)
+
+Lemma fv_q_q_open_q_wrt_q_rec_upper_mutual :
+(forall q1 q2 n1,
+  fv_q_q (open_q_wrt_q_rec n1 q2 q1) [<=] fv_q_q q2 `union` fv_q_q q1).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_q_q_open_q_wrt_q_rec_upper :
+forall q1 q2 n1,
+  fv_q_q (open_q_wrt_q_rec n1 q2 q1) [<=] fv_q_q q2 `union` fv_q_q q1.
+Proof.
+pose proof fv_q_q_open_q_wrt_q_rec_upper_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_q_open_q_wrt_q_rec_upper : lngen.
+
+(* end hide *)
 
 (* begin hide *)
 
@@ -1332,6 +3520,90 @@ Hint Resolve fv_tm_tm_open_tm_wrt_tm_rec_upper : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma fv_tm_tm_open_tm_wrt_q_rec_upper_mutual :
+(forall a1 q1 n1,
+  fv_tm_tm (open_tm_wrt_q_rec n1 q1 a1) [<=] fv_tm_tm a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_tm_tm_open_tm_wrt_q_rec_upper :
+forall a1 q1 n1,
+  fv_tm_tm (open_tm_wrt_q_rec n1 q1 a1) [<=] fv_tm_tm a1.
+Proof.
+pose proof fv_tm_tm_open_tm_wrt_q_rec_upper_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_tm_tm_open_tm_wrt_q_rec_upper : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_q_tm_open_tm_wrt_tm_rec_upper_mutual :
+(forall a1 a2 n1,
+  fv_q_tm (open_tm_wrt_tm_rec n1 a2 a1) [<=] fv_q_tm a2 `union` fv_q_tm a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_q_tm_open_tm_wrt_tm_rec_upper :
+forall a1 a2 n1,
+  fv_q_tm (open_tm_wrt_tm_rec n1 a2 a1) [<=] fv_q_tm a2 `union` fv_q_tm a1.
+Proof.
+pose proof fv_q_tm_open_tm_wrt_tm_rec_upper_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_tm_open_tm_wrt_tm_rec_upper : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_q_tm_open_tm_wrt_q_rec_upper_mutual :
+(forall a1 q1 n1,
+  fv_q_tm (open_tm_wrt_q_rec n1 q1 a1) [<=] fv_q_q q1 `union` fv_q_tm a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma fv_q_tm_open_tm_wrt_q_rec_upper :
+forall a1 q1 n1,
+  fv_q_tm (open_tm_wrt_q_rec n1 q1 a1) [<=] fv_q_q q1 `union` fv_q_tm a1.
+Proof.
+pose proof fv_q_tm_open_tm_wrt_q_rec_upper_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_tm_open_tm_wrt_q_rec_upper : lngen.
+
+(* end hide *)
+
+Lemma fv_q_q_open_q_wrt_q_upper :
+forall q1 q2,
+  fv_q_q (open_q_wrt_q q1 q2) [<=] fv_q_q q2 `union` fv_q_q q1.
+Proof.
+unfold open_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve fv_q_q_open_q_wrt_q_upper : lngen.
+
 Lemma fv_tm_tm_open_tm_wrt_tm_upper :
 forall a1 a2,
   fv_tm_tm (open_tm_wrt_tm a1 a2) [<=] fv_tm_tm a2 `union` fv_tm_tm a1.
@@ -1340,6 +3612,57 @@ unfold open_tm_wrt_tm; default_simp.
 Qed.
 
 Hint Resolve fv_tm_tm_open_tm_wrt_tm_upper : lngen.
+
+Lemma fv_tm_tm_open_tm_wrt_q_upper :
+forall a1 q1,
+  fv_tm_tm (open_tm_wrt_q a1 q1) [<=] fv_tm_tm a1.
+Proof.
+unfold open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve fv_tm_tm_open_tm_wrt_q_upper : lngen.
+
+Lemma fv_q_tm_open_tm_wrt_tm_upper :
+forall a1 a2,
+  fv_q_tm (open_tm_wrt_tm a1 a2) [<=] fv_q_tm a2 `union` fv_q_tm a1.
+Proof.
+unfold open_tm_wrt_tm; default_simp.
+Qed.
+
+Hint Resolve fv_q_tm_open_tm_wrt_tm_upper : lngen.
+
+Lemma fv_q_tm_open_tm_wrt_q_upper :
+forall a1 q1,
+  fv_q_tm (open_tm_wrt_q a1 q1) [<=] fv_q_q q1 `union` fv_q_tm a1.
+Proof.
+unfold open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve fv_q_tm_open_tm_wrt_q_upper : lngen.
+
+(* begin hide *)
+
+Lemma fv_q_q_subst_q_q_fresh_mutual :
+(forall q1 q2 m1,
+  m1 `notin` fv_q_q q1 ->
+  fv_q_q (subst_q_q q2 m1 q1) [=] fv_q_q q1).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+Lemma fv_q_q_subst_q_q_fresh :
+forall q1 q2 m1,
+  m1 `notin` fv_q_q q1 ->
+  fv_q_q (subst_q_q q2 m1 q1) [=] fv_q_q q1.
+Proof.
+pose proof fv_q_q_subst_q_q_fresh_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_q_subst_q_q_fresh : lngen.
+Hint Rewrite fv_q_q_subst_q_q_fresh using solve [auto] : lngen.
 
 (* begin hide *)
 
@@ -1367,6 +3690,73 @@ Hint Rewrite fv_tm_tm_subst_tm_tm_fresh using solve [auto] : lngen.
 
 (* begin hide *)
 
+Lemma fv_q_tm_subst_tm_tm_fresh_mutual :
+(forall a1 q1 m1,
+  fv_tm_tm (subst_q_tm q1 m1 a1) [=] fv_tm_tm a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+Lemma fv_q_tm_subst_tm_tm_fresh :
+forall a1 q1 m1,
+  fv_tm_tm (subst_q_tm q1 m1 a1) [=] fv_tm_tm a1.
+Proof.
+pose proof fv_q_tm_subst_tm_tm_fresh_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_tm_subst_tm_tm_fresh : lngen.
+Hint Rewrite fv_q_tm_subst_tm_tm_fresh using solve [auto] : lngen.
+
+(* begin hide *)
+
+Lemma fv_q_tm_subst_q_tm_fresh_mutual :
+(forall a1 q1 m1,
+  m1 `notin` fv_q_tm a1 ->
+  fv_q_tm (subst_q_tm q1 m1 a1) [=] fv_q_tm a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+Lemma fv_q_tm_subst_q_tm_fresh :
+forall a1 q1 m1,
+  m1 `notin` fv_q_tm a1 ->
+  fv_q_tm (subst_q_tm q1 m1 a1) [=] fv_q_tm a1.
+Proof.
+pose proof fv_q_tm_subst_q_tm_fresh_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_tm_subst_q_tm_fresh : lngen.
+Hint Rewrite fv_q_tm_subst_q_tm_fresh using solve [auto] : lngen.
+
+(* begin hide *)
+
+Lemma fv_q_q_subst_q_q_lower_mutual :
+(forall q1 q2 m1,
+  remove m1 (fv_q_q q1) [<=] fv_q_q (subst_q_q q2 m1 q1)).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+Lemma fv_q_q_subst_q_q_lower :
+forall q1 q2 m1,
+  remove m1 (fv_q_q q1) [<=] fv_q_q (subst_q_q q2 m1 q1).
+Proof.
+pose proof fv_q_q_subst_q_q_lower_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_q_subst_q_q_lower : lngen.
+
+(* begin hide *)
+
 Lemma fv_tm_tm_subst_tm_tm_lower_mutual :
 (forall a1 a2 x1,
   remove x1 (fv_tm_tm a1) [<=] fv_tm_tm (subst_tm_tm a2 x1 a1)).
@@ -1385,6 +3775,94 @@ pose proof fv_tm_tm_subst_tm_tm_lower_mutual as H; intuition eauto.
 Qed.
 
 Hint Resolve fv_tm_tm_subst_tm_tm_lower : lngen.
+
+(* begin hide *)
+
+Lemma fv_tm_tm_subst_q_tm_lower_mutual :
+(forall a1 q1 m1,
+  fv_tm_tm a1 [<=] fv_tm_tm (subst_q_tm q1 m1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+Lemma fv_tm_tm_subst_q_tm_lower :
+forall a1 q1 m1,
+  fv_tm_tm a1 [<=] fv_tm_tm (subst_q_tm q1 m1 a1).
+Proof.
+pose proof fv_tm_tm_subst_q_tm_lower_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_tm_tm_subst_q_tm_lower : lngen.
+
+(* begin hide *)
+
+Lemma fv_q_tm_subst_tm_tm_lower_mutual :
+(forall a1 a2 x1,
+  fv_q_tm a1 [<=] fv_q_tm (subst_tm_tm a2 x1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+Lemma fv_q_tm_subst_tm_tm_lower :
+forall a1 a2 x1,
+  fv_q_tm a1 [<=] fv_q_tm (subst_tm_tm a2 x1 a1).
+Proof.
+pose proof fv_q_tm_subst_tm_tm_lower_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_tm_subst_tm_tm_lower : lngen.
+
+(* begin hide *)
+
+Lemma fv_q_tm_subst_q_tm_lower_mutual :
+(forall a1 q1 m1,
+  remove m1 (fv_q_tm a1) [<=] fv_q_tm (subst_q_tm q1 m1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+Lemma fv_q_tm_subst_q_tm_lower :
+forall a1 q1 m1,
+  remove m1 (fv_q_tm a1) [<=] fv_q_tm (subst_q_tm q1 m1 a1).
+Proof.
+pose proof fv_q_tm_subst_q_tm_lower_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_tm_subst_q_tm_lower : lngen.
+
+(* begin hide *)
+
+Lemma fv_q_q_subst_q_q_notin_mutual :
+(forall q1 q2 m1 m2,
+  m2 `notin` fv_q_q q1 ->
+  m2 `notin` fv_q_q q2 ->
+  m2 `notin` fv_q_q (subst_q_q q2 m1 q1)).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+Lemma fv_q_q_subst_q_q_notin :
+forall q1 q2 m1 m2,
+  m2 `notin` fv_q_q q1 ->
+  m2 `notin` fv_q_q q2 ->
+  m2 `notin` fv_q_q (subst_q_q q2 m1 q1).
+Proof.
+pose proof fv_q_q_subst_q_q_notin_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_q_subst_q_q_notin : lngen.
 
 (* begin hide *)
 
@@ -1413,6 +3891,100 @@ Hint Resolve fv_tm_tm_subst_tm_tm_notin : lngen.
 
 (* begin hide *)
 
+Lemma fv_tm_tm_subst_q_tm_notin_mutual :
+(forall a1 q1 m1 x1,
+  x1 `notin` fv_tm_tm a1 ->
+  x1 `notin` fv_tm_tm (subst_q_tm q1 m1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+Lemma fv_tm_tm_subst_q_tm_notin :
+forall a1 q1 m1 x1,
+  x1 `notin` fv_tm_tm a1 ->
+  x1 `notin` fv_tm_tm (subst_q_tm q1 m1 a1).
+Proof.
+pose proof fv_tm_tm_subst_q_tm_notin_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_tm_tm_subst_q_tm_notin : lngen.
+
+(* begin hide *)
+
+Lemma fv_q_tm_subst_tm_tm_notin_mutual :
+(forall a1 a2 x1 m1,
+  m1 `notin` fv_q_tm a1 ->
+  m1 `notin` fv_q_tm a2 ->
+  m1 `notin` fv_q_tm (subst_tm_tm a2 x1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+Lemma fv_q_tm_subst_tm_tm_notin :
+forall a1 a2 x1 m1,
+  m1 `notin` fv_q_tm a1 ->
+  m1 `notin` fv_q_tm a2 ->
+  m1 `notin` fv_q_tm (subst_tm_tm a2 x1 a1).
+Proof.
+pose proof fv_q_tm_subst_tm_tm_notin_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_tm_subst_tm_tm_notin : lngen.
+
+(* begin hide *)
+
+Lemma fv_q_tm_subst_q_tm_notin_mutual :
+(forall a1 q1 m1 m2,
+  m2 `notin` fv_q_tm a1 ->
+  m2 `notin` fv_q_q q1 ->
+  m2 `notin` fv_q_tm (subst_q_tm q1 m1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+Lemma fv_q_tm_subst_q_tm_notin :
+forall a1 q1 m1 m2,
+  m2 `notin` fv_q_tm a1 ->
+  m2 `notin` fv_q_q q1 ->
+  m2 `notin` fv_q_tm (subst_q_tm q1 m1 a1).
+Proof.
+pose proof fv_q_tm_subst_q_tm_notin_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_tm_subst_q_tm_notin : lngen.
+
+(* begin hide *)
+
+Lemma fv_q_q_subst_q_q_upper_mutual :
+(forall q1 q2 m1,
+  fv_q_q (subst_q_q q2 m1 q1) [<=] fv_q_q q2 `union` remove m1 (fv_q_q q1)).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+Lemma fv_q_q_subst_q_q_upper :
+forall q1 q2 m1,
+  fv_q_q (subst_q_q q2 m1 q1) [<=] fv_q_q q2 `union` remove m1 (fv_q_q q1).
+Proof.
+pose proof fv_q_q_subst_q_q_upper_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_q_subst_q_q_upper : lngen.
+
+(* begin hide *)
+
 Lemma fv_tm_tm_subst_tm_tm_upper_mutual :
 (forall a1 a2 x1,
   fv_tm_tm (subst_tm_tm a2 x1 a1) [<=] fv_tm_tm a2 `union` remove x1 (fv_tm_tm a1)).
@@ -1432,12 +4004,102 @@ Qed.
 
 Hint Resolve fv_tm_tm_subst_tm_tm_upper : lngen.
 
+(* begin hide *)
+
+Lemma fv_tm_tm_subst_q_tm_upper_mutual :
+(forall a1 q1 m1,
+  fv_tm_tm (subst_q_tm q1 m1 a1) [<=] fv_tm_tm a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+Lemma fv_tm_tm_subst_q_tm_upper :
+forall a1 q1 m1,
+  fv_tm_tm (subst_q_tm q1 m1 a1) [<=] fv_tm_tm a1.
+Proof.
+pose proof fv_tm_tm_subst_q_tm_upper_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_tm_tm_subst_q_tm_upper : lngen.
+
+(* begin hide *)
+
+Lemma fv_q_tm_subst_tm_tm_upper_mutual :
+(forall a1 a2 x1,
+  fv_q_tm (subst_tm_tm a2 x1 a1) [<=] fv_q_tm a2 `union` fv_q_tm a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+Lemma fv_q_tm_subst_tm_tm_upper :
+forall a1 a2 x1,
+  fv_q_tm (subst_tm_tm a2 x1 a1) [<=] fv_q_tm a2 `union` fv_q_tm a1.
+Proof.
+pose proof fv_q_tm_subst_tm_tm_upper_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_tm_subst_tm_tm_upper : lngen.
+
+(* begin hide *)
+
+Lemma fv_q_tm_subst_q_tm_upper_mutual :
+(forall a1 q1 m1,
+  fv_q_tm (subst_q_tm q1 m1 a1) [<=] fv_q_q q1 `union` remove m1 (fv_q_tm a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp; fsetdec.
+Qed.
+
+(* end hide *)
+
+Lemma fv_q_tm_subst_q_tm_upper :
+forall a1 q1 m1,
+  fv_q_tm (subst_q_tm q1 m1 a1) [<=] fv_q_q q1 `union` remove m1 (fv_q_tm a1).
+Proof.
+pose proof fv_q_tm_subst_q_tm_upper_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve fv_q_tm_subst_q_tm_upper : lngen.
+
 
 (* *********************************************************************** *)
 (** * Theorems about [subst] *)
 
 Ltac default_auto ::= auto with lngen brute_force; tauto.
 Ltac default_autorewrite ::= autorewrite with lngen.
+
+(* begin hide *)
+
+Lemma subst_q_q_close_q_wrt_q_rec_mutual :
+(forall q2 q1 m1 m2 n1,
+  degree_q_wrt_q n1 q1 ->
+  m1 <> m2 ->
+  m2 `notin` fv_q_q q1 ->
+  subst_q_q q1 m1 (close_q_wrt_q_rec n1 m2 q2) = close_q_wrt_q_rec n1 m2 (subst_q_q q1 m1 q2)).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_q_q_close_q_wrt_q_rec :
+forall q2 q1 m1 m2 n1,
+  degree_q_wrt_q n1 q1 ->
+  m1 <> m2 ->
+  m2 `notin` fv_q_q q1 ->
+  subst_q_q q1 m1 (close_q_wrt_q_rec n1 m2 q2) = close_q_wrt_q_rec n1 m2 (subst_q_q q1 m1 q2).
+Proof.
+pose proof subst_q_q_close_q_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_q_close_q_wrt_q_rec : lngen.
 
 (* begin hide *)
 
@@ -1466,6 +4128,90 @@ Qed.
 
 Hint Resolve subst_tm_tm_close_tm_wrt_tm_rec : lngen.
 
+(* begin hide *)
+
+Lemma subst_tm_tm_close_tm_wrt_q_rec_mutual :
+(forall a2 a1 m1 x1 n1,
+  degree_tm_wrt_q n1 a1 ->
+  x1 `notin` fv_q_tm a1 ->
+  subst_tm_tm a1 m1 (close_tm_wrt_q_rec n1 x1 a2) = close_tm_wrt_q_rec n1 x1 (subst_tm_tm a1 m1 a2)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_tm_tm_close_tm_wrt_q_rec :
+forall a2 a1 m1 x1 n1,
+  degree_tm_wrt_q n1 a1 ->
+  x1 `notin` fv_q_tm a1 ->
+  subst_tm_tm a1 m1 (close_tm_wrt_q_rec n1 x1 a2) = close_tm_wrt_q_rec n1 x1 (subst_tm_tm a1 m1 a2).
+Proof.
+pose proof subst_tm_tm_close_tm_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_tm_tm_close_tm_wrt_q_rec : lngen.
+
+(* begin hide *)
+
+Lemma subst_q_tm_close_tm_wrt_tm_rec_mutual :
+(forall a1 q1 x1 m1 n1,
+  subst_q_tm q1 x1 (close_tm_wrt_tm_rec n1 m1 a1) = close_tm_wrt_tm_rec n1 m1 (subst_q_tm q1 x1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_q_tm_close_tm_wrt_tm_rec :
+forall a1 q1 x1 m1 n1,
+  subst_q_tm q1 x1 (close_tm_wrt_tm_rec n1 m1 a1) = close_tm_wrt_tm_rec n1 m1 (subst_q_tm q1 x1 a1).
+Proof.
+pose proof subst_q_tm_close_tm_wrt_tm_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_tm_close_tm_wrt_tm_rec : lngen.
+
+(* begin hide *)
+
+Lemma subst_q_tm_close_tm_wrt_q_rec_mutual :
+(forall a1 q1 m1 m2 n1,
+  degree_q_wrt_q n1 q1 ->
+  m1 <> m2 ->
+  m2 `notin` fv_q_q q1 ->
+  subst_q_tm q1 m1 (close_tm_wrt_q_rec n1 m2 a1) = close_tm_wrt_q_rec n1 m2 (subst_q_tm q1 m1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_q_tm_close_tm_wrt_q_rec :
+forall a1 q1 m1 m2 n1,
+  degree_q_wrt_q n1 q1 ->
+  m1 <> m2 ->
+  m2 `notin` fv_q_q q1 ->
+  subst_q_tm q1 m1 (close_tm_wrt_q_rec n1 m2 a1) = close_tm_wrt_q_rec n1 m2 (subst_q_tm q1 m1 a1).
+Proof.
+pose proof subst_q_tm_close_tm_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_tm_close_tm_wrt_q_rec : lngen.
+
+Lemma subst_q_q_close_q_wrt_q :
+forall q2 q1 m1 m2,
+  lc_q q1 ->  m1 <> m2 ->
+  m2 `notin` fv_q_q q1 ->
+  subst_q_q q1 m1 (close_q_wrt_q m2 q2) = close_q_wrt_q m2 (subst_q_q q1 m1 q2).
+Proof.
+unfold close_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve subst_q_q_close_q_wrt_q : lngen.
+
 Lemma subst_tm_tm_close_tm_wrt_tm :
 forall a2 a1 x1 x2,
   lc_tm a1 ->  x1 <> x2 ->
@@ -1476,6 +4222,61 @@ unfold close_tm_wrt_tm; default_simp.
 Qed.
 
 Hint Resolve subst_tm_tm_close_tm_wrt_tm : lngen.
+
+Lemma subst_tm_tm_close_tm_wrt_q :
+forall a2 a1 m1 x1,
+  lc_tm a1 ->  x1 `notin` fv_q_tm a1 ->
+  subst_tm_tm a1 m1 (close_tm_wrt_q x1 a2) = close_tm_wrt_q x1 (subst_tm_tm a1 m1 a2).
+Proof.
+unfold close_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve subst_tm_tm_close_tm_wrt_q : lngen.
+
+Lemma subst_q_tm_close_tm_wrt_tm :
+forall a1 q1 x1 m1,
+  lc_q q1 ->  subst_q_tm q1 x1 (close_tm_wrt_tm m1 a1) = close_tm_wrt_tm m1 (subst_q_tm q1 x1 a1).
+Proof.
+unfold close_tm_wrt_tm; default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_close_tm_wrt_tm : lngen.
+
+Lemma subst_q_tm_close_tm_wrt_q :
+forall a1 q1 m1 m2,
+  lc_q q1 ->  m1 <> m2 ->
+  m2 `notin` fv_q_q q1 ->
+  subst_q_tm q1 m1 (close_tm_wrt_q m2 a1) = close_tm_wrt_q m2 (subst_q_tm q1 m1 a1).
+Proof.
+unfold close_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_close_tm_wrt_q : lngen.
+
+(* begin hide *)
+
+Lemma subst_q_q_degree_q_wrt_q_mutual :
+(forall q1 q2 m1 n1,
+  degree_q_wrt_q n1 q1 ->
+  degree_q_wrt_q n1 q2 ->
+  degree_q_wrt_q n1 (subst_q_q q2 m1 q1)).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_q_q_degree_q_wrt_q :
+forall q1 q2 m1 n1,
+  degree_q_wrt_q n1 q1 ->
+  degree_q_wrt_q n1 q2 ->
+  degree_q_wrt_q n1 (subst_q_q q2 m1 q1).
+Proof.
+pose proof subst_q_q_degree_q_wrt_q_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_q_degree_q_wrt_q : lngen.
 
 (* begin hide *)
 
@@ -1504,6 +4305,103 @@ Hint Resolve subst_tm_tm_degree_tm_wrt_tm : lngen.
 
 (* begin hide *)
 
+Lemma subst_tm_tm_degree_tm_wrt_q_mutual :
+(forall a1 a2 x1 n1,
+  degree_tm_wrt_q n1 a1 ->
+  degree_tm_wrt_q n1 a2 ->
+  degree_tm_wrt_q n1 (subst_tm_tm a2 x1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_tm_tm_degree_tm_wrt_q :
+forall a1 a2 x1 n1,
+  degree_tm_wrt_q n1 a1 ->
+  degree_tm_wrt_q n1 a2 ->
+  degree_tm_wrt_q n1 (subst_tm_tm a2 x1 a1).
+Proof.
+pose proof subst_tm_tm_degree_tm_wrt_q_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_tm_tm_degree_tm_wrt_q : lngen.
+
+(* begin hide *)
+
+Lemma subst_q_tm_degree_tm_wrt_tm_mutual :
+(forall a1 q1 m1 n1,
+  degree_tm_wrt_tm n1 a1 ->
+  degree_tm_wrt_tm n1 (subst_q_tm q1 m1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_q_tm_degree_tm_wrt_tm :
+forall a1 q1 m1 n1,
+  degree_tm_wrt_tm n1 a1 ->
+  degree_tm_wrt_tm n1 (subst_q_tm q1 m1 a1).
+Proof.
+pose proof subst_q_tm_degree_tm_wrt_tm_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_tm_degree_tm_wrt_tm : lngen.
+
+(* begin hide *)
+
+Lemma subst_q_tm_degree_tm_wrt_q_mutual :
+(forall a1 q1 m1 n1,
+  degree_tm_wrt_q n1 a1 ->
+  degree_q_wrt_q n1 q1 ->
+  degree_tm_wrt_q n1 (subst_q_tm q1 m1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_q_tm_degree_tm_wrt_q :
+forall a1 q1 m1 n1,
+  degree_tm_wrt_q n1 a1 ->
+  degree_q_wrt_q n1 q1 ->
+  degree_tm_wrt_q n1 (subst_q_tm q1 m1 a1).
+Proof.
+pose proof subst_q_tm_degree_tm_wrt_q_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_tm_degree_tm_wrt_q : lngen.
+
+(* begin hide *)
+
+Lemma subst_q_q_fresh_eq_mutual :
+(forall q2 q1 m1,
+  m1 `notin` fv_q_q q2 ->
+  subst_q_q q1 m1 q2 = q2).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_q_q_fresh_eq :
+forall q2 q1 m1,
+  m1 `notin` fv_q_q q2 ->
+  subst_q_q q1 m1 q2 = q2.
+Proof.
+pose proof subst_q_q_fresh_eq_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_q_fresh_eq : lngen.
+Hint Rewrite subst_q_q_fresh_eq using solve [auto] : lngen.
+
+(* begin hide *)
+
 Lemma subst_tm_tm_fresh_eq_mutual :
 (forall a2 a1 x1,
   x1 `notin` fv_tm_tm a2 ->
@@ -1525,6 +4423,53 @@ Qed.
 
 Hint Resolve subst_tm_tm_fresh_eq : lngen.
 Hint Rewrite subst_tm_tm_fresh_eq using solve [auto] : lngen.
+
+(* begin hide *)
+
+Lemma subst_q_tm_fresh_eq_mutual :
+(forall a1 q1 m1,
+  m1 `notin` fv_q_tm a1 ->
+  subst_q_tm q1 m1 a1 = a1).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_q_tm_fresh_eq :
+forall a1 q1 m1,
+  m1 `notin` fv_q_tm a1 ->
+  subst_q_tm q1 m1 a1 = a1.
+Proof.
+pose proof subst_q_tm_fresh_eq_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_tm_fresh_eq : lngen.
+Hint Rewrite subst_q_tm_fresh_eq using solve [auto] : lngen.
+
+(* begin hide *)
+
+Lemma subst_q_q_fresh_same_mutual :
+(forall q2 q1 m1,
+  m1 `notin` fv_q_q q1 ->
+  m1 `notin` fv_q_q (subst_q_q q1 m1 q2)).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_q_q_fresh_same :
+forall q2 q1 m1,
+  m1 `notin` fv_q_q q1 ->
+  m1 `notin` fv_q_q (subst_q_q q1 m1 q2).
+Proof.
+pose proof subst_q_q_fresh_same_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_q_fresh_same : lngen.
 
 (* begin hide *)
 
@@ -1551,6 +4496,54 @@ Hint Resolve subst_tm_tm_fresh_same : lngen.
 
 (* begin hide *)
 
+Lemma subst_q_tm_fresh_same_mutual :
+(forall a1 q1 m1,
+  m1 `notin` fv_q_q q1 ->
+  m1 `notin` fv_q_tm (subst_q_tm q1 m1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_q_tm_fresh_same :
+forall a1 q1 m1,
+  m1 `notin` fv_q_q q1 ->
+  m1 `notin` fv_q_tm (subst_q_tm q1 m1 a1).
+Proof.
+pose proof subst_q_tm_fresh_same_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_tm_fresh_same : lngen.
+
+(* begin hide *)
+
+Lemma subst_q_q_fresh_mutual :
+(forall q2 q1 m1 m2,
+  m1 `notin` fv_q_q q2 ->
+  m1 `notin` fv_q_q q1 ->
+  m1 `notin` fv_q_q (subst_q_q q1 m2 q2)).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_q_q_fresh :
+forall q2 q1 m1 m2,
+  m1 `notin` fv_q_q q2 ->
+  m1 `notin` fv_q_q q1 ->
+  m1 `notin` fv_q_q (subst_q_q q1 m2 q2).
+Proof.
+pose proof subst_q_q_fresh_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_q_fresh : lngen.
+
+(* begin hide *)
+
 Lemma subst_tm_tm_fresh_mutual :
 (forall a2 a1 x1 x2,
   x1 `notin` fv_tm_tm a2 ->
@@ -1574,6 +4567,42 @@ Qed.
 
 Hint Resolve subst_tm_tm_fresh : lngen.
 
+(* begin hide *)
+
+Lemma subst_q_tm_fresh_mutual :
+(forall a1 q1 m1 m2,
+  m1 `notin` fv_q_tm a1 ->
+  m1 `notin` fv_q_q q1 ->
+  m1 `notin` fv_q_tm (subst_q_tm q1 m2 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_q_tm_fresh :
+forall a1 q1 m1 m2,
+  m1 `notin` fv_q_tm a1 ->
+  m1 `notin` fv_q_q q1 ->
+  m1 `notin` fv_q_tm (subst_q_tm q1 m2 a1).
+Proof.
+pose proof subst_q_tm_fresh_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_tm_fresh : lngen.
+
+Lemma subst_q_q_lc_q :
+forall q1 q2 m1,
+  lc_q q1 ->
+  lc_q q2 ->
+  lc_q (subst_q_q q2 m1 q1).
+Proof.
+default_simp.
+Qed.
+
+Hint Resolve subst_q_q_lc_q : lngen.
+
 Lemma subst_tm_tm_lc_tm :
 forall a1 a2 x1,
   lc_tm a1 ->
@@ -1584,6 +4613,44 @@ default_simp.
 Qed.
 
 Hint Resolve subst_tm_tm_lc_tm : lngen.
+
+Lemma subst_q_tm_lc_tm :
+forall a1 q1 m1,
+  lc_tm a1 ->
+  lc_q q1 ->
+  lc_tm (subst_q_tm q1 m1 a1).
+Proof.
+default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_lc_tm : lngen.
+
+(* begin hide *)
+
+Lemma subst_q_q_open_q_wrt_q_rec_mutual :
+(forall q3 q1 q2 m1 n1,
+  lc_q q1 ->
+  subst_q_q q1 m1 (open_q_wrt_q_rec n1 q2 q3) = open_q_wrt_q_rec n1 (subst_q_q q1 m1 q2) (subst_q_q q1 m1 q3)).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma subst_q_q_open_q_wrt_q_rec :
+forall q3 q1 q2 m1 n1,
+  lc_q q1 ->
+  subst_q_q q1 m1 (open_q_wrt_q_rec n1 q2 q3) = open_q_wrt_q_rec n1 (subst_q_q q1 m1 q2) (subst_q_q q1 m1 q3).
+Proof.
+pose proof subst_q_q_open_q_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_q_open_q_wrt_q_rec : lngen.
+
+(* end hide *)
 
 (* begin hide *)
 
@@ -1612,6 +4679,95 @@ Hint Resolve subst_tm_tm_open_tm_wrt_tm_rec : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma subst_tm_tm_open_tm_wrt_q_rec_mutual :
+(forall a2 a1 q1 x1 n1,
+  lc_tm a1 ->
+  subst_tm_tm a1 x1 (open_tm_wrt_q_rec n1 q1 a2) = open_tm_wrt_q_rec n1 q1 (subst_tm_tm a1 x1 a2)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma subst_tm_tm_open_tm_wrt_q_rec :
+forall a2 a1 q1 x1 n1,
+  lc_tm a1 ->
+  subst_tm_tm a1 x1 (open_tm_wrt_q_rec n1 q1 a2) = open_tm_wrt_q_rec n1 q1 (subst_tm_tm a1 x1 a2).
+Proof.
+pose proof subst_tm_tm_open_tm_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_tm_tm_open_tm_wrt_q_rec : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma subst_q_tm_open_tm_wrt_tm_rec_mutual :
+(forall a2 q1 a1 m1 n1,
+  subst_q_tm q1 m1 (open_tm_wrt_tm_rec n1 a1 a2) = open_tm_wrt_tm_rec n1 (subst_q_tm q1 m1 a1) (subst_q_tm q1 m1 a2)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma subst_q_tm_open_tm_wrt_tm_rec :
+forall a2 q1 a1 m1 n1,
+  subst_q_tm q1 m1 (open_tm_wrt_tm_rec n1 a1 a2) = open_tm_wrt_tm_rec n1 (subst_q_tm q1 m1 a1) (subst_q_tm q1 m1 a2).
+Proof.
+pose proof subst_q_tm_open_tm_wrt_tm_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_tm_open_tm_wrt_tm_rec : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma subst_q_tm_open_tm_wrt_q_rec_mutual :
+(forall a1 q1 q2 m1 n1,
+  lc_q q1 ->
+  subst_q_tm q1 m1 (open_tm_wrt_q_rec n1 q2 a1) = open_tm_wrt_q_rec n1 (subst_q_q q1 m1 q2) (subst_q_tm q1 m1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma subst_q_tm_open_tm_wrt_q_rec :
+forall a1 q1 q2 m1 n1,
+  lc_q q1 ->
+  subst_q_tm q1 m1 (open_tm_wrt_q_rec n1 q2 a1) = open_tm_wrt_q_rec n1 (subst_q_q q1 m1 q2) (subst_q_tm q1 m1 a1).
+Proof.
+pose proof subst_q_tm_open_tm_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_tm_open_tm_wrt_q_rec : lngen.
+
+(* end hide *)
+
+Lemma subst_q_q_open_q_wrt_q :
+forall q3 q1 q2 m1,
+  lc_q q1 ->
+  subst_q_q q1 m1 (open_q_wrt_q q3 q2) = open_q_wrt_q (subst_q_q q1 m1 q3) (subst_q_q q1 m1 q2).
+Proof.
+unfold open_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve subst_q_q_open_q_wrt_q : lngen.
+
 Lemma subst_tm_tm_open_tm_wrt_tm :
 forall a3 a1 a2 x1,
   lc_tm a1 ->
@@ -1621,6 +4777,46 @@ unfold open_tm_wrt_tm; default_simp.
 Qed.
 
 Hint Resolve subst_tm_tm_open_tm_wrt_tm : lngen.
+
+Lemma subst_tm_tm_open_tm_wrt_q :
+forall a2 a1 q1 x1,
+  lc_tm a1 ->
+  subst_tm_tm a1 x1 (open_tm_wrt_q a2 q1) = open_tm_wrt_q (subst_tm_tm a1 x1 a2) q1.
+Proof.
+unfold open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve subst_tm_tm_open_tm_wrt_q : lngen.
+
+Lemma subst_q_tm_open_tm_wrt_tm :
+forall a2 q1 a1 m1,
+  subst_q_tm q1 m1 (open_tm_wrt_tm a2 a1) = open_tm_wrt_tm (subst_q_tm q1 m1 a2) (subst_q_tm q1 m1 a1).
+Proof.
+unfold open_tm_wrt_tm; default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_open_tm_wrt_tm : lngen.
+
+Lemma subst_q_tm_open_tm_wrt_q :
+forall a1 q1 q2 m1,
+  lc_q q1 ->
+  subst_q_tm q1 m1 (open_tm_wrt_q a1 q2) = open_tm_wrt_q (subst_q_tm q1 m1 a1) (subst_q_q q1 m1 q2).
+Proof.
+unfold open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_open_tm_wrt_q : lngen.
+
+Lemma subst_q_q_open_q_wrt_q_var :
+forall q2 q1 m1 m2,
+  m1 <> m2 ->
+  lc_q q1 ->
+  open_q_wrt_q (subst_q_q q1 m1 q2) (q_Var_f m2) = subst_q_q q1 m1 (open_q_wrt_q q2 (q_Var_f m2)).
+Proof.
+intros; rewrite subst_q_q_open_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve subst_q_q_open_q_wrt_q_var : lngen.
 
 Lemma subst_tm_tm_open_tm_wrt_tm_var :
 forall a2 a1 x1 x2,
@@ -1632,6 +4828,61 @@ intros; rewrite subst_tm_tm_open_tm_wrt_tm; default_simp.
 Qed.
 
 Hint Resolve subst_tm_tm_open_tm_wrt_tm_var : lngen.
+
+Lemma subst_tm_tm_open_tm_wrt_q_var :
+forall a2 a1 x1 m1,
+  lc_tm a1 ->
+  open_tm_wrt_q (subst_tm_tm a1 x1 a2) (q_Var_f m1) = subst_tm_tm a1 x1 (open_tm_wrt_q a2 (q_Var_f m1)).
+Proof.
+intros; rewrite subst_tm_tm_open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve subst_tm_tm_open_tm_wrt_q_var : lngen.
+
+Lemma subst_q_tm_open_tm_wrt_tm_var :
+forall a1 q1 m1 x1,
+  open_tm_wrt_tm (subst_q_tm q1 m1 a1) (a_Var_f x1) = subst_q_tm q1 m1 (open_tm_wrt_tm a1 (a_Var_f x1)).
+Proof.
+intros; rewrite subst_q_tm_open_tm_wrt_tm; default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_open_tm_wrt_tm_var : lngen.
+
+Lemma subst_q_tm_open_tm_wrt_q_var :
+forall a1 q1 m1 m2,
+  m1 <> m2 ->
+  lc_q q1 ->
+  open_tm_wrt_q (subst_q_tm q1 m1 a1) (q_Var_f m2) = subst_q_tm q1 m1 (open_tm_wrt_q a1 (q_Var_f m2)).
+Proof.
+intros; rewrite subst_q_tm_open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_open_tm_wrt_q_var : lngen.
+
+(* begin hide *)
+
+Lemma subst_q_q_spec_rec_mutual :
+(forall q1 q2 m1 n1,
+  subst_q_q q2 m1 q1 = open_q_wrt_q_rec n1 q2 (close_q_wrt_q_rec n1 m1 q1)).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma subst_q_q_spec_rec :
+forall q1 q2 m1 n1,
+  subst_q_q q2 m1 q1 = open_q_wrt_q_rec n1 q2 (close_q_wrt_q_rec n1 m1 q1).
+Proof.
+pose proof subst_q_q_spec_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_q_spec_rec : lngen.
+
+(* end hide *)
 
 (* begin hide *)
 
@@ -1658,6 +4909,40 @@ Hint Resolve subst_tm_tm_spec_rec : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma subst_q_tm_spec_rec_mutual :
+(forall a1 q1 m1 n1,
+  subst_q_tm q1 m1 a1 = open_tm_wrt_q_rec n1 q1 (close_tm_wrt_q_rec n1 m1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma subst_q_tm_spec_rec :
+forall a1 q1 m1 n1,
+  subst_q_tm q1 m1 a1 = open_tm_wrt_q_rec n1 q1 (close_tm_wrt_q_rec n1 m1 a1).
+Proof.
+pose proof subst_q_tm_spec_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_tm_spec_rec : lngen.
+
+(* end hide *)
+
+Lemma subst_q_q_spec :
+forall q1 q2 m1,
+  subst_q_q q2 m1 q1 = open_q_wrt_q (close_q_wrt_q m1 q1) q2.
+Proof.
+unfold close_q_wrt_q; unfold open_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve subst_q_q_spec : lngen.
+
 Lemma subst_tm_tm_spec :
 forall a1 a2 x1,
   subst_tm_tm a2 x1 a1 = open_tm_wrt_tm (close_tm_wrt_tm x1 a1) a2.
@@ -1666,6 +4951,40 @@ unfold close_tm_wrt_tm; unfold open_tm_wrt_tm; default_simp.
 Qed.
 
 Hint Resolve subst_tm_tm_spec : lngen.
+
+Lemma subst_q_tm_spec :
+forall a1 q1 m1,
+  subst_q_tm q1 m1 a1 = open_tm_wrt_q (close_tm_wrt_q m1 a1) q1.
+Proof.
+unfold close_tm_wrt_q; unfold open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_spec : lngen.
+
+(* begin hide *)
+
+Lemma subst_q_q_subst_q_q_mutual :
+(forall q1 q2 q3 m2 m1,
+  m2 `notin` fv_q_q q2 ->
+  m2 <> m1 ->
+  subst_q_q q2 m1 (subst_q_q q3 m2 q1) = subst_q_q (subst_q_q q2 m1 q3) m2 (subst_q_q q2 m1 q1)).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_q_q_subst_q_q :
+forall q1 q2 q3 m2 m1,
+  m2 `notin` fv_q_q q2 ->
+  m2 <> m1 ->
+  subst_q_q q2 m1 (subst_q_q q3 m2 q1) = subst_q_q (subst_q_q q2 m1 q3) m2 (subst_q_q q2 m1 q1).
+Proof.
+pose proof subst_q_q_subst_q_q_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_q_subst_q_q : lngen.
 
 (* begin hide *)
 
@@ -1691,6 +5010,108 @@ pose proof subst_tm_tm_subst_tm_tm_mutual as H; intuition eauto.
 Qed.
 
 Hint Resolve subst_tm_tm_subst_tm_tm : lngen.
+
+(* begin hide *)
+
+Lemma subst_tm_tm_subst_q_tm_mutual :
+(forall a1 a2 q1 m1 x1,
+  m1 `notin` fv_q_tm a2 ->
+  subst_tm_tm a2 x1 (subst_q_tm q1 m1 a1) = subst_q_tm q1 m1 (subst_tm_tm a2 x1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_tm_tm_subst_q_tm :
+forall a1 a2 q1 m1 x1,
+  m1 `notin` fv_q_tm a2 ->
+  subst_tm_tm a2 x1 (subst_q_tm q1 m1 a1) = subst_q_tm q1 m1 (subst_tm_tm a2 x1 a1).
+Proof.
+pose proof subst_tm_tm_subst_q_tm_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_tm_tm_subst_q_tm : lngen.
+
+(* begin hide *)
+
+Lemma subst_q_tm_subst_tm_tm_mutual :
+(forall a1 q1 a2 x1 m1,
+  subst_q_tm q1 m1 (subst_tm_tm a2 x1 a1) = subst_tm_tm (subst_q_tm q1 m1 a2) x1 (subst_q_tm q1 m1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_q_tm_subst_tm_tm :
+forall a1 q1 a2 x1 m1,
+  subst_q_tm q1 m1 (subst_tm_tm a2 x1 a1) = subst_tm_tm (subst_q_tm q1 m1 a2) x1 (subst_q_tm q1 m1 a1).
+Proof.
+pose proof subst_q_tm_subst_tm_tm_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_tm_subst_tm_tm : lngen.
+
+(* begin hide *)
+
+Lemma subst_q_tm_subst_q_tm_mutual :
+(forall a1 q1 q2 m2 m1,
+  m2 `notin` fv_q_q q1 ->
+  m2 <> m1 ->
+  subst_q_tm q1 m1 (subst_q_tm q2 m2 a1) = subst_q_tm (subst_q_q q1 m1 q2) m2 (subst_q_tm q1 m1 a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_q_tm_subst_q_tm :
+forall a1 q1 q2 m2 m1,
+  m2 `notin` fv_q_q q1 ->
+  m2 <> m1 ->
+  subst_q_tm q1 m1 (subst_q_tm q2 m2 a1) = subst_q_tm (subst_q_q q1 m1 q2) m2 (subst_q_tm q1 m1 a1).
+Proof.
+pose proof subst_q_tm_subst_q_tm_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_tm_subst_q_tm : lngen.
+
+(* begin hide *)
+
+Lemma subst_q_q_close_q_wrt_q_rec_open_q_wrt_q_rec_mutual :
+(forall q2 q1 m1 m2 n1,
+  m2 `notin` fv_q_q q2 ->
+  m2 `notin` fv_q_q q1 ->
+  m2 <> m1 ->
+  degree_q_wrt_q n1 q1 ->
+  subst_q_q q1 m1 q2 = close_q_wrt_q_rec n1 m2 (subst_q_q q1 m1 (open_q_wrt_q_rec n1 (q_Var_f m2) q2))).
+Proof.
+apply_mutual_ind q_mutrec;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma subst_q_q_close_q_wrt_q_rec_open_q_wrt_q_rec :
+forall q2 q1 m1 m2 n1,
+  m2 `notin` fv_q_q q2 ->
+  m2 `notin` fv_q_q q1 ->
+  m2 <> m1 ->
+  degree_q_wrt_q n1 q1 ->
+  subst_q_q q1 m1 q2 = close_q_wrt_q_rec n1 m2 (subst_q_q q1 m1 (open_q_wrt_q_rec n1 (q_Var_f m2) q2)).
+Proof.
+pose proof subst_q_q_close_q_wrt_q_rec_open_q_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_q_close_q_wrt_q_rec_open_q_wrt_q_rec : lngen.
+
+(* end hide *)
 
 (* begin hide *)
 
@@ -1725,6 +5146,110 @@ Hint Resolve subst_tm_tm_close_tm_wrt_tm_rec_open_tm_wrt_tm_rec : lngen.
 
 (* end hide *)
 
+(* begin hide *)
+
+Lemma subst_tm_tm_close_tm_wrt_q_rec_open_tm_wrt_q_rec_mutual :
+(forall a2 a1 x1 m1 n1,
+  m1 `notin` fv_q_tm a2 ->
+  m1 `notin` fv_q_tm a1 ->
+  degree_tm_wrt_q n1 a1 ->
+  subst_tm_tm a1 x1 a2 = close_tm_wrt_q_rec n1 m1 (subst_tm_tm a1 x1 (open_tm_wrt_q_rec n1 (q_Var_f m1) a2))).
+Proof.
+apply_mutual_ind tm_mutrec;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma subst_tm_tm_close_tm_wrt_q_rec_open_tm_wrt_q_rec :
+forall a2 a1 x1 m1 n1,
+  m1 `notin` fv_q_tm a2 ->
+  m1 `notin` fv_q_tm a1 ->
+  degree_tm_wrt_q n1 a1 ->
+  subst_tm_tm a1 x1 a2 = close_tm_wrt_q_rec n1 m1 (subst_tm_tm a1 x1 (open_tm_wrt_q_rec n1 (q_Var_f m1) a2)).
+Proof.
+pose proof subst_tm_tm_close_tm_wrt_q_rec_open_tm_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_tm_tm_close_tm_wrt_q_rec_open_tm_wrt_q_rec : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma subst_q_tm_close_tm_wrt_tm_rec_open_tm_wrt_tm_rec_mutual :
+(forall a1 q1 m1 x1 n1,
+  x1 `notin` fv_tm_tm a1 ->
+  subst_q_tm q1 m1 a1 = close_tm_wrt_tm_rec n1 x1 (subst_q_tm q1 m1 (open_tm_wrt_tm_rec n1 (a_Var_f x1) a1))).
+Proof.
+apply_mutual_ind tm_mutrec;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma subst_q_tm_close_tm_wrt_tm_rec_open_tm_wrt_tm_rec :
+forall a1 q1 m1 x1 n1,
+  x1 `notin` fv_tm_tm a1 ->
+  subst_q_tm q1 m1 a1 = close_tm_wrt_tm_rec n1 x1 (subst_q_tm q1 m1 (open_tm_wrt_tm_rec n1 (a_Var_f x1) a1)).
+Proof.
+pose proof subst_q_tm_close_tm_wrt_tm_rec_open_tm_wrt_tm_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_tm_close_tm_wrt_tm_rec_open_tm_wrt_tm_rec : lngen.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma subst_q_tm_close_tm_wrt_q_rec_open_tm_wrt_q_rec_mutual :
+(forall a1 q1 m1 m2 n1,
+  m2 `notin` fv_q_tm a1 ->
+  m2 `notin` fv_q_q q1 ->
+  m2 <> m1 ->
+  degree_q_wrt_q n1 q1 ->
+  subst_q_tm q1 m1 a1 = close_tm_wrt_q_rec n1 m2 (subst_q_tm q1 m1 (open_tm_wrt_q_rec n1 (q_Var_f m2) a1))).
+Proof.
+apply_mutual_ind tm_mutrec;
+default_simp.
+Qed.
+
+(* end hide *)
+
+(* begin hide *)
+
+Lemma subst_q_tm_close_tm_wrt_q_rec_open_tm_wrt_q_rec :
+forall a1 q1 m1 m2 n1,
+  m2 `notin` fv_q_tm a1 ->
+  m2 `notin` fv_q_q q1 ->
+  m2 <> m1 ->
+  degree_q_wrt_q n1 q1 ->
+  subst_q_tm q1 m1 a1 = close_tm_wrt_q_rec n1 m2 (subst_q_tm q1 m1 (open_tm_wrt_q_rec n1 (q_Var_f m2) a1)).
+Proof.
+pose proof subst_q_tm_close_tm_wrt_q_rec_open_tm_wrt_q_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_tm_close_tm_wrt_q_rec_open_tm_wrt_q_rec : lngen.
+
+(* end hide *)
+
+Lemma subst_q_q_close_q_wrt_q_open_q_wrt_q :
+forall q2 q1 m1 m2,
+  m2 `notin` fv_q_q q2 ->
+  m2 `notin` fv_q_q q1 ->
+  m2 <> m1 ->
+  lc_q q1 ->
+  subst_q_q q1 m1 q2 = close_q_wrt_q m2 (subst_q_q q1 m1 (open_q_wrt_q q2 (q_Var_f m2))).
+Proof.
+unfold close_q_wrt_q; unfold open_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve subst_q_q_close_q_wrt_q_open_q_wrt_q : lngen.
+
 Lemma subst_tm_tm_close_tm_wrt_tm_open_tm_wrt_tm :
 forall a2 a1 x1 x2,
   x2 `notin` fv_tm_tm a2 ->
@@ -1737,6 +5262,42 @@ unfold close_tm_wrt_tm; unfold open_tm_wrt_tm; default_simp.
 Qed.
 
 Hint Resolve subst_tm_tm_close_tm_wrt_tm_open_tm_wrt_tm : lngen.
+
+Lemma subst_tm_tm_close_tm_wrt_q_open_tm_wrt_q :
+forall a2 a1 x1 m1,
+  m1 `notin` fv_q_tm a2 ->
+  m1 `notin` fv_q_tm a1 ->
+  lc_tm a1 ->
+  subst_tm_tm a1 x1 a2 = close_tm_wrt_q m1 (subst_tm_tm a1 x1 (open_tm_wrt_q a2 (q_Var_f m1))).
+Proof.
+unfold close_tm_wrt_q; unfold open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve subst_tm_tm_close_tm_wrt_q_open_tm_wrt_q : lngen.
+
+Lemma subst_q_tm_close_tm_wrt_tm_open_tm_wrt_tm :
+forall a1 q1 m1 x1,
+  x1 `notin` fv_tm_tm a1 ->
+  lc_q q1 ->
+  subst_q_tm q1 m1 a1 = close_tm_wrt_tm x1 (subst_q_tm q1 m1 (open_tm_wrt_tm a1 (a_Var_f x1))).
+Proof.
+unfold close_tm_wrt_tm; unfold open_tm_wrt_tm; default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_close_tm_wrt_tm_open_tm_wrt_tm : lngen.
+
+Lemma subst_q_tm_close_tm_wrt_q_open_tm_wrt_q :
+forall a1 q1 m1 m2,
+  m2 `notin` fv_q_tm a1 ->
+  m2 `notin` fv_q_q q1 ->
+  m2 <> m1 ->
+  lc_q q1 ->
+  subst_q_tm q1 m1 a1 = close_tm_wrt_q m2 (subst_q_tm q1 m1 (open_tm_wrt_q a1 (q_Var_f m2))).
+Proof.
+unfold close_tm_wrt_q; unfold open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_close_tm_wrt_q_open_tm_wrt_q : lngen.
 
 Lemma subst_tm_tm_a_Pi :
 forall x2 q1 A1 B1 a1 x1,
@@ -1804,6 +5365,140 @@ Qed.
 
 Hint Resolve subst_tm_tm_a_Spread : lngen.
 
+Lemma subst_tm_tm_a_AllU :
+forall m1 A1 a1 x1,
+  lc_tm a1 ->
+  m1 `notin` fv_q_tm a1 `union` fv_q_tm A1 ->
+  subst_tm_tm a1 x1 (a_AllU A1) = a_AllU (close_tm_wrt_q m1 (subst_tm_tm a1 x1 (open_tm_wrt_q A1 (q_Var_f m1)))).
+Proof.
+default_simp.
+Qed.
+
+Hint Resolve subst_tm_tm_a_AllU : lngen.
+
+Lemma subst_tm_tm_a_LamU :
+forall m1 a2 a1 x1,
+  lc_tm a1 ->
+  m1 `notin` fv_q_tm a1 `union` fv_q_tm a2 ->
+  subst_tm_tm a1 x1 (a_LamU a2) = a_LamU (close_tm_wrt_q m1 (subst_tm_tm a1 x1 (open_tm_wrt_q a2 (q_Var_f m1)))).
+Proof.
+default_simp.
+Qed.
+
+Hint Resolve subst_tm_tm_a_LamU : lngen.
+
+Lemma subst_q_tm_a_Pi :
+forall x1 q2 A1 B1 q1 m1,
+  lc_q q1 ->
+  x1 `notin` fv_tm_tm B1 ->
+  subst_q_tm q1 m1 (a_Pi q2 A1 B1) = a_Pi (subst_q_q q1 m1 q2) (subst_q_tm q1 m1 A1) (close_tm_wrt_tm x1 (subst_q_tm q1 m1 (open_tm_wrt_tm B1 (a_Var_f x1)))).
+Proof.
+default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_a_Pi : lngen.
+
+Lemma subst_q_tm_a_Lam :
+forall x1 q2 A1 a1 q1 m1,
+  lc_q q1 ->
+  x1 `notin` fv_tm_tm a1 ->
+  subst_q_tm q1 m1 (a_Lam q2 A1 a1) = a_Lam (subst_q_q q1 m1 q2) (subst_q_tm q1 m1 A1) (close_tm_wrt_tm x1 (subst_q_tm q1 m1 (open_tm_wrt_tm a1 (a_Var_f x1)))).
+Proof.
+default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_a_Lam : lngen.
+
+Lemma subst_q_tm_a_LetBoxB :
+forall x1 a1 b1 B1 q1 m1,
+  lc_q q1 ->
+  x1 `notin` fv_tm_tm b1 ->
+  subst_q_tm q1 m1 (a_LetBoxB a1 b1 B1) = a_LetBoxB (subst_q_tm q1 m1 a1) (close_tm_wrt_tm x1 (subst_q_tm q1 m1 (open_tm_wrt_tm b1 (a_Var_f x1)))) (subst_q_tm q1 m1 B1).
+Proof.
+default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_a_LetBoxB : lngen.
+
+Lemma subst_q_tm_a_Let :
+forall x1 a1 b1 q1 m1,
+  lc_q q1 ->
+  x1 `notin` fv_tm_tm b1 ->
+  subst_q_tm q1 m1 (a_Let a1 b1) = a_Let (subst_q_tm q1 m1 a1) (close_tm_wrt_tm x1 (subst_q_tm q1 m1 (open_tm_wrt_tm b1 (a_Var_f x1)))).
+Proof.
+default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_a_Let : lngen.
+
+Lemma subst_q_tm_a_Sigma :
+forall x1 q2 A1 B1 q1 m1,
+  lc_q q1 ->
+  x1 `notin` fv_tm_tm B1 ->
+  subst_q_tm q1 m1 (a_Sigma q2 A1 B1) = a_Sigma (subst_q_q q1 m1 q2) (subst_q_tm q1 m1 A1) (close_tm_wrt_tm x1 (subst_q_tm q1 m1 (open_tm_wrt_tm B1 (a_Var_f x1)))).
+Proof.
+default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_a_Sigma : lngen.
+
+Lemma subst_q_tm_a_Spread :
+forall x1 a1 b1 B1 q1 m1,
+  lc_q q1 ->
+  x1 `notin` fv_tm_tm b1 ->
+  subst_q_tm q1 m1 (a_Spread a1 b1 B1) = a_Spread (subst_q_tm q1 m1 a1) (close_tm_wrt_tm x1 (subst_q_tm q1 m1 (open_tm_wrt_tm b1 (a_Var_f x1)))) (subst_q_tm q1 m1 B1).
+Proof.
+default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_a_Spread : lngen.
+
+Lemma subst_q_tm_a_AllU :
+forall m2 A1 q1 m1,
+  lc_q q1 ->
+  m2 `notin` fv_q_q q1 `union` fv_q_tm A1 `union` singleton m1 ->
+  subst_q_tm q1 m1 (a_AllU A1) = a_AllU (close_tm_wrt_q m2 (subst_q_tm q1 m1 (open_tm_wrt_q A1 (q_Var_f m2)))).
+Proof.
+default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_a_AllU : lngen.
+
+Lemma subst_q_tm_a_LamU :
+forall m2 a1 q1 m1,
+  lc_q q1 ->
+  m2 `notin` fv_q_q q1 `union` fv_q_tm a1 `union` singleton m1 ->
+  subst_q_tm q1 m1 (a_LamU a1) = a_LamU (close_tm_wrt_q m2 (subst_q_tm q1 m1 (open_tm_wrt_q a1 (q_Var_f m2)))).
+Proof.
+default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_a_LamU : lngen.
+
+(* begin hide *)
+
+Lemma subst_q_q_intro_rec_mutual :
+(forall q1 m1 q2 n1,
+  m1 `notin` fv_q_q q1 ->
+  open_q_wrt_q_rec n1 q2 q1 = subst_q_q q2 m1 (open_q_wrt_q_rec n1 (q_Var_f m1) q1)).
+Proof.
+apply_mutual_ind q_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_q_q_intro_rec :
+forall q1 m1 q2 n1,
+  m1 `notin` fv_q_q q1 ->
+  open_q_wrt_q_rec n1 q2 q1 = subst_q_q q2 m1 (open_q_wrt_q_rec n1 (q_Var_f m1) q1).
+Proof.
+pose proof subst_q_q_intro_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_q_intro_rec : lngen.
+Hint Rewrite subst_q_q_intro_rec using solve [auto] : lngen.
+
 (* begin hide *)
 
 Lemma subst_tm_tm_intro_rec_mutual :
@@ -1828,6 +5523,40 @@ Qed.
 Hint Resolve subst_tm_tm_intro_rec : lngen.
 Hint Rewrite subst_tm_tm_intro_rec using solve [auto] : lngen.
 
+(* begin hide *)
+
+Lemma subst_q_tm_intro_rec_mutual :
+(forall a1 m1 q1 n1,
+  m1 `notin` fv_q_tm a1 ->
+  open_tm_wrt_q_rec n1 q1 a1 = subst_q_tm q1 m1 (open_tm_wrt_q_rec n1 (q_Var_f m1) a1)).
+Proof.
+apply_mutual_ind tm_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma subst_q_tm_intro_rec :
+forall a1 m1 q1 n1,
+  m1 `notin` fv_q_tm a1 ->
+  open_tm_wrt_q_rec n1 q1 a1 = subst_q_tm q1 m1 (open_tm_wrt_q_rec n1 (q_Var_f m1) a1).
+Proof.
+pose proof subst_q_tm_intro_rec_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve subst_q_tm_intro_rec : lngen.
+Hint Rewrite subst_q_tm_intro_rec using solve [auto] : lngen.
+
+Lemma subst_q_q_intro :
+forall m1 q1 q2,
+  m1 `notin` fv_q_q q1 ->
+  open_q_wrt_q q1 q2 = subst_q_q q2 m1 (open_q_wrt_q q1 (q_Var_f m1)).
+Proof.
+unfold open_q_wrt_q; default_simp.
+Qed.
+
+Hint Resolve subst_q_q_intro : lngen.
+
 Lemma subst_tm_tm_intro :
 forall x1 a1 a2,
   x1 `notin` fv_tm_tm a1 ->
@@ -1837,6 +5566,16 @@ unfold open_tm_wrt_tm; default_simp.
 Qed.
 
 Hint Resolve subst_tm_tm_intro : lngen.
+
+Lemma subst_q_tm_intro :
+forall m1 a1 q1,
+  m1 `notin` fv_q_tm a1 ->
+  open_tm_wrt_q a1 q1 = subst_q_tm q1 m1 (open_tm_wrt_q a1 (q_Var_f m1)).
+Proof.
+unfold open_tm_wrt_q; default_simp.
+Qed.
+
+Hint Resolve subst_q_tm_intro : lngen.
 
 
 (* *********************************************************************** *)

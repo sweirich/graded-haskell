@@ -3,6 +3,7 @@ OTT_LOC    = .
 FILES      = dqtt_ott dqtt_inf
 OTTFILES   = $(foreach i, qtt, $(OTT_LOC)/$(i).ott)
 OTTIFLAGS  = $(foreach i, qtt, -i $(OTT_LOC)/$(i).ott)
+OTTOFLAGS  = -o dqtt_ott.v
 
 ################ latex ####################
 
@@ -79,8 +80,14 @@ coq: $(COQMKFILENAME) $(VFILES)
 %.vo: %.v
 	@$(MAKE) -f CoqSrc.mk $*.vo
 
+%_ott.v: $(OTT_LOC)/%.ott 
+	ott -i $(OTT_LOC)/$(OTT_SOURCE).ott  $(OTTOFLAGS) -coq_lngen true -coq_expand_list_types true
+	make METALIB.FIX_$*_ott
+#	make PATCH_TYPING_$*_ott
+
 %_inf.v: $(OTT_LOC)/%.ott Makefile
 	$(LNGEN) --coq $*_inf.v --coq-ott $*_ott $(OTT_LOC)/$*.ott 
+#	make USAGE.FIX_$*_inf
 
 
 $(COQMKFILENAME): Makefile $(shell ls *.v | grep -v _ott.v | grep -v _inf.v)
@@ -95,3 +102,14 @@ clean: coqclean
 	@rm -f *.log *.aux *.fls *.fdb_latexmk
 
 
+METALIB.FIX_%:
+	sed -i -e 's/Metalib.Metatheory./Metalib.Metatheory. Require Export Metalib.LibLNgen. Require Export Qtt.usage_sig. /g' $*.v
+	sed '1d' $*.v > __TMP__; mv __TMP__ $*.v
+
+PATCH_TYPING_%:
+	patch $*.v < typing.patch
+
+# delete lines from _inf.v file corresponding to "usage".  Need to update this 
+# when .ott file is changed
+USAGE.FIX_%:
+	sed '76,80d' $*.v | sed '18,29d' > __TMP__; mv __TMP__ $*.v

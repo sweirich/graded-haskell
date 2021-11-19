@@ -189,13 +189,35 @@ Qed.
 
 (* --------------- typing ------------ *)
 
-
+(*
 Lemma Typing_leq_C : forall W psi a A, Typing W psi a A -> psi <= q_C.
 Proof. 
   intros W psi a A h.
   induction h; intros; subst; simpl; simpl_env; auto.
   pick fresh x; repeat spec x; auto.
 Qed.
+*)
+
+(*
+Lemma meet_mult : forall {a b}, 
+      a <= q_C -> 
+      q_C + (b * a) = (q_C + b) * a.
+Proof.
+  intros.
+  destruct (order_q_C_dec b).
+  + move: (meet_leq _ _ i) => h1. rewrite meet_comm in h1. rewrite h1.
+    have LT: (a * b <= q_C). apply join_lub; auto.
+    rewrite meet_comm. 
+    move: (meet_leq _ _ LT) => h2. rewrite join_comm in h2. rewrite h2.
+    rewrite join_comm. auto.
+  + inversion q. clear q. clear H1.
+    move: (meet_leq _ _ H0) => h1. rewrite h1.
+    have LT: (q_C <= a * b).
+    transitivity (a * q_C). eapply leq_join_r. eapply po_join_r. auto.
+    apply meet_leq in LT. rewrite join_comm in LT. rewrite LT.
+    apply join_leq in H. rewrite <- H at 1. rewrite join_comm. auto.
+Qed. *)
+
 
 
 Local Ltac Typing_mult_ih :=
@@ -212,6 +234,17 @@ destruct_uniq. econstructor; eauto.
 eapply leq_join_l. unfold join_ctx_r.  auto.
 Qed.
 
+(*
+absorb_meet: forall a b : Grade.grade, a * (a + b) = a
+absorb_join: forall a b : Grade.grade, a + a * b = a
+*)
+
+Lemma distrib1 : forall a b c, a + b * c = (a + b) * (a + c).
+Proof.
+  intros.
+Admitted.
+
+
 Lemma Typing_pumping_middle : forall x psi0 A W2 W1 psi b B psi1, 
   Typing (W2 ++ [(x, (psi0, A))] ++ W1) psi b B ->
   psi1 <= psi ->
@@ -221,11 +254,15 @@ Proof.
   dependent induction H; intros.
   all: try solve [econstructor; eauto 2 using helper_uniq].
   all: try solve [fresh_apply_Typing y; eauto; repeat spec y; Typing_mult_ih].
-  all: have LTC: (psi1 <= q_C) by transitivity psi; eauto using Typing_leq_C.
+  all: have LTC: (psi1 <= q_Top) by eapply leq_Top.
   - (* conversion case *) 
     simpl_env in *.
-    eapply T_Conv; simpl_env; try rewrite meet_mult; auto.
+    eapply T_Conv; simpl_env; eauto 2.
+    destruct (order_q_C_dec psi1) eqn:LT.
+    try rewrite meet_mult; auto. 
     eauto using DefEq_pumping_middle.
+    have EQ: q_C + psi0 * psi1 = q_C + psi0. admit.
+    rewrite EQ. auto.
   - destruct (x == x0).
     ++ subst.
        match goal with [ H1 : binds _ _ _ |- _ ] => apply binds_mid_eq in H1; auto end.
@@ -247,23 +284,15 @@ Proof.
        solve_uniq.
   - (* abs case *)
     fresh_apply_Typing y; eauto using helper_uniq; repeat spec y. Typing_mult_ih.
-    simpl_env; try rewrite meet_mult; simpl_env; eauto.
-    eapply IHTyping; simpl_env; eauto.
   - eapply T_App; eauto.
     eapply IHTyping2; eauto.
     transitivity psi; eauto using leq_join_r.
-  - eapply T_AppIrrel; eauto.
-    simpl_env; try rewrite meet_mult; auto.
-    eapply IHTyping2; simpl_env; eauto.
   - eapply T_WPair; simpl_env; try rewrite meet_mult; eauto.
-    eapply IHTyping1; simpl_env; eauto.
     eapply IHTyping2; eauto.
     transitivity psi; eauto using leq_join_r.
-  - eapply T_WPairIrrel; simpl_env; try rewrite meet_mult; eauto.
-    eapply IHTyping1; simpl_env; eauto.
-    eapply IHTyping2; simpl_env; eauto.
   - (* letpair *) 
-    fresh_apply_Typing y; eauto 3 using helper_uniq. 
+    admit.
+(*    fresh_apply_Typing y; eauto 3 using helper_uniq. 
     + specialize (H0 y ltac:(auto)).
       match goal with 
           [ H3 : forall x0 psi3 A1 W3 W4 , 
@@ -275,19 +304,17 @@ Proof.
     simpl_env; try rewrite meet_mult; simpl_env; eauto.
     + move=> z FrZ.
       specialize (H3 y ltac:(auto) z ltac:(auto)).
-      Typing_mult_ih.
+      Typing_mult_ih. *)
   - eapply T_SPair; simpl_env; try rewrite meet_mult; eauto.
-    eapply IHTyping1; simpl_env; eauto.
     eapply IHTyping2; eauto.
     transitivity psi; eauto using leq_join_r.
   - (* inj1 *)
     eapply T_Inj1; simpl_env; try rewrite meet_mult; eauto.
-    eapply IHTyping2; simpl_env; eauto.
   - (* inj2 *)
     eapply T_Inj2; simpl_env; try rewrite meet_mult; eauto.
-    eapply IHTyping2; simpl_env; eauto.
-  - (* case *) 
-    fresh_apply_Typing y; eauto 3 using helper_uniq.
+  - (* case *)
+    admit.
+(*     fresh_apply_Typing y; eauto 3 using helper_uniq.
     repeat spec y.
     match goal with 
           [ H3 : forall x0 psi3 A1 W3 W4 , 
@@ -297,7 +324,8 @@ Proof.
                  ltac:(simpl_env; eauto) ltac:(eassumption)) 
       ; simpl_env in H3 ; auto end.
     simpl_env; try rewrite meet_mult; simpl_env; eauto.
-Qed.    
+Qed. *)
+Admitted.    
 
 Lemma Typing_pumping : forall x psi0 A W psi b B psi1, 
     psi1 <= psi ->

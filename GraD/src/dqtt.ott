@@ -3,6 +3,12 @@ metavar tmvar, x, y, f ::=
   {{ com variables }}
   {{ lex alphanum }}
 
+metavar qvar, m ::= 
+  {{ repr-locally-nameless }}
+
+metavar u ::=
+  {{ coq usage }}
+
 indexvar index, i ::=
   {{ tex \mathit{[[index]]} }} {{ com indices }} {{ coq nat }}
 
@@ -11,15 +17,16 @@ indexvar index, i ::=
 
 grammar
 
-usage, q , r , s :: 'q_' ::=   {{ coq usage }}
-  | m                         :: M :: Var   {{ coq qvar [[m]] }}
-  | 0                         :: M :: Zero  {{ coq 0 }}
-  | 1                         :: M :: One   {{ coq 1 }}
-  | q1 + q2                   :: M :: Plus  {{ coq qplus [[q1]] [[q2]] }}
-  | q1 * q2                   :: M :: Mul   {{ coq qmul [[q1]] [[q2]] }}
+q , r , s :: 'q_' ::=   {{ com quantity, or usage expression }}
+  | m                         ::   :: Var
+  | u                         ::   :: Const   
+  | 0                         :: M :: Zero  {{ coq (q_Const 0) }}
+  | 1                         :: M :: One   {{ coq (q_Const 1) }}
+  | q1 + q2                   ::   :: Plus
+  | q1 * q2                   ::   :: Mul
   | ( q )                     :: M :: Paren {{ coq ([[q]]) }}
-  | 2                         :: M :: q_Two   {{ coq 2 }} 
-  | omega                     :: M :: q_Omega {{ coq omega }} {{tex \omega }}
+  | 2                         :: M :: q_Two   {{ coq (q_Const 2) }} 
+  | omega                     :: M :: q_Omega {{ coq (q_Const omega) }} {{tex \omega }}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   | aff                       :: M :: Aff  {{ coq Aff }}
   | rel                       :: M :: Rel  {{ coq Rel }}
@@ -94,12 +101,28 @@ tm, a, b, A , B , v , w :: 'a_' ::= {{ com terms and types }}
       (+ bind x in b +)
        {{ tex \ottkw{spread}\, [[a]]\, \ottkw{to}\, [[x]]\, \ottkw{in}\, [[b]]\, @\, [[B]] }}
 
+   | all m . A           ::     :: AllU
+      (+ bind m in A +)
+
+   | \ m . a             ::     :: LamU
+     (+ bind m in a +)
+
+   | a q                 ::     :: AppU
+
+   %% standard substitution, using open
+   | a { q / m }      :: S :: SubstQ
+     {{ coq (open_tm_wrt_q [[m a]] [[q]]) }}
+
+
 substitutions
   single a x     :: subst_tm
+  single a m     :: subst_q
+  single q m     :: subst_q
 
 freevars
   a x   :: fv_tm
-
+  a m   :: fv_q
+  q m   :: fv_q 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%  This part is not handled by LNgen
@@ -111,7 +134,7 @@ grammar
 
 
 context, G {{ tex \Gamma }} :: 'ctx_' ::= {{ com contexts }}
-                                          {{ coq list ( atom * (usage * sort ) ) }}
+                                          {{ coq list ( atom * (q * sort ) ) }}
    | empty           ::    :: Empty   {{ coq nil }}
 
    | x : q A         ::    :: One     {{ coq ([[x]]~([[q]],Tm [[A]]))}}
@@ -123,11 +146,11 @@ context, G {{ tex \Gamma }} :: 'ctx_' ::= {{ com contexts }}
    | ( G )           :: M  :: Paren       {{ coq ([[G]])}}
    | (# G #)         :: M  :: SecretParen {{ coq [[G]]}} {{ tex [[G]]}}
    | q * G1          :: M  :: Mult        {{ coq (ctx_mul [[q]] [[G1]])}}
-	{{ tex [[q]]\![[*]]\![[G1]] }}
+	                                  {{ tex [[q]]\![[*]]\![[G1]] }}
    | G1 + G2         :: M  :: Plus        {{ coq (ctx_plus [[G1]] [[G2]]) }}
 
    | G { a / x }     :: M  :: Subst       {{ coq (substG [[a]][[x]][[G]] }} 
-   | q * D           :: M  :: MultD       {{ coq (add_usage [[q]] [[D]]) }}
+   | q * D           :: M  :: MultD       {{ coq (add_q [[q]] [[D]]) }}
 
 D {{ tex \Delta }} :: 'd_' ::= {{ com contexts }}
                                           {{ coq list ( atom * sort )  }}
@@ -147,7 +170,7 @@ D {{ tex \Delta }} :: 'd_' ::= {{ com contexts }}
 
    | D { a / x }     :: M  :: Subst       {{ coq (substD [[a]][[x]][[D]] }} 
 
-heap, H  :: 'heap_' ::= {{ com heap }} {{ coq list ( atom * ( usage * (context * tm * tm )) ) }}
+heap, H  :: 'heap_' ::= {{ com heap }} {{ coq list ( atom * ( q * (context * tm * tm )) ) }}
    | empty           ::    :: Empty   {{ coq nil }}
    
    | x : q a of A in G    ::    :: One     {{ coq [[x]] ~ ([[q]], ([[G]], [[a]], [[A]])) }}
@@ -161,7 +184,7 @@ heap, H  :: 'heap_' ::= {{ com heap }} {{ coq list ( atom * ( usage * (context *
 
    | ( H )           :: M  :: Paren       {{ coq ([[H]]) }} {{ tex [[H]] }}
 
-qlist, Q {{tex \mathbf{u} }} , R {{ tex \mathbf{v} }} :: 'qlist_' ::= {{ com qlist }} {{ coq list usage }}
+qlist, Q {{tex \mathbf{u} }} , R {{ tex \mathbf{v} }} :: 'qlist_' ::= {{ com qlist }} {{ coq list q }}
    | empty           ::     :: Empty {{ coq nil }} {{ tex \_ }}
    | one q           ::     :: One {{ coq ([[q]] :: nil) }} {{ tex  [[q]]  }}
    | Q ++ Q'         :: M   :: Append {{ coq ([[Q']]++[[Q]]) }} {{ tex [[Q]] \mathop{\diamond} [[Q']] }}
@@ -291,8 +314,8 @@ formula :: 'formula_' ::=
   | q1 = q2              ::   :: equalrho
     {{ coq ([[q1]] = [[q2]]) }}
 
-  | q1 <= q2              ::   :: subrho
-    {{ coq ([[q1]] <= [[q2]]) }}
+  | u1 <: u2              ::   :: subrho
+    {{ coq ([[u1]] <= [[u2]]) }}
 
   | forall q . formula       ::   :: AllQ
     {{ coq forall [[q]], [[formula]] }}
@@ -343,8 +366,8 @@ formula :: 'formula_' ::=
   | G1 <= G2 :: M :: ctx_sub_fake
     {{ coq ctx_sub nil [[G1]] [[G2]] }}
 
-  | D ; G1 <= G2 :: M :: ctx_sub
-    {{ coq ctx_sub [[D]] [[G1]] [[G2]] }}
+%  | D ; G1 <= G2 :: M :: ctx_sub
+%    {{ coq ctx_sub [[D]] [[G1]] [[G2]] }}
 
   | H1 <= H2 :: M :: subHeap
     {{ tex [[H1]] \leq [[H2]] }}
@@ -388,9 +411,43 @@ Fixpoint close_tm_wrt_tm_rec (n1 : nat) (x1 : tmvar) (a1 : tm) {struct a1} : tm 
     | a_Sigma q1 A1 B1 => a_Sigma q1 (close_tm_wrt_tm_rec n1 x1 A1) (close_tm_wrt_tm_rec (S n1) x1 B1)
     | a_Tensor a2 b1 => a_Tensor (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec n1 x1 b1)
     | a_Spread a2 b1 B1 => a_Spread (close_tm_wrt_tm_rec n1 x1 a2) (close_tm_wrt_tm_rec (S n1) x1 b1) (close_tm_wrt_tm_rec n1 x1 B1)
+    | a_AllU A => a_AllU (close_tm_wrt_tm_rec (S n1) x1 A)
+    | a_LamU a => a_LamU (close_tm_wrt_tm_rec (S n1) x1 a)
+    | a_AppU a u => a_AppU (close_tm_wrt_tm_rec n1 x1 a) u
   end.
 
 Definition close_tm_wrt_tm x1 a1 := close_tm_wrt_tm_rec 0 x1 a1.
+
+Definition sort_mul {A} (q1: q) (s : q * A) : q * A :=
+  match s with 
+  | (q2 , A) => (q_Mul q1 q2, A)
+  end.
+
+Definition ctx_mul {A} (q1 : q) (G : list (var * (q * A))) := 
+  map (sort_mul q1) G.
+
+Fixpoint ctx_plus {A} (G1 G2 : list (var * (q * A))) : list (var * (q * A)) :=
+  match G1, G2 with 
+  | nil , nil => nil
+  | cons (x , (q1 , A)) G1' , cons (_, (q2, _)) G2' => cons (x, (q_Plus q1 q2, A)) (ctx_plus G1' G2')
+  | _ , _ => nil
+  end.
+
+
+Inductive ctx {A} : list (atom * A) -> list (atom * (q * A)) -> Prop :=  
+ | ctx_nil : 
+     ctx nil nil 
+ | ctx_cons : forall D (x:atom) G (q1:q) a,
+     ctx D G ->
+      ~ AtomSetImpl.In x (dom  D)  ->
+     ctx (x ~ a ++ D ) (x ~ (q1,a) ++ G).
+
+Arguments sort_mul {_}.
+Arguments ctx_mul {_}.
+Arguments ctx_plus {_}.
+Arguments ctx {_}.
+
+Hint Constructors ctx : core.
 
 }}
 
@@ -454,6 +511,31 @@ defn
 |- spread (a0,a1) to x in b @ B ~> b {a0 / x} a1
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+defns 
+JSub :: '' ::= 
+
+defn
+q1 <= q2  :: :: q_sub :: ''
+by
+
+u1 <: u2
+--------- :: Const
+u1 <= u2
+
+defn 
+D ; G1 <= G2 ::  :: ctx_sub :: 'CS_'
+by
+
+------------------ :: Empty
+empty ; empty <= empty
+
+
+q1 <= q2
+D ; G1 <= G2
+x notin dom D
+--------------------------------------------------- :: ConsTm
+D ++ x : A ; G1 ++ x : q1 A <= G2 ++ x : q2 A
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Dependent only
@@ -582,9 +664,9 @@ D; (# q * G1 #) + G2 |-- (a , b) : Sigma x:q A. B
 %% Ott cannot express that the third premise should read "B { (x,y)/z }". So we 
 %% modify the its output in dqtt_ott.v to include this substitution.
 
-A = Sigma x:q A1.A2
-D ; G1 |-- a  : A
-D ++ x:A1 ; G2 ++ x:q A1 |-- b : Pi y : 1 A2 .  B 
-D ++ z : A ; G3 ++ z : r A |-- B : type
-------------------------------------------------------------------------- :: Spread
-D ;  G1 + G2 |-- spread a to x in b @ (\z:r A.B) :  B { a / z }
+% A = Sigma x:q A1.A2
+% D ; G1 |-- a  : A
+% D ++ x:A1 ; G2 ++ x:q A1 |-- b : Pi y : 1 A2 .  B 
+% D ++ z : A ; G3 ++ z : r A |-- B : type
+% ------------------------------------------------------------------------- :: Spread
+% D ;  G1 + G2 |-- spread a to x in b @ (\z:r A.B) :  B { a / z }

@@ -53,12 +53,13 @@ Proof.
                   rewrite fv_tm_tm_open_tm_wrt_tm_upper;
                   fsetdec].
 
+(*
   all: try solve [simpl in *;
                   try rewrite <- fv_tm_tm_open_tm_wrt_tm_lower in *;
-                  fsetdec].
+                  fsetdec]. *)
 
-  all: pick fresh z. 
-  all: repeat spec z.
+  all: pick fresh z0. 
+  all: repeat spec z0.
   all: pick fresh w.
   all: repeat spec w.
   all: move: (Ctx_Prop_meet_ctx_l CTX) => MCTX.
@@ -68,49 +69,49 @@ Proof.
 
   - match goal with [ H4 : Ctx_Prop _ -> _ |- _ ] =>  specialize (H4 ltac:(eapply Ctx_Prop_cons; auto; try fsetdec)) end.
     split_hyp.
-    move: (lemma z _ _ H0 ltac:(fsetdec)) => h.
+    move: (lemma z0 _ _ H0 ltac:(fsetdec)) => h.
     eapply AtomSetProperties.union_subset_3; auto.
 
   - match goal with [ H4 : Ctx_Prop _ -> _ |- _ ] =>  specialize (H4 ltac:(eapply Ctx_Prop_cons; auto; try fsetdec)) end.
     split_hyp.
-    move: (lemma z _ _ H ltac:(fsetdec)) => h.
+    move: (lemma z0 _ _ H ltac:(fsetdec)) => h.
     eapply AtomSetProperties.union_subset_3; auto.
     fsetdec.
 
   - match goal with [ H4 : Ctx_Prop _ -> _ |- _ ] =>  specialize (H4 ltac:(eapply Ctx_Prop_cons; auto; try fsetdec)) end.
     split_hyp.
-    move: (lemma z _ _ H0 ltac:(fsetdec)) => h.
+    move: (lemma z0 _ _ H0 ltac:(fsetdec)) => h.
     eapply AtomSetProperties.union_subset_3; auto.
 
-  - specialize (H3 ltac:(eapply Ctx_Prop_cons; auto; try fsetdec)).
+  - (* specialize (H3 ltac:(eapply Ctx_Prop_cons; auto; try fsetdec)).
     split_hyp.
-    move: (lemma z _ _ H3 ltac:(fsetdec)) => h.
-    eapply AtomSetProperties.union_subset_3; auto.
-
-  - destruct H2.
+    move: (lemma z0 _ _ H3 ltac:(fsetdec)) => h.
+    eapply AtomSetProperties.union_subset_3; auto. *)
+    admit.
+  - (* destruct H2.
     eapply Ctx_Prop_cons; auto. simpl. rewrite dom_meet_ctx_l. auto.
     rewrite fv_tm_tm_open_tm_wrt_tm_upper.
     rewrite <- fv_tm_tm_open_tm_wrt_tm_lower in H2.
     rewrite dom_meet_ctx_l in H2.
     have FC: z `notin` fv_tm_tm C.  clear Fr0. auto.
     move: (lemma z _ _ H2 FC) => h.
-    clear Fr Fr0. fsetdec.
+    clear Fr Fr0. fsetdec. *) admit.
 
   - destruct H5.
     eapply Ctx_Prop_cons; auto. simpl. 
-    move: (lemma z _ _ H0 ltac:(fsetdec)) => h.
+    move: (lemma z0 _ _ H0 ltac:(fsetdec)) => h.
     eapply AtomSetProperties.union_subset_3; auto.
 
-  - destruct H2.
+  - (*  destruct H2.
     clear Fr0.
     eapply Ctx_Prop_cons; auto. simpl. rewrite dom_meet_ctx_l. auto.
     rewrite -> dom_meet_ctx_l in H.
     rewrite fv_tm_tm_open_tm_wrt_tm_upper.
     have FC: z `notin` fv_tm_tm B.  clear Fr0. auto.
     move: (lemma z _ _ H FC) => h.
-    eapply AtomSetProperties.union_subset_3; auto.
+    eapply AtomSetProperties.union_subset_3; auto. *) admit.
+Admitted.
 
-Qed.    
 
 Lemma Typing_ctx_fv_Ctx : forall W, Ctx W -> Ctx_Prop W.
 induction 1. unfold Ctx_Prop. intros. inversion H.

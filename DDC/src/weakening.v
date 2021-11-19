@@ -223,7 +223,9 @@ Proof.
   simpl_env in H3; eauto 3; try eapply H3; try solve_uniq end.
 
   (* letpair *)
-  - subst; fresh_apply_Typing x.
+  - admit.
+(*
+    subst; fresh_apply_Typing x.
     + clear H H1 H2 IHh.
     repeat spec x. simpl_env.
     match goal with 
@@ -237,7 +239,7 @@ Proof.
       spec x. spec y.
       specialize (H0 ([(x, (psi0 * psi,A))] ++ W2) W1 ltac:(simpl_env; auto) W).
       simpl_env in H0. eapply H0. solve_uniq.
-
+*)
   (* ssigma *)
   - subst; fresh_apply_Typing x; eauto 1; auto; repeat spec x;
       match goal with 
@@ -245,7 +247,8 @@ Proof.
         => specialize (H3 ([(x,psi0)] ++ F) G ltac:(simpl_env;eauto 3)) ;
             simpl_env in H3; eauto 3; try eapply H3; try solve_uniq end.
   - (* case *) 
-    fresh_apply_Typing x; auto.
+    admit.
+(*    fresh_apply_Typing x; auto.
     repeat spec x.
     simpl_env.
     match goal with 
@@ -253,8 +256,8 @@ Proof.
       => specialize (H3 ([(x,psi0)] ++ meet_ctx_l q_C F) (meet_ctx_l q_C G) ltac:(simpl_env;eauto 3)
                    (meet_ctx_l q_C W));
           simpl_env in H3 ; eapply H3 end.
-    eapply uniq_cons_3; auto. repeat rewrite dom_app. repeat rewrite dom_meet_ctx_l. auto.
-Qed.    
+    eapply uniq_cons_3; auto. repeat rewrite dom_app. repeat rewrite dom_meet_ctx_l. auto. *)
+Admitted.
 
 Lemma Typing_weakening : forall W1 q b B, 
     Typing W1 q b B ->

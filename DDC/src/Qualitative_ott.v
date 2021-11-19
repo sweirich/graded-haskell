@@ -606,19 +606,17 @@ with DefEq : econtext -> grade -> tm -> tm -> Prop :=    (* defn DefEq *)
 Inductive Typing : context -> grade -> tm -> tm -> Prop :=    (* defn Typing *)
  | T_Type : forall (W:context) (psi:grade) (s1 s2:sort),
       uniq  W  ->
-      ( psi  <=   q_C  )  ->
       axiom  s1   s2  ->
      Typing W psi (a_Type s1) (a_Type s2)
  | T_Conv : forall (W:context) (psi:grade) (a B A:tm) (s:sort),
      Typing W psi a A ->
      DefEq  (labels   (meet_ctx_l   q_C    W )  )   q_C  A B ->
-     Typing  (meet_ctx_l   q_C    W )   q_C  B (a_Type s) ->
+     Typing W  q_Top  B (a_Type s) ->
      Typing W psi a B
  | T_Var : forall (W:context) (psi:grade) (x:tmvar) (A:tm) (psi0:grade),
       uniq  W  ->
       ( psi0  <=  psi )  ->
       binds  x  ( psi0 ,  A )  W  ->
-      ( psi  <=   q_C  )  ->
      Typing W psi (a_Var_f x) A
  | T_Pi : forall (L:vars) (W:context) (psi psi0:grade) (A B:tm) (s3 s1 s2:sort),
      Typing W psi A (a_Type s1) ->
@@ -627,17 +625,11 @@ Inductive Typing : context -> grade -> tm -> tm -> Prop :=    (* defn Typing *)
      Typing W psi (a_Pi psi0 A B) (a_Type s3)
  | T_Abs : forall (L:vars) (W:context) (psi psi0:grade) (A b B:tm) (s:sort),
       ( forall x , x \notin  L  -> Typing  (  ( x ~(  (q_join  psi0   psi )  , A ))  ++ W )  psi  ( open_tm_wrt_tm b (a_Var_f x) )   ( open_tm_wrt_tm B (a_Var_f x) )  )  ->
-     Typing  (meet_ctx_l   q_C    W )   q_C   ( (a_Pi psi0 A B) )  (a_Type s) ->
+     Typing W  q_Top   ( (a_Pi psi0 A B) )  (a_Type s) ->
      Typing W psi (a_Abs psi0 A b) (a_Pi psi0 A B)
  | T_App : forall (W:context) (psi:grade) (b:tm) (psi0:grade) (a B A:tm),
      Typing W psi b (a_Pi psi0 A B) ->
      Typing W  (q_join  psi0   psi )  a A ->
-      ( psi0  <=   q_C  )  ->
-     Typing W psi (a_App b psi0 a)  (open_tm_wrt_tm  B   a ) 
- | T_AppIrrel : forall (W:context) (psi:grade) (b:tm) (psi0:grade) (a B A:tm),
-     Typing W psi b (a_Pi psi0 A B) ->
-     Typing  (meet_ctx_l   q_C    W )   q_C  a A ->
-      (  q_C   <  psi0 )  ->
      Typing W psi (a_App b psi0 a)  (open_tm_wrt_tm  B   a ) 
  | T_WSigma : forall (L:vars) (W:context) (psi psi0:grade) (A B:tm) (s3 s1 s2:sort),
      Typing W psi A (a_Type s1) ->
@@ -645,34 +637,22 @@ Inductive Typing : context -> grade -> tm -> tm -> Prop :=    (* defn Typing *)
       rule  s1   s2   s3  ->
      Typing W psi (a_WSigma psi0 A B) (a_Type s3)
  | T_WPair : forall (W:context) (psi:grade) (a:tm) (psi0:grade) (b A B:tm) (s:sort),
-     Typing  (meet_ctx_l   q_C    W )   q_C   ( (a_WSigma psi0 A B) )  (a_Type s) ->
+     Typing W  q_Top   ( (a_WSigma psi0 A B) )  (a_Type s) ->
      Typing W  (q_join  psi0   psi )  a A ->
      Typing W psi b  (open_tm_wrt_tm  B   a )  ->
-      ( psi0  <=   q_C  )  ->
      Typing W psi (a_WPair a psi0 b) (a_WSigma psi0 A B)
- | T_WPairIrrel : forall (W:context) (psi:grade) (a:tm) (psi0:grade) (b A B:tm) (s:sort),
-     Typing  (meet_ctx_l   q_C    W )   q_C   ( (a_WSigma psi0 A B) )  (a_Type s) ->
-     Typing  (meet_ctx_l   q_C    W )   q_C  a A ->
-      (  q_C   <  psi0 )  ->
-     Typing W psi b  (open_tm_wrt_tm  B   a )  ->
-     Typing W psi (a_WPair a psi0 b) (a_WSigma psi0 A B)
-| T_LetPair : forall (L:vars) (W:context) (psi psi0:grade) (a c C B A:tm) (s:sort),
-       ( forall x , x \notin  L  ->
-               Typing ((x ~ (q_C, a_WSigma psi0 A B)) ++ meet_ctx_l q_C W) q_C (open_tm_wrt_tm C (a_Var_f x)) (a_Type s))  ->
-       Typing W psi a (a_WSigma psi0 A B) ->
-       ( forall x , x \notin  L  ->
-         forall y,  y \notin L \u {{x}} ->
-               Typing ((x ~ ((q_join psi0 psi), A)) ++ W) psi (open_tm_wrt_tm c (a_Var_f x))
-                    (a_Pi q_Bot (open_tm_wrt_tm B (a_Var_f x))
-                           (close_tm_wrt_tm y (open_tm_wrt_tm C (a_WPair (a_Var_f x) psi0 (a_Var_f y)))))) ->
-       (Typing W psi (a_LetPair psi0 a c)  (open_tm_wrt_tm C a))
+ | T_LetPair : forall (L:vars) (W:context) (psi psi0:grade) (a c C B:tm) (s:sort) (A:tm) (phi:grade),
+      ( forall x , x \notin  L  -> Typing W  q_Top   ( (a_Pi psi  ( open_tm_wrt_tm B (a_Var_f x) )  C) )  (a_Type s) )  ->
+     Typing W psi a  ( (a_WSigma psi0 A B) )  ->
+      ( forall x , x \notin  L  -> Typing   (  ( x ~(  (q_join  psi0   psi )  , A ))  ++ W )   psi  ( open_tm_wrt_tm c (a_Var_f x) )   ( (a_Pi phi  ( open_tm_wrt_tm B (a_Var_f x) )  C) )  )  ->
+      ( forall y , y \notin  L  -> Typing W psi (a_LetPair psi0 a c)  ( open_tm_wrt_tm C (a_Var_f y) )  ) 
  | T_SSigma : forall (L:vars) (W:context) (psi psi0:grade) (A B:tm) (s3 s1 s2:sort),
      Typing W psi A (a_Type s1) ->
       ( forall x , x \notin  L  -> Typing  (  ( x ~( psi , A ))  ++ W )  psi  ( open_tm_wrt_tm B (a_Var_f x) )  (a_Type s2) )  ->
       rule  s1   s2   s3  ->
      Typing W psi (a_SSigma psi0 A B) (a_Type s3)
  | T_SPair : forall (W:context) (psi:grade) (a:tm) (psi0:grade) (b A B:tm) (s:sort),
-     Typing  (meet_ctx_l   q_C    W )   q_C  (a_SSigma psi0 A B) (a_Type s) ->
+     Typing W  q_Top  (a_SSigma psi0 A B) (a_Type s) ->
      Typing W  (q_join  psi0   psi )  a A ->
      Typing W psi b  (open_tm_wrt_tm  B   a )  ->
       ( psi0  <=   q_C  )  ->
@@ -691,14 +671,14 @@ Inductive Typing : context -> grade -> tm -> tm -> Prop :=    (* defn Typing *)
      Typing W psi (a_Sum A B) (a_Type s)
  | T_Inj1 : forall (W:context) (psi:grade) (a1 A1 A2:tm) (s:sort),
      Typing W psi a1 A1 ->
-     Typing  (meet_ctx_l   q_C    W )   q_C  (a_Sum A1 A2) (a_Type s) ->
+     Typing W  q_Top  (a_Sum A1 A2) (a_Type s) ->
      Typing W psi (a_Inj1 a1) (a_Sum A1 A2)
  | T_Inj2 : forall (W:context) (psi:grade) (a2 A1 A2:tm) (s:sort),
      Typing W psi a2 A2 ->
-     Typing  (meet_ctx_l   q_C    W )   q_C  (a_Sum A1 A2) (a_Type s) ->
+     Typing W  q_Top  (a_Sum A1 A2) (a_Type s) ->
      Typing W psi (a_Inj2 a2) (a_Sum A1 A2)
-| T_Case : forall (L:vars) (W:context) (psi psi0:grade) (a b1 b2 B:tm) (A1 A2 B1 B2:tm) s,
-       ( forall z, z \notin    L ->  Typing  (  (  ( z ~(  q_C  , (a_Sum A1 A2) ))  ++  (  (meet_ctx_l   q_C    W )  )  )  )   q_C  (open_tm_wrt_tm B (a_Var_f z)) (a_Type s)) ->
+ | T_Case : forall (L:vars) (W:context) (psi psi0:grade) (a b1 b2 B:tm) (z:tmvar) (A1 A2:tm) (s:sort) (B1 B2:tm),
+     Typing  (  ( z ~(  q_Top  , (a_Sum A1 A2) ))  ++ W )   q_Top  B (a_Type s) ->
      Typing W psi a (a_Sum A1 A2) ->
       ( forall x , x \notin  L  ->   ( open_tm_wrt_tm B1 (a_Var_f x) )  =   (open_tm_wrt_tm  B   (a_Inj1 (a_Var_f x)) )    )  ->
       ( forall y , y \notin  L  ->   ( open_tm_wrt_tm B2 (a_Var_f y) )  =   (open_tm_wrt_tm  B   (a_Inj2 (a_Var_f y)) )    )  ->
@@ -708,11 +688,9 @@ Inductive Typing : context -> grade -> tm -> tm -> Prop :=    (* defn Typing *)
      Typing W psi (a_Case psi0 a b1 b2)  (open_tm_wrt_tm  B   a ) 
  | T_TmUnit : forall (W:context) (psi:grade) (s:sort),
       uniq  W  ->
-      ( psi  <=   q_C  )  ->
      Typing W psi a_TyUnit (a_Type s)
  | T_TyUnit : forall (W:context) (psi:grade),
       uniq  W  ->
-      ( psi  <=   q_C  )  ->
      Typing W psi a_TmUnit a_TyUnit.
 
 (* defns JCTyping *)

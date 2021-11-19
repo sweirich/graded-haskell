@@ -32,24 +32,10 @@ Proof.
     eapply Grade_narrowing; eauto. econstructor; eauto using leq_join_l, P_sub_refl, Typing_uniq. 
     inversion IHh. subst.
     pick fresh x. repeat spec x. 
-    have LC: psi <= q_C. { eapply Typing_leq_C; eauto. }
     destruct (q_leb q_Top psi) eqn: LE.
-    + assert (q_Top = q_C). { apply q_leb_antisym; auto. transitivity psi; auto.      
-                              eapply leq_Top. }
-      assert (q_C = psi).  { apply q_leb_antisym; auto. rewrite <- H. auto. }
+    + assert (q_Top = psi). { apply q_leb_antisym; auto. eapply leq_Top. }
       subst. 
-      
-
-      have Lemma: forall W, (meet_ctx_l q_Top W) = W.
-      { clear. intro W. induction W. simpl; auto.
-        destruct a. destruct p. simpl.
-        rewrite meet_comm.
-        rewrite meet_leq.
-        eapply leq_Top. f_equal. auto. }
-      rewrite <- H in H5.
-      rewrite Lemma in H5.
       eapply CG_Leq; eauto. 
-      rewrite <- H. auto.
     + eapply CG_Nleq; eauto using Grade_lc.
       rewrite LE. done.
       apply Grade_uniq in H2. simpl_env in H2. destruct_uniq. auto.
@@ -58,31 +44,21 @@ Proof.
     destruct (q_leb psi0 psi) eqn:LE.
     rewrite join_leq in IHh2. rewrite LE. auto. auto.
     eapply CG_Nleq; eauto using Typing_lc1, Grade_uniq. rewrite LE. done.
-  - (* AppI *)
-    eapply G_App; eauto. eapply CG_Nleq; eauto using  Typing_lc1, Grade_uniq.
-    move: (Typing_leq_C h1) => LE. 
-    move: (lt_not_leq ltac:(eassumption)) => NLQ.
-    eapply not_leq_lower; eauto.
   - (* WPair *)
     destruct (q_leb psi0 psi) eqn:LE.
     eapply G_WPair; eauto. rewrite join_leq in IHh2. rewrite LE. auto. auto.
     eapply G_WPair; eauto.  eapply CG_Nleq; eauto using Typing_lc1, Grade_uniq. rewrite LE. done.
-  - (* WPairI *)
-    eapply G_WPair; eauto. 
-    eapply CG_Nleq; eauto using  Typing_lc1, Grade_uniq.
-    move: (Typing_leq_C h3) => LE. 
-    move: (lt_not_leq ltac:(eassumption)) => NLQ.
-    eapply not_leq_lower; eauto.
   - (* LetPair *)
-    fresh_apply_Grade x; auto; repeat spec x.
+    admit.
+(*    fresh_apply_Grade x; auto; repeat spec x.
     pick fresh y. repeat spec y.
     eapply Grade_narrowing; eauto. 
-    simpl; econstructor; eauto using leq_join_l, P_sub_refl, Typing_uniq. 
+    simpl; econstructor; eauto using leq_join_l, P_sub_refl, Typing_uniq.  *)
   - (* SPair *)
     destruct (q_leb psi0 psi) eqn:LE.
     eapply G_SPair; eauto. rewrite join_leq in IHh2. rewrite LE. auto. auto.
     eapply G_SPair; eauto.  eapply CG_Nleq; eauto using Typing_lc1, Grade_uniq. rewrite LE. done.
- Qed.
+Admitted.
 
 
 
@@ -94,10 +70,9 @@ Proof.
   eapply meet_ctx_l_ctx_sub; eauto using Typing_uniq.
 Qed.
 
-(* Can only go up to CTime in typing *)    
 Lemma Typing_subsumption : forall psi1 a A W, 
     Typing W psi1 a A ->
-    forall psi2, psi1 <= psi2 -> psi2 <= q_C ->
+    forall psi2, psi1 <= psi2 -> 
     Typing W psi2 a A.
 Proof.
   induction 1; intros.
@@ -107,8 +82,9 @@ Proof.
   - (* pi *)
     fresh_apply_Typing x; auto.
     repeat spec x.
-    specialize (H5 psi2 ltac:(auto) ltac:(auto)).
-    apply Typing_pumping with (psi1:=psi2) in H5; try reflexivity.
+    match goal with [H4 : forall psi2, ?psi <= psi2 -> _ |- _ ] => 
+    specialize (H4 psi2 ltac:(auto));
+    apply Typing_pumping with (psi1:=psi2) in H4; try reflexivity end.
     eapply Typing_narrowing; eauto.
     econstructor; eauto using ctx_sub_refl, Typing_uniq.
     eapply leq_join_r.
@@ -116,34 +92,31 @@ Proof.
   - (* abs *)
     fresh_apply_Typing x; eauto.
     repeat spec x.
-    specialize (H4 psi2 ltac:(auto) ltac:(auto)).
-    apply Typing_pumping with (psi1:=psi2) in H4; try reflexivity.
-    rewrite <- join_assoc in H4.
-    rewrite (join_leq psi psi2) in H4. eauto.
-    eauto.
-   
+    match goal with [H4 : forall psi2, ?psi <= psi2 -> _ |- _ ] => 
+    specialize (H4 psi2 ltac:(auto));
+    apply Typing_pumping with (psi1:=psi2) in H4; try reflexivity;
+    rewrite <- join_assoc in H4;
+    rewrite (join_leq psi psi2) in H4; eauto end.
   - (* app *)
-    have LE: psi0 * psi2 <= q_C.
-    { eapply join_lub; auto. }
     eapply T_App; eauto.
     eapply IHTyping2; eauto.
     eauto using po_join_r.
   - (* wsigma *)
     fresh_apply_Typing x; eauto.
     repeat spec x.
-    specialize (H5 psi2 ltac:(auto) ltac:(auto)).
-    apply Typing_pumping with (psi1:=psi2) in H5; try reflexivity.
+    match goal with [H5 : forall psi2, ?psi <= psi2 -> _ |- _ ] => 
+    specialize (H5 psi2 ltac:(auto));
+    apply Typing_pumping with (psi1:=psi2) in H5; try reflexivity end.
     eapply Typing_narrowing; eauto.
     econstructor; eauto using ctx_sub_refl, Typing_uniq.
     eapply leq_join_r.
   - (* wpair *)
-    have LE: psi0 * psi2 <= q_C.
-    { eapply join_lub; auto. }
     eapply T_WPair; eauto.
     eapply IHTyping2; eauto.
     eauto using po_join_r.
   - (* letpair *)
-    fresh_apply_Typing x; eauto.
+    admit.
+    (* fresh_apply_Typing x; eauto.
     move=> y FrY.
     clear H H0 H2.
     spec x. spec y.
@@ -151,27 +124,26 @@ Proof.
     apply Typing_pumping with (psi1:=psi2) in H0; try reflexivity.
     rewrite <- join_assoc in H0.
     rewrite (join_leq psi psi2) in H0. auto.
-    auto.
+    auto. *)
   - (* SSigma *)
     fresh_apply_Typing x; eauto.
     repeat spec x.
-    specialize (H5 psi2 ltac:(auto) ltac:(auto)).
-    apply Typing_pumping with (psi1:=psi2) in H5; try reflexivity.
+    match goal with [H5 : forall psi2, ?psi <= psi2 -> _ |- _ ] => 
+    specialize (H5 psi2 ltac:(auto));
+    apply Typing_pumping with (psi1:=psi2) in H5; try reflexivity end.
     eapply Typing_narrowing; eauto.
     econstructor; eauto using ctx_sub_refl, Typing_uniq.
     eapply leq_join_r.
   - (* SPair *)
-    have LE: psi0 * psi2 <= q_C.
-    { eapply join_lub; auto. }
     eapply T_SPair; eauto using po_join_r.
   - (* proj1 *)
     eapply T_Proj1; eauto. transitivity psi; auto.
   - (* case *)
     fresh_apply_Typing x; eauto.
     transitivity psi; auto.
-Qed.
+Admitted.
 
-
+(*
 Lemma Typing_lift : forall W psi a A, Typing W psi a A -> Typing (meet_ctx_l q_C W) q_C a A.
 Proof.
   intros.
@@ -182,6 +154,7 @@ Proof.
   eapply Typing_leq_C; eauto.
   reflexivity.
 Qed.
+*)
 
 
 (* 
@@ -190,7 +163,7 @@ Qed.
    If psi >= q_C then we are done. But if not, then the meet will be lower than q_C and we don't 
    want that.
  *)
-
+(*
 Lemma meet_ctx_l_CTyping : forall W psi a A, CTyping W psi a A -> CTyping (meet_ctx_l q_C W) (q_C + psi) a A.
 Proof.
   intros. inversion H. subst.
@@ -203,7 +176,7 @@ Proof.
     have h1: (q_C + psi <= q_C). eapply leq_meet_l.
     eapply CT_Leq; eauto.
     inversion H1. rewrite meet_leq; auto.
-Qed.
+Qed. *)
 
 
 Lemma Ctx_meet_ctx_l : forall W, Ctx W -> Ctx (meet_ctx_l q_C W).
@@ -244,10 +217,10 @@ Ltac subst_CTyping_ih :=
         repeat rewrite subst_tm_tm_open_tm_wrt_tm in H3; eauto using CTyping_lc1, CTyping_lc2;
           rewrite subst_tm_tm_var_neq in H3; auto end.
 
-Lemma Typing_substitution_CTyping : forall x psi0 A W1 W2 psi b a B, 
+Lemma Typing_substitution_Typing : forall x psi0 A W1 W2 psi b a B, 
     Typing (W2 ++ [(x, (psi0, A))] ++ W1) psi b B ->
     Ctx W1 ->
-    CTyping W1 psi0 a A -> 
+    Typing W1 psi0 a A -> 
     Typing (subst_ctx a x W2 ++ W1) psi (subst_tm_tm a x b) (subst_tm_tm a x B).
 Proof.
   intros.
@@ -258,24 +231,23 @@ Proof.
   - (* conv *)
     simpl_env in *. 
     eapply T_Conv with (psi:=psi); simpl_env; eauto 3.
-    -- match goal with [ H3 : CTyping _ _ _ _ |- _ ] => inversion H3; subst; clear H3 end.
-    + eapply DefEq_substitution_same; eauto. 
+    eapply DefEq_substitution_CGrade; eauto 1.
+    destruct (order_q_C_dec psi0) eqn:LE.
+    + rewrite meet_comm.
+      rewrite meet_leq. auto.
+      eapply CG_Leq; auto.
       eapply Typing_Grade.
       eapply Typing_subsumption; eauto.
       eapply Typing_narrowing; eauto. 
       eapply meet_ctx_l_ctx_sub.
       eapply Typing_uniq; eauto.
-      eapply Typing_leq_C; eauto. 
     + match goal with [ H4 : q_C < ?psi0 |- _ ] => inversion H4 end. 
       rewrite meet_leq in H0; auto.
       eapply DefEq_substitution_same; eauto.
       eapply Typing_Grade.
-      eapply Typing_subsumption; eauto. reflexivity. reflexivity.
-    -- eapply IHTyping2. eauto.
+      eapply Typing_subsumption; eauto. reflexivity. 
+    -- eapply IHTyping2;
        eauto using Ctx_meet_ctx_l.
-       eapply meet_ctx_l_CTyping; eauto.
-       move: (Typing_uniq H1) => u.
-       unfold subst_ctx. solve_uniq.
   - (* var *)
     destruct (x0 == x) eqn:E.
     match goal with [ H3 : CTyping _ _ _ _ |- _ ] => inversion H3; subst; clear H3 end.
@@ -288,7 +260,7 @@ Proof.
       eapply Typing_subsumption; eauto.
     + (* this variable, but irrelevant. contradiction *)
       apply binds_mid_eq in H1; auto. inversion H1. subst. clear H1.
-      move: (lt_not_leq H6) => LE.
+      move: (lt_not_leq H5) => LE.
       have L: psi0 <= q_C by transitivity psi; auto.
       done.
     + eapply T_Var; eauto.
