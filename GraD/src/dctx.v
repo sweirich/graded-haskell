@@ -7,6 +7,11 @@ Require Import Coq.Program.Equality.
 
 Require Import Qtt.usage.
 Require Export Qtt.metalib.
+Require Export Qtt.dqtt_ott.
+
+Local Open Scope qexp_scope.
+
+
 
 Hint Rewrite dom_map : rewr_list.
 
@@ -48,7 +53,7 @@ Qed.
 
 (* If we have identified a variable in the middle of a uniq environment, 
    it fixes the front and back. *)
-Lemma ctx_mid {A} x (a a':(usage * A)) G1 : forall D G2 G1' G2',
+Lemma ctx_mid {A} x (a a':(qexp * A)) G1 : forall D G2 G1' G2',
     ctx D (G1 ++ (x ~ a) ++ G2) -> 
     (G1 ++ x ~ a ++ G2) = (G1' ++ x ~ a' ++ G2') ->
     G1 = G1' /\ a = a' /\ G2 = G2'.
@@ -119,7 +124,7 @@ Qed.
 (* ctx operations preserve the ctx property *)
 
 
-Lemma ctx_sub_ctx {A D}: forall{G1 G2 : list (atom * (usage * A))}, ctx_sub D G1 G2 -> ctx D G1 <-> ctx D G2.
+Lemma ctx_sub_ctx {D}: forall{G1 G2 : list (atom * (qexp * sort))}, ctx_sub D G1 G2 -> ctx D G1 <-> ctx D G2.
 Proof.
   induction D.
   intros. split; intro h; invert_ctx; inversion H; auto.
@@ -128,7 +133,7 @@ Proof.
   econstructor; eauto. rewrite IHD; eauto.
 Qed. 
 
-Lemma ctx_sub_ctx1 {A D}: forall{G1 G2 : list (atom * (usage * A))}, ctx_sub D G1 G2 -> ctx D G1.
+Lemma ctx_sub_ctx1 {D}: forall{G1 G2 : list (atom * (qexp * sort))}, ctx_sub D G1 G2 -> ctx D G1.
 Proof.
   induction D.
   all: intros; invert_ctx; inversion H; subst; econstructor.
@@ -136,7 +141,7 @@ Proof.
   all: eauto.
 Qed.         
 
-Lemma ctx_sub_ctx2 {A D}: forall{G1 G2 : list (atom * (usage * A))}, ctx_sub D G1 G2 -> ctx D G2.
+Lemma ctx_sub_ctx2 {D}: forall{G1 G2 : list (atom * (qexp * sort))}, ctx_sub D G1 G2 -> ctx D G2.
 Proof.
   induction D.
   all: intros; invert_ctx; inversion H; subst; econstructor.
@@ -145,7 +150,7 @@ Proof.
 Qed.         
 
 
-Lemma ctx_plus_ctx : forall {A}{D:list(atom*A)}{G1 G2} 
+Lemma ctx_plus_ctx : forall {D:list(atom*sort)}{G1 G2} 
     (h1:ctx D G1) (h2: ctx D G2), ctx D (ctx_plus G1 G2).
 Proof.
   induction D.
@@ -155,19 +160,19 @@ Proof.
     econstructor; eauto.
 Qed.
 
-Lemma ctx_mul_ctx {A}{u}{D:list(atom*A)}{G} : ctx D G -> ctx D (ctx_mul u G).
+Lemma ctx_mul_ctx {u}{D:list(atom*sort)}{G} : ctx D G -> ctx D (ctx_mul u G).
 Proof. 
   induction 1. simpl. auto. econstructor; eauto. 
 Qed.
 
-Lemma ctx_mul_ctx_inv {A}{u}{d:list(atom*A)} : forall {l},  ctx d (ctx_mul u l) -> ctx d l.
+Lemma ctx_mul_ctx_inv {u}{d:list(atom*sort)} : forall {l},  ctx d (ctx_mul u l) -> ctx d l.
 Proof. 
   induction d. intros; invert_ctx. destruct l; inversion H0. auto. 
   intros. destruct l; invert_ctx. destruct p. destruct p. simpl in H2. inversion H2. subst.
   econstructor; eauto.
 Qed.
 
-Lemma ctx_app_ctx {A}{d1:list(atom*A)}{l1 d2 l2} (x1 : ctx d1 l1) (x2: ctx d2 l2) 
+Lemma ctx_app_ctx {d1:list(atom*sort)}{l1 d2 l2} (x1 : ctx d1 l1) (x2: ctx d2 l2) 
   : disjoint d1 d2 -> ctx (d1 ++ d2) (l1 ++ l2).
 Proof. 
   induction x1.
@@ -177,7 +182,7 @@ Proof.
   rewrite dom_app. fsetdec. 
 Qed.
 
-Lemma ctx_split1 {A}{d1:list(atom*A)} : forall {l1 d2 l2},
+Lemma ctx_split1 {d1:list(atom*sort)} : forall {l1 d2 l2},
      ctx (d1 ++ d2) (l1 ++ l2) -> ctx d1 l1 -> ctx d2 l2.
 Proof. 
   induction d1; intros; simpl_env in *. 
@@ -187,7 +192,7 @@ Qed.
 
 
 
-Lemma ctx_split_l {A}{D2:list(atom*A)} : forall {D1} {G0},
+Lemma ctx_split_l {D2:list(atom*sort)} : forall {D1} {G0},
   ctx (D2 ++ D1) G0 -> 
   exists G2 G1, G0 = G2 ++ G1 /\ ctx D1 G1 /\ ctx D2 G2 /\ disjoint D2 D1.
 Proof.
@@ -196,12 +201,12 @@ Proof.
   simpl_env in H. invert_ctx.
   edestruct IHD2 as [G2 [G1 [h0 [h1 [h2 h3]]]]]; eauto.
   subst.
-  exists (x ~ (q,a0) ++ G2).  exists G1.
+  exists (x ~ (q1,a0) ++ G2).  exists G1.
   repeat split. auto. auto.
   solve_uniq.
 Qed.
 
-Lemma ctx_split_r {A}{G2} : forall {D:list(atom*A)} {G1},
+Lemma ctx_split_r {G2} : forall {D:list(atom*sort)} {G1},
   ctx D (G2 ++ G1) -> 
   exists D2 D1, D = D2 ++ D1 /\ ctx D1 G1 /\ ctx D2 G2 /\ disjoint D2 D1.
 Proof.
@@ -219,7 +224,7 @@ Qed.
 (* ------------------------------------------- *)
 
 
-Lemma var_ctx : forall {a}{D1:list(atom*a)}{x A B D2 G1 q G2},
+Lemma var_ctx : forall {D1:list(atom*sort)}{x A B D2 G1 q G2},
         ctx (D1 ++ x ~ B ++ D2) (G1 ++ x ~ (q, A) ++ G2) ->
         A = B /\ ctx D1 G1 /\ ctx D2 G2 /\ x `notin` dom (D1 ++ D2) /\ disjoint D1 D2.
 Proof. 
@@ -234,7 +239,7 @@ Proof.
   repeat split; auto.
 Qed.
 
-Lemma ctx_app_ctx2 : forall {A}{D:list(atom*A)} G, 
+Lemma ctx_app_ctx2 : forall {D:list(atom*sort)} G, 
     ctx D G -> forall D1 G1, ctx (D1 ++ D) (G1 ++ G) -> ctx D1 G1.
 Proof.
   induction 1; intros. simpl_env in *. auto.
@@ -351,7 +356,7 @@ Variable A:Type.
 (** *** ctx_plus *) 
 
 Lemma ctx_plus_app {D} :
-  forall {G1:list(atom*(usage*A))} {G2 D' G1' G2'}, 
+  forall {G1:list(atom*(qexp*sort))} {G2 D' G1' G2'}, 
     ctx D G1 -> ctx D G2 -> ctx D' G1' -> ctx D' G2' ->
     ctx_plus (G1 ++ G1') (G2 ++ G2') = ctx_plus G1 G2 ++ ctx_plus G1' G2'.
 Proof.
@@ -361,7 +366,7 @@ Proof.
   eauto.
 Qed.
 
-Lemma ctx_plus_app_l {D2 D1 G2} : forall {G}{G1:list(atom*(usage*A))}{G3}, 
+Lemma ctx_plus_app_l {D2 D1 G2} : forall {G}{G1:list(atom*(qexp*sort))}{G3}, 
     ctx D2 G2 -> ctx D1 G1 -> ctx (D2 ++ D1) G3 ->
     G = ctx_plus (G2 ++ G1) G3 -> 
     exists G6 G7, G = ctx_plus G2 G6 ++ ctx_plus G1 G7 
@@ -372,7 +377,7 @@ Proof.
   exists G2'. exists G1'.  erewrite ctx_plus_app; try eauto.
 Qed.
 
-Lemma ctx_plus_app_r {D2 D1 G2} : forall {G}{G1:list(atom*(usage*A))}{G3}, 
+Lemma ctx_plus_app_r {D2 D1 G2} : forall {G}{G1:list(atom*(qexp*sort))}{G3}, 
     ctx D2 G2 -> ctx D1 G1 -> ctx (D2 ++ D1) G3 ->
   G = ctx_plus G3 (G2 ++ G1) -> 
   exists G6 G7, G = ctx_plus G6 G2 ++ ctx_plus G7 G1 
@@ -385,7 +390,7 @@ Proof.
   repeat split; eauto.
 Qed.
 
-Lemma ctx_plus_app_result {D2} : forall {G2:list(atom*(usage*A))}{D1 G G1 G3},
+Lemma ctx_plus_app_result {D2} : forall {G2:list(atom*(qexp*sort))}{D1 G G1 G3},
     ctx D2 G2 -> ctx D1 G1 ->
     ctx (D2 ++ D1) G -> ctx (D2 ++ D1) G3 ->
     G2 ++ G1 = ctx_plus G G3 ->
@@ -415,22 +420,22 @@ Proof.
     auto.
 Qed.
 
-Lemma ctx_plus_Irr (G:list(atom*(usage*A))) : G = ctx_plus G (ctx_mul 0 G).
+Lemma ctx_plus_Irr (G:list(atom*(qexp*sort))) : G = ctx_plus G (ctx_mul 0 G).
 Proof. induction G. simpl; auto.
       destruct a. destruct p. 
-      simpl. rewrite qmul_0_l. rewrite qplus_0_r. f_equal.
+      simpl. admit. (* rewrite qmul_0_l. rewrite qplus_0_r. f_equal.
       auto.
-Qed.
+Qed. *) Admitted.
 
 (** ** ctx_mul *)
 
-Lemma ctx_mul_app q (G1:list(atom*(usage*A))) G2 : ctx_mul q (G1 ++ G2) = ctx_mul q G1 ++ ctx_mul q G2.
+Lemma ctx_mul_app q (G1:list(atom*(qexp*sort))) G2 : ctx_mul q (G1 ++ G2) = ctx_mul q G1 ++ ctx_mul q G2.
 Proof.
   unfold ctx_mul. rewrite map_app. auto.
 Qed.
 
 
-Lemma ctx_mul_app_inv : forall {q}{G1:list(atom*(usage*A))}{G2}, G1 ++ G2 = ctx_mul q G1 ++ ctx_mul q G2 -> G1 = ctx_mul q G1 /\ G2 = ctx_mul q G2.
+Lemma ctx_mul_app_inv : forall {q}{G1:list(atom*(qexp*sort))}{G2}, G1 ++ G2 = ctx_mul q G1 ++ ctx_mul q G2 -> G1 = ctx_mul q G1 /\ G2 = ctx_mul q G2.
 Proof. 
    induction G1; intros; auto. 
    - destruct a; simpl in *; simpl_env in *.
@@ -441,7 +446,7 @@ Proof.
        repeat f_equal; auto.
 Qed.
 
-Lemma ctx_mul_cons x q a q1 (G:list(atom*(usage*A))) : ctx_mul q (x ~ (q1,a) ++ G) = x ~ (q * q1,a) ++ ctx_mul q G.
+Lemma ctx_mul_cons x q a q1 (G:list(atom*(qexp*sort))) : ctx_mul q (x ~ (q1,a) ++ G) = x ~ (q * q1,a) ++ ctx_mul q G.
 Proof.
   unfold ctx_mul. auto.
 Qed.
@@ -451,7 +456,7 @@ Proof.
   unfold ctx_mul. auto.
 Qed.
 
-Lemma ctx_mul_app_r: forall q (G1:list(atom*(usage*A))) G G2, (ctx_mul q G = G1 ++ G2) ->
+Lemma ctx_mul_app_r: forall q (G1:list(atom*(qexp*sort))) G G2, (ctx_mul q G = G1 ++ G2) ->
                       exists G1' G2', ctx_mul q G1' = G1 /\ ctx_mul q G2' = G2.
 Proof.
  induction G1. intros. simpl in H. exists nil. exists G. simpl. subst. auto.
@@ -462,7 +467,7 @@ Proof.
 Qed.
 
 
-Lemma ctx_mul_app_split: forall q (G:list(atom*(usage*A))) G1 G2, ctx_mul q G = ctx_mul q G1 ++ ctx_mul q G2 ->
+Lemma ctx_mul_app_split: forall q (G:list(atom*(qexp*sort))) G1 G2, ctx_mul q G = ctx_mul q G1 ++ ctx_mul q G2 ->
                              exists G1', exists G2', G = G1' ++ G2' 
                                            /\ ctx_mul q G1 = ctx_mul q G1'
                                            /\ ctx_mul q G2 = ctx_mul q G2'.
@@ -479,22 +484,23 @@ Proof.
       specialize (IHG nil G2). rewrite H3 in IHG.
       move: (IHG ltac:(simpl; reflexivity)) => [G1' [G2' [? [h0 h1]]]]. subst.
       destruct G1'; simpl in h0; inversion h0.
-      exists nil. exists  ((a0, (q1, a1)) :: G2'). simpl_env. split; auto.
+      exists nil. exists  ((a, (q0, s0)) :: G2'). simpl_env. split; auto.
     ++ (* G1 is not nil *)
       destruct p as [? [? ?]]; simpl in H1; inversion H1; subst. clear H1 H.
       specialize (IHG G1 G2 H2). 
       move: IHG => [G1' [G2' [? [h0 h1]]]].
-      exists ((a0, (q1, a1))::G1'). exists G2'.
+      exists ((a, (q0, s0))::G1'). exists G2'.
       subst.
       simpl_env. split. auto.
       split. repeat rewrite ctx_mul_app. 
-      simpl. f_equal. rewrite H4. auto. auto. auto.
+      simpl. f_equal. rewrite h0.  auto. rewrite h1. auto. 
 Qed.
 
 (* -------------------------------------------------------- *)
 
-
-
 End CtxStruct.
 
 Hint Rewrite ctx_mul_app ctx_mul_cons ctx_mul_nil : rewr_list.
+
+(*  LocalWords:  Qed
+ *)

@@ -18,48 +18,52 @@ Require Import Qtt.dctx.
 (* ----------------------------------------------------------------- *)
 (** *** ctx_sub properties *)
 
-Lemma ctx_sub_refl : forall {A} {D:list (atom * A)} {G}, ctx D G -> ctx_sub D G G.
+Lemma ctx_sub_refl : forall  {D:list (atom * sort)} {G}, ctx D G -> ctx_sub D G G.
 Proof. induction D;
        move => G1 h; inversion h; subst. auto. 
-       econstructor; auto. reflexivity.
-Qed.
+Admitted.
+(*       econstructor; auto. reflexivity.
+Qed. *)
 
-Lemma ctx_sub_trans : forall {A} {G2} {D:list(atom * A)} {G1 G3}, ctx_sub D G1 G2 -> ctx_sub D G2 G3 -> 
+Lemma ctx_sub_trans : forall  {G2} {D:list(atom * sort)} {G1 G3}, ctx_sub D G1 G2 -> ctx_sub D G2 G3 -> 
   ctx_sub D G1 G3.
 Proof.
   move=> A G2 D. move: G2.
+Admitted.
+(*
   induction D; intros; inversion H0; inversion H; subst; auto.
   invert_equality.
   econstructor; auto.
   transitivity q1; auto.
   eapply IHD; eauto.
 Qed.
+*)
 
-Instance cst : forall {A}{D:list (atom * A)}, Transitive (ctx_sub D). 
+Instance cst : forall {D:list (atom * sort)}, Transitive (ctx_sub D). 
 intros. eauto using ctx_sub_trans.
 Qed.
 
 (* Interactions with association lists *)
 
-Lemma dom_ctx_sub : forall {A} {D:list(atom*A)} {G1 G2}, ctx_sub D G1 G2 -> dom G1 = dom G2.
-Proof. move => A D G1 G2 h. induction h; simpl; auto.
+Lemma dom_ctx_sub : forall  {D:list(atom * sort)} {G1 G2}, ctx_sub D G1 G2 -> dom G1 = dom G2.
+Proof. move => D G1 G2 h. induction h; simpl; auto.
        all: rewrite IHh. 
        all: auto.
 Qed.
 
-Lemma uniq_ctx_sub : forall {A} {D:list(atom*A)}{ G1 G2}, ctx_sub D G1 G2 -> uniq G1 <-> uniq G2.
+Lemma uniq_ctx_sub : forall  {D:list(atom * sort)}{ G1 G2}, ctx_sub D G1 G2 -> uniq G1 <-> uniq G2.
 Proof.
-  move=> A D G1 G2 h. induction h; split; auto;
+  move=> D G1 G2 h. induction h; split; auto;
   move => h1; inversion h1; subst.
-  + erewrite dom_ctx_sub in H5; eauto.
+  + erewrite dom_ctx_sub in H6; eauto.
   econstructor; eauto. 
   tauto.
-  + erewrite <- dom_ctx_sub in H5; eauto.
+  + erewrite <- dom_ctx_sub in H6; eauto.
   econstructor; eauto. 
   tauto.
 Qed.
 
-Lemma ctx_sub_app {A} {D1 D2 : list (atom *A)}{G1 G2 G3 G4} : 
+Lemma ctx_sub_app  {D1 D2 : list (atom  * sort)}{G1 G2 G3 G4} : 
   ctx_sub D1 G1 G2 -> ctx_sub D2 G3 G4 ->   uniq (D1 ++ D2) ->
   ctx_sub (D1 ++ D2) (G1 ++ G3) (G2 ++ G4).
 Proof.
@@ -70,7 +74,7 @@ Qed.
 
 (* decomposition *)
 
-Lemma split_ctx_sub {A}{D1:list (atom*A)} : forall {G G1 D2 G4 G2},
+Lemma split_ctx_sub {D1:list (atom * sort)} : forall {G G1 D2 G4 G2},
   ctx D1 G -> ctx D1 G1
   -> ctx_sub (D1 ++ D2) (G ++ G4) (G1 ++ G2)
   -> ctx_sub D1 G G1 /\ ctx_sub D2 G4 G2.
@@ -86,7 +90,7 @@ Proof.
 Qed.
 
 
-Lemma ctx_sub_app_split_r {A} {D:list (atom*A)} : forall {G G0 G3},
+Lemma ctx_sub_app_split_r  {D:list (atom * sort)} : forall {G G0 G3},
   ctx_sub D G (G0 ++ G3) -> 
   exists D1 D2 G1 G2, G = G1 ++ G2 /\ D = D1 ++ D2 /\ ctx_sub D1 G1 G0 /\ ctx_sub D2 G2 G3.
 Proof.
@@ -121,7 +125,7 @@ Proof.
       repeat split; auto.
 Qed.
 
-Lemma three_ctx_sub {A}{D:list(atom*A)} : forall {G1 x q1 s G2 G},
+Lemma three_ctx_sub {D:list(atom * sort)} : forall {G1 x q1 s G2 G},
     ctx_sub D (G1 ++ x ~ (q1, s) ++ G2) G -> 
     exists D1, exists D2, exists G1', exists G2', exists q2, D = D1 ++ x ~ s ++ D2 /\  G = G1' ++ x ~ (q2, s) ++ G2' /\
                         ctx_sub D1 G1 G1' /\ (q1 <= q2) /\ ctx_sub D2 G2 G2'.

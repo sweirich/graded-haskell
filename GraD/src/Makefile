@@ -86,7 +86,7 @@ coq: $(COQMKFILENAME) $(VFILES)
 #	make PATCH_TYPING_$*_ott
 
 %_inf.v: $(OTT_LOC)/%.ott Makefile
-	$(LNGEN) --coq $*_inf.v --coq-ott $*_ott $(OTT_LOC)/$*.ott 
+	$(LNGEN) --coq $*_inf.v --coq-admitted --coq-ott $*_ott $(OTT_LOC)/$*.ott 
 #	make USAGE.FIX_$*_inf
 
 

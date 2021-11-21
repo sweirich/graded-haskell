@@ -79,64 +79,6 @@ Declare Module Usage : UsageSig.
 Export Usage.
 
 
-(* Graded contexts, i.e. association lists that include annotated usage information *)
-
-Section UsageCtx.
-Variables A : Type.
-
-Local Open Scope usage_scope.
-
-
-
-Definition add_usage (q : usage) (D: list (var * A)) : list (var * (usage * A)) :=
-  map (fun x => (q, x)) D.
-
-Definition ungrade (G: list (var * (usage * A))) : list (var * A) :=
-  map snd G.
-
-
-(*
-Inductive ctx_sub : list (atom * A) -> list (atom * (usage * A))-> list (atom * (usage * A)) -> Prop :=  
- | CS_Empty :  ctx_sub  nil   nil   nil 
- | CS_ConsTm : forall D (x:atom) (a:A) G1 (q1:usage) G2 q2,
-     ( q1  <=  q2 )  ->
-     ctx_sub D G1 G2 ->
-      ~ AtomSetImpl.In  x  (dom  D)  ->
-     ctx_sub (x ~ a ++ D) (x ~ (q1 ,a) ++ G1) (x ~ (q2,a) ++ G2).
-*)
-End UsageCtx.
-
-
-
-Section UsageList.
-Local Open Scope usage_scope.
-
-Fixpoint oplus (G1 G2 : list usage) : list usage :=
-  match G1, G2 with 
-  | nil , nil => nil
-  | cons q1  G1' , cons q2 G2' => cons (q1 + q2) (oplus G1' G2')
-  | _ , _ => nil
-  end.
-
-Definition ozero {A} (G : list A) : list usage :=
-  List.map (fun _ => 0) G.
-
-Definition Qs {A} (h : list (atom * (usage * A))) : list usage :=
-  List.map (fun x => match x with | (_,(u, _)) => u end) h.
-
-Lemma Qs_app : forall {A} (h1 h2 : list (atom * (usage * A))), Qs (h1 ++ h2) = Qs h1 ++ Qs h2.
-Proof.
-  intros.
-  unfold Qs.
-  rewrite List.map_app.
-  auto.
-Qed.
-
-End UsageList.
-
-
-Arguments add_usage {_}.
-Arguments ungrade {_}.
 
 
 
