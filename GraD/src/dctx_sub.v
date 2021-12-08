@@ -20,24 +20,19 @@ Require Import Qtt.dctx.
 
 Lemma ctx_sub_refl : forall  {D:list (atom * sort)} {G}, ctx D G -> ctx_sub D G G.
 Proof. induction D;
-       move => G1 h; inversion h; subst. auto. 
-Admitted.
-(*       econstructor; auto. reflexivity.
-Qed. *)
+       move => G1 h; inversion h; subst.
+       econstructor; auto. simpl_env. auto.
+Qed.
 
 Lemma ctx_sub_trans : forall  {G2} {D:list(atom * sort)} {G1 G3}, ctx_sub D G1 G2 -> ctx_sub D G2 G3 -> 
   ctx_sub D G1 G3.
 Proof.
-  move=> A G2 D. move: G2.
-Admitted.
-(*
+  move=> G2 D. move: G2.
   induction D; intros; inversion H0; inversion H; subst; auto.
   invert_equality.
   econstructor; auto.
-  transitivity q1; auto.
   eapply IHD; eauto.
 Qed.
-*)
 
 Instance cst : forall {D:list (atom * sort)}, Transitive (ctx_sub D). 
 intros. eauto using ctx_sub_trans.
@@ -55,10 +50,10 @@ Lemma uniq_ctx_sub : forall  {D:list(atom * sort)}{ G1 G2}, ctx_sub D G1 G2 -> u
 Proof.
   move=> D G1 G2 h. induction h; split; auto;
   move => h1; inversion h1; subst.
-  + erewrite dom_ctx_sub in H6; eauto.
+  + erewrite dom_ctx_sub in H5; eauto.
   econstructor; eauto. 
   tauto.
-  + erewrite <- dom_ctx_sub in H6; eauto.
+  + erewrite <- dom_ctx_sub in H5; eauto.
   econstructor; eauto. 
   tauto.
 Qed.
@@ -128,7 +123,7 @@ Qed.
 Lemma three_ctx_sub {D:list(atom * sort)} : forall {G1 x q1 s G2 G},
     ctx_sub D (G1 ++ x ~ (q1, s) ++ G2) G -> 
     exists D1, exists D2, exists G1', exists G2', exists q2, D = D1 ++ x ~ s ++ D2 /\  G = G1' ++ x ~ (q2, s) ++ G2' /\
-                        ctx_sub D1 G1 G1' /\ (q1 <= q2) /\ ctx_sub D2 G2 G2'.
+                        ctx_sub D1 G1 G1' /\ q_sub q1 q2 /\ ctx_sub D2 G2 G2'.
 Proof.
   induction D; intros.
   + match goal with [ H : ctx_sub _ _ _ |- _ ] => inversion H end.

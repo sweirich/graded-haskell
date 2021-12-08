@@ -143,13 +143,13 @@ end.
 
 Definition open_sort_wrt_tm a5 sort5 := open_sort_wrt_tm_rec 0 sort5 a5.
 
-Definition open_tm_wrt_qexp q5 a5 := open_tm_wrt_qexp_rec 0 a5 q5.
-
-Definition open_sort_wrt_qexp q5 sort5 := open_sort_wrt_qexp_rec 0 sort5 q5.
+Definition open_qexp_wrt_qexp q_5 q__6 := open_qexp_wrt_qexp_rec 0 q__6 q_5.
 
 Definition open_tm_wrt_tm a5 a_6 := open_tm_wrt_tm_rec 0 a_6 a5.
 
-Definition open_qexp_wrt_qexp q_5 q__6 := open_qexp_wrt_qexp_rec 0 q__6 q_5.
+Definition open_sort_wrt_qexp q5 sort5 := open_sort_wrt_qexp_rec 0 sort5 q5.
+
+Definition open_tm_wrt_qexp q5 a5 := open_tm_wrt_qexp_rec 0 a5 q5.
 
 (** terms are locally-closed pre-terms *)
 (** definitions *)
@@ -485,13 +485,28 @@ Inductive ctx {A} : list (atom * A) -> list (atom * (qexp * A)) -> Prop :=
       ~ AtomSetImpl.In x (dom  D)  ->
      ctx (x ~ a ++ D ) (x ~ (q1,a) ++ G).
 
+Inductive q_sub : qexp -> qexp -> Prop :=
+  | Refl : forall q1 q2,
+      q_sub q1 q2
+  | Const : forall u1 u2,
+      is_true (qleb u1 u2) ->
+      q_sub (q_Const u1) (q_Const u2).
+
+Inductive ctx_sub : D -> context -> context -> Prop := 
+ | CS_Empty :  ctx_sub nil nil nil 
+ | CS_ConsTm : forall D (x:atom) a G1 q1 G2 q2,
+     q_sub q1 q2  ->
+     ctx_sub D G1 G2 ->
+      ~ AtomSetImpl.In x (dom D)  ->
+     ctx_sub (x ~ a ++ D) (x ~ (q1, a) ++ G1) (x ~ (q2, a) ++ G2).
+
 Arguments sort_mul {_}.
 Arguments ctx_mul {_}.
 Arguments ctx_plus {_}.
 Arguments ctx {_}.
 
 
-Hint Constructors ctx : core.
+Hint Constructors ctx q_sub ctx_sub : core.
 
 
 
@@ -562,28 +577,11 @@ Inductive Step : tm -> tm -> Prop :=    (* defn Step *)
      lc_tm a1 ->
      Step (a_Spread (a_Tensor a0 a1) b B) (a_App  (open_tm_wrt_tm  b   a0 )  a1).
 
-(* defns JSub *)
-Inductive q_sub : qexp -> qexp -> Prop :=    (* defn q_sub *)
- | Const : forall (u1 u2:u),
-      (is_true (qleb  u1   u2 ))  ->
-     q_sub (q_Const u1) (q_Const u2).
-
-(* defns JCtxSub *)
-Inductive ctx_sub : D -> context -> context -> Prop :=    (* defn ctx_sub *)
- | CS_Empty : 
-     ctx_sub  nil   nil   nil 
- | CS_ConsTm : forall (D5:D) (x:tmvar) (A:tm) (G1:context) (q1:qexp) (G2:context) (q2:qexp),
-     lc_tm A ->
-     q_sub q1 q2 ->
-     ctx_sub D5 G1 G2 ->
-      ~ AtomSetImpl.In  x  (dom  D5 )  ->
-     ctx_sub  (  ( x  ~ Tm A )  ++ D5 )   (  ( x ~( q1 ,Tm  A ))  ++ G1 )   (  ( x ~( q2 ,Tm  A ))  ++ G2 ) .
-
 (* defns JTyping *)
 Inductive Typing : D -> context -> tm -> tm -> Prop :=    (* defn Typing *)
  | T_sub : forall (D5:D) (G2:context) (a A:tm) (G1:context),
      Typing D5 G1 a A ->
-     ctx_sub D5 G1 G2 ->
+      ctx_sub  D5   G1   G2  ->
      Typing D5 G2 a A
  | T_type : 
      Typing  nil   nil  a_Type a_Type
@@ -650,7 +648,7 @@ Inductive Typing : D -> context -> tm -> tm -> Prop :=    (* defn Typing *)
      Typing D5 G1 A1 a_Type ->
      Typing D5 G (a_Inj2 a) (a_Sum A1 A2)
  | T_case : forall (L:vars) (D5:D) (q:qexp) (G1 G2:context) (a b1 b2:tm) (r:qexp) (A1 A2 B B1 B2:tm) (G3:context),
-     q_sub  1  q ->
+      q_sub   1    q  ->
      Typing D5 G1 a (a_Sum A1 A2) ->
       ( forall x , x \notin  L  ->   ( open_tm_wrt_tm B1 (a_Var_f x) )  =   (open_tm_wrt_tm  B   (a_Inj1 (a_Var_f x)) )    )  ->
       ( forall x , x \notin  L  ->   ( open_tm_wrt_tm B2 (a_Var_f x) )  =   (open_tm_wrt_tm  B   (a_Inj2 (a_Var_f x)) )    )  ->
@@ -668,10 +666,20 @@ Inductive Typing : D -> context -> tm -> tm -> Prop :=    (* defn Typing *)
      Typing D5 G1 a A ->
      Typing D5 G2 b  (open_tm_wrt_tm  B   a )  ->
       ( forall x , x \notin  L  -> Typing  (  ( x  ~ Tm A )  ++ D5 )   (  ( x ~( r ,Tm  A ))  ++ G3 )   ( open_tm_wrt_tm B (a_Var_f x) )  a_Type )  ->
-     Typing D5  (ctx_plus    (ctx_mul  q   G1 )     G2 )  (a_Tensor a b) (a_Sigma q A B).
+     Typing D5  (ctx_plus    (ctx_mul  q   G1 )     G2 )  (a_Tensor a b) (a_Sigma q A B)
+ | T_LamU : forall (L:vars) (D5:D) (G:context) (a A:tm),
+      ( forall m , m \notin  L  -> Typing D5 G  ( open_tm_wrt_qexp a (q_Var_f m) )   ( open_tm_wrt_qexp A (q_Var_f m) )  )  ->
+     Typing D5 G (a_LamU a) (a_AllU A)
+ | T_AppU : forall (D5:D) (G:context) (a:tm) (q:qexp) (A:tm),
+     lc_qexp q ->
+     Typing D5 G a (a_AllU A) ->
+     Typing D5 G (a_AppU a q)  (open_tm_wrt_qexp  A   q ) 
+ | T_AllU : forall (L:vars) (D5:D) (G:context) (A:tm),
+      ( forall m , m \notin  L  -> Typing D5 G  ( open_tm_wrt_qexp A (q_Var_f m) )  a_Type )  ->
+     Typing D5 G (a_AllU A) a_Type.
 
 
 (** infrastructure *)
-Hint Constructors Step q_sub ctx_sub Typing lc_qexp lc_tm lc_sort : core.
+Hint Constructors Step Typing lc_qexp lc_tm lc_sort : core.
 
 

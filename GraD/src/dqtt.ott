@@ -111,7 +111,7 @@ tm, a, b, A , B , v , w :: 'a_' ::= {{ com terms and types }}
 
    %% standard substitution, using open
    | a { q / m }      :: S :: SubstQ
-     {{ coq (open_tm_wrt_q [[m a]] [[q]]) }}
+     {{ coq (open_tm_wrt_qexp [[m a]] [[q]]) }}
 
 
 substitutions
@@ -366,8 +366,11 @@ formula :: 'formula_' ::=
   | G1 <= G2 :: M :: ctx_sub_fake
     {{ coq ctx_sub nil [[G1]] [[G2]] }}
 
-%  | D ; G1 <= G2 :: M :: ctx_sub
-%    {{ coq ctx_sub [[D]] [[G1]] [[G2]] }}
+  | q1 <= q2 :: M :: q_sub
+    {{ coq q_sub [[q1]] [[q2]] }}
+
+  | D ; G1 <= G2 :: M :: ctx_sub
+   {{ coq ctx_sub [[D]] [[G1]] [[G2]] }}
 
   | H1 <= H2 :: M :: subHeap
     {{ tex [[H1]] \leq [[H2]] }}
@@ -453,13 +456,28 @@ Inductive ctx {A} : list (atom * A) -> list (atom * (qexp * A)) -> Prop :=
       ~ AtomSetImpl.In x (dom  D)  ->
      ctx (x ~ a ++ D ) (x ~ (q1,a) ++ G).
 
+Inductive q_sub : qexp -> qexp -> Prop :=
+  | Refl : forall q1 q2,
+      q_sub q1 q2
+  | Const : forall u1 u2,
+      is_true (qleb u1 u2) ->
+      q_sub (q_Const u1) (q_Const u2).
+
+Inductive ctx_sub : D -> context -> context -> Prop := 
+ | CS_Empty :  ctx_sub nil nil nil 
+ | CS_ConsTm : forall D (x:atom) a G1 q1 G2 q2,
+     q_sub q1 q2  ->
+     ctx_sub D G1 G2 ->
+      ~ AtomSetImpl.In x (dom D)  ->
+     ctx_sub (x ~ a ++ D) (x ~ (q1, a) ++ G1) (x ~ (q2, a) ++ G2).
+
 Arguments sort_mul {_}.
 Arguments ctx_mul {_}.
 Arguments ctx_plus {_}.
 Arguments ctx {_}.
 
 
-Hint Constructors ctx : core.
+Hint Constructors ctx q_sub ctx_sub : core.
 
 }}
 
@@ -524,33 +542,33 @@ defn
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-defns 
-JSub :: '' ::= 
+% defns 
+% JSub :: '' ::= 
 
-defn
-q1 <= q2  :: :: q_sub :: ''
-by
+% defn
+% q1 <= q2  :: :: q_sub :: ''
+% by
 
-u1 <: u2
---------- :: Const
-u1 <= u2
+% u1 <: u2
+% --------- :: Const
+% u1 <= u2
 
-defns 
-JCtxSub :: '' ::= 
+% defns 
+% JCtxSub :: '' ::= 
 
-defn 
-D ; G1 <= G2 ::  :: ctx_sub :: 'CS_'
-by
+% defn 
+% D ; G1 <= G2 ::  :: ctx_sub :: 'CS_'
+% by
 
------------------- :: Empty
-empty ; empty <= empty
+% ------------------ :: Empty
+% empty ; empty <= empty
 
 
-q1 <= q2
-D ; G1 <= G2
-x notin dom D
---------------------------------------------------- :: ConsTm
-D ++ x : A ; G1 ++ x : q1 A <= G2 ++ x : q2 A
+% q1 <= q2
+% D ; G1 <= G2
+% x notin dom D
+% --------------------------------------------------- :: ConsTm
+% D ++ x : A ; G1 ++ x : q1 A <= G2 ++ x : q2 A
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -686,3 +704,20 @@ D; (# q * G1 #) + G2 |-- (a , b) : Sigma x:q A. B
 % D ++ z : A ; G3 ++ z : r A |-- B : type
 % ------------------------------------------------------------------------- :: Spread
 % D ;  G1 + G2 |-- spread a to x in b @ (\z:r A.B) :  B { a / z }
+
+
+D; G |-- a : A
+%% todo add to context?
+-------------------------------- :: LamU
+D; G |-- \ m . a : all m . A
+
+
+D; G |-- a : all m . A
+-------------------------------- :: AppU
+D; G |-- a q : A { q / m }
+
+
+D; G |-- A : type
+%% todo incorporate m?
+-------------------------------- :: AllU
+D; G |-- all m . A : type
