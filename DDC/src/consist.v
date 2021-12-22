@@ -1098,3 +1098,134 @@ Proof.
   eapply DefEq_Joins.
   eauto.
 Qed.
+
+(* Inverse of DefEq_Joins *)
+
+Lemma CDefEq_Refl : forall G psi phi b, CGrade G psi phi b -> CDefEq G psi phi b b.
+Proof.
+  intros.
+  inversion H; subst; eauto.
+Qed.
+
+Lemma Par_DefEq : 
+  (forall W psi phi a b, CPar W psi phi a b -> CDefEq W psi phi a b) /\
+  (forall W psi a b, Par W psi a b -> DefEq W psi a b).
+Proof.
+  apply CPar_Par_mutual.
+  all: intros; auto.
+  all: try fresh_apply_DefEq x; auto.
+  - move: (Par_lc2 p) => LC. inversion LC. subst.
+    move: (CPar_lc1 c) => LC1.
+    move: CPar_Par_Grade => [h0 h2].
+    apply h0 in c. split_hyp.
+    apply h2 in p. split_hyp. clear h0 h2.
+    eapply Eq_Trans with (b := open_tm_wrt_tm a' b).
+    eapply Eq_Trans with (b := a_App (a_Abs psi0 A a') psi0 b).
+    eapply Eq_App; eauto. 
+    + eapply CDefEq_Refl; auto.
+    + eapply Eq_Beta; eauto. 
+      invert_Grade.
+      pick fresh x. 
+      inversion H1. subst.
+      ++ eapply Grade_open with (y:=x); auto.
+      ++ eapply Grade_open_irrel; eauto.
+    + inversion H0; subst.
+    ++ invert_Grade.
+       pick fresh x. rewrite (subst_tm_tm_intro x a' b). auto. rewrite (subst_tm_tm_intro x a' b'). auto.  
+       eapply DefEq_equality_substitution with (P:= [(x, psi0)] ++ P); auto.
+    ++ invert_Grade. 
+       pick fresh x and apply Eq_SubstIrrel; auto. 
+  - move: (Par_lc2 p) => LC. inversion LC. subst.
+    move: CPar_Par_Grade => [h0 h2].
+    apply h2 in p. split_hyp. 
+    pick fresh y. move: (p0 y ltac:(auto)) => p1.
+    apply h2 in p1. split_hyp.
+    eapply Eq_Trans with (b := a_App (open_tm_wrt_tm b1 a1') q_Bot a2').
+    eapply Eq_Trans with (b := a_LetPair psi0 (a_WPair a1' psi0 a2') b1).
+    + pick fresh x and apply Eq_LetPair; auto.
+      eapply Eq_Refl; auto.
+      move: (p0 x ltac:(auto)) => Pb.
+      move: CPar_Par_Grade => [ _ h3].
+      apply h2 in Pb. split_hyp. auto.
+    + eapply Eq_Beta; eauto.
+      pick fresh x and apply G_LetPair; auto.
+      move: (p0 x ltac:(auto)) => Pb.
+      move: CPar_Par_Grade => [ _ h3].
+      apply h2 in Pb. split_hyp. auto.
+      eapply S_LetPairBeta; auto.
+      eapply lc_a_LetPair_exists with (x1:=y); auto.
+      eapply Grade_lc; eauto.
+      invert_Grade. subst.
+      eapply G_App; auto.
+      inversion H11; subst.
+      ++ eapply Grade_open with (y:=y); eauto.      
+      ++ eapply Grade_open_irrel; eauto.  
+      ++ eapply CG_Leq; auto using leq_Bot. 
+    + invert_Grade. subst. 
+      eapply Eq_App; auto.
+      pick fresh x.
+      rewrite (subst_tm_tm_intro x b1); auto.
+      rewrite (subst_tm_tm_intro x b2); auto.
+      repeat spec x.
+      eapply DefEq_substitution_CGrade with (P2:=nil); simpl_env; eauto. 
+      eapply CDefEq_Refl. eapply CG_Leq; eauto using leq_Bot.
+
+  - move: (Par_Grade1 p) => p1.
+    move: (Par_Grade2 p) => p2.
+    move: (DefEq_lc2 H) => lc. inversion lc. subst.
+    eapply Eq_Trans with (b := (a_Proj1 psi0 (a_SPair a1' psi0 a2))).
+    eapply Eq_Proj1; auto.
+    eapply Eq_Beta; auto. 
+    invert_Grade. subst. inversion H6. auto. done.
+
+  - move: (Par_Grade p) => [p1 p2].
+    invert_Grade. subst.
+    move: (DefEq_lc2 H) => lc. inversion lc. subst.
+
+    eapply Eq_Trans with (b := (a_Proj2 psi0 (a_SPair a1' psi0 a2))).
+    eapply Eq_Proj2; auto.
+    eapply Eq_Beta; auto. 
+
+  - move: (Par_Grade p) => [G1 G2].
+    invert_Grade. subst.
+    move: (DefEq_lc2 H) => lc. inversion lc. subst.     
+    eapply Eq_Trans with (b := a_Case psi0 (a_Inj1 a') b1' b2).
+    eapply Eq_Case; auto.
+    eapply Eq_Refl; eauto using DefEq_Grade1.
+    eapply Eq_Beta; eauto. 
+    eapply G_Case; eauto using DefEq_Grade2.
+    eapply S_Case1Beta; eauto using DefEq_lc2.
+    constructor; eauto using DefEq_Grade2.
+  - move: (Par_Grade p) => [G1 G2].
+    invert_Grade. subst.
+    move: (DefEq_lc2 H) => lc. inversion lc. subst.     
+    eapply Eq_Trans with (b := a_Case psi0 (a_Inj2 a') b1 b2').
+    eapply Eq_Case; auto.
+    eapply Eq_Refl; eauto using DefEq_Grade1.
+    eapply Eq_Beta; eauto. 
+    eapply G_Case; eauto using DefEq_Grade2.
+    eapply S_Case2Beta; eauto using DefEq_lc2.
+    constructor; eauto using DefEq_Grade2.
+Qed.
+
+Lemma MultiPar_DefEq : 
+  forall S D A B, MultiPar S D A B -> DefEq S D A B.
+Proof.
+  intros.
+  induction H.
+  eapply Eq_Refl; auto.
+  eapply Eq_Trans with (b := b).
+  eapply Par_DefEq; auto.
+  auto.
+Qed.
+
+Lemma Joins_DefEq : 
+  forall S D A B, Joins S D A B -> DefEq S D A B.
+Proof.
+  intros.
+  inversion H. subst.
+  move: CEqGEq_DefEq => [_ h].
+  move: MultiPar_DefEq => h1.
+  eapply Eq_Trans with (b:= b1); auto.
+  eapply Eq_Trans with (b := b2); auto.
+Qed.
