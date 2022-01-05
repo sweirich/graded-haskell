@@ -270,7 +270,7 @@ Axiom rename1: forall x y w y0 psi0 psi A W B s,
  Typing ([(x, (q_C + psi0 * psi, A))] ++ meet_ctx_l q_C W) q_C
          (a_Pi q_Bot (open_tm_wrt_tm B (a_Var_f x)) (close_tm_wrt_tm y A))
          (a_Type s) ->
-  Typing ([(w, (q_C + psi0 * psi, A))] ++ meet_ctx_l q_C W) q_C
+ Typing ([(w, (q_C + psi0 * psi, A))] ++ meet_ctx_l q_C W) q_C
          (a_Pi q_Bot (open_tm_wrt_tm B (a_Var_f w)) (close_tm_wrt_tm y0 A))
          (a_Type s).
 

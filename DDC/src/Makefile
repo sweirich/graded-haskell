@@ -106,6 +106,8 @@ clean: coqclean
 	@rm -f *~
 	@rm -f *.log *.aux *.fls *.fdb_latexmk
 
+# fix typing rules for LetPair and Case that cannot be expressed with Ott's locally nameless
+# backend
 PATCH_TYPING_%:
 	patch -R $*.v < typing.patch
 
