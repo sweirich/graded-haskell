@@ -1,34 +1,36 @@
-Overview 
---------
+The [src](src/) directory includes a Coq specification of a dependently typed
+calculus with dependent functions, unit, products and sums.
 
-* System Specification 
+System Specification 
+--------------------
 
 The full specification of the DDC type system is in the file
-Qualitative_ott.v. This file has been mechanically generated from the Ott
-specification, but then slightly edited. For convenience, we also provide the
-file [spec.pdf](spec.pdf) that contains a typeset version of the system, also generated
-from the same specification file.
+[Qualitative_ott.v](src/Qualitative_ott.v]. This file has been mechanically
+generated from the Ott specification in [Qualitative.ott](Qualitative.ott),
+but then slightly edited. For convenience, we also provide the file
+[spec.pdf](spec.pdf) that contains a typeset version of the system, also
+generated from the same specification file.
 
 Compilation Instructions
 -----------------------
 
-Installation and Compilation Instructions
 This development has been tested with The Coq Proof Assistant, version 8.10.2 
 
-To compile this code with Coq, you also need to install a copy of the Metalib library. This library is available from https://github.com/plclub/metalib at the coq8.10 tag.
+To compile this code with Coq, you also need to install a copy of the Metalib
+library. This library is available from https://github.com/plclub/metalib at
+the coq8.10 tag.
 
-This directory includes a Coq specification of a dependently typed calculus with type-in-type, dependent functions, unit, products and sums.
+You can install these tools via opam (https://opam.ocaml.org/): 
+
+     opam switch create 4.09.1
+     opam repo add coq-released https://coq.inria.fr/opam/released
+     opam pin coq 8.10.2
+     opam install ott
+     opam pin add coq-metalib https://github.com/plclub/metalib.git
 
 Once Coq and metalib have been installed, the files can be compiled using
 
-      make coq
-
-You may also be able to install via OPAM:
-
-     opam switch create ./ OCAML_VERSION
-     opam repo add coq-released https://coq.inria.fr/opam/released
-     opam install coq coq-ott ott
-     opam pin add coq-metalib https://github.com/plclub/metalib.git
+      cd src; make coq
 
 
 Contents
