@@ -45,6 +45,7 @@ compile.
 
 A successful compilation should produce the following output.
 
+```
 { echo "-R . Qual " ; ls *.v ; } > _CoqProject && coq_makefile -arg '-w -variable-collision,-meta-collision,-require-in-module' -f _CoqProject -o CoqSrc.mk
 make[1]: Entering directory '/Users/sweirich/github/coq/graded-haskell/DDC/src'
 COQC grade_sig.v
@@ -71,7 +72,7 @@ COQC erasure.v
 COQC progress.v
 COQC strong_exists.v
 make[1]: Leaving directory '/Users/sweirich/github/coq/graded-haskell/DDC/src'
-
+```
 
 The source code for the artifact is available from the public github repository:
 https://github.com/sweirich/graded-haskell/tree/main/DDC
