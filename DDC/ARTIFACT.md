@@ -1,4 +1,4 @@
-Artifact submission for ESOP 2022 paper XXX
+Artifact submission for ESOP 2022 paper 111
 ==========================================
 
 This artifact includes Coq proofs for the results claimed about DDC in 
@@ -14,7 +14,7 @@ Download instructions
 
 The artifact is available as a [VirtualBox](https://www.virtualbox.org/) available for download from 
 
-http://www.seas.upenn.edu/~sweirich/esop-22-111.
+https://www.cis.upenn.edu/~sweirich/esop2022-paper111.ova
 
 After starting VirtualBox, the machine can be loaded via 
 
