@@ -21,13 +21,19 @@ The extended version of the paper is available from [arXiv](https://arxiv.org/ab
 This [repository](GraD/src) proves type soundness for GraD, assuming the consistency of an
 unspecified definitional equivalence.
 
+A [Virtual Box](https://www.cis.upenn.edu/~sweirich/popl2021-paper408.ova) containing the Coq proof
+scripts is available.
+
 [DDC](DDC/)
 -----------
 
-"A Dependent Dependency Calculus", draft paper by Pritam
-Choudhury, Harley Eades III, and Stephanie Weirich.
+"A Dependent Dependency Calculus", paper by Pritam Choudhury, Harley Eades III, and Stephanie Weirich.  
+To appear in ESOP 2022.
 
 The draft paper is [available](ddc.pdf).
 
 This [repository](DDC/) proves type soundness for DDC, including the
 consistency of a grade-indexed definitional equivalence.
+
+A [Virtual Box](https://www.cis.upenn.edu/~sweirich/esop2022-paper111.ova) containing the Coq proof
+scripts is available.
