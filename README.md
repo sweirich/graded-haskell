@@ -29,5 +29,5 @@ Choudhury, Harley Eades III, and Stephanie Weirich.
 
 The draft paper is [available](ddc.pdf).
 
-This [repository](DDC/src) proves type soundness for DDC, including the
+This [repository](DDC/) proves type soundness for DDC, including the
 consistency of a grade-indexed definitional equivalence.
