@@ -550,21 +550,6 @@ Proof.
     
 Qed.    
 
-(*
-Lemma MultiPar_AppRel : forall a a' c c' S psi psi0, 
-    MultiPar S psi a c 
-    -> MultiPar S psi a' c' 
-    -> psi0 <= psi 
-    -> MultiPar S psi (a_App a psi0 a') (a_App c psi0 c').
-Proof.
-  intros.
-  eapply MultiPar_trans with (b:= a_App c psi0 a').
-  + induction H; eauto using MultiPar_Grade1. 
-    eapply MP_Step with (b:= a_App b psi0 a'); eauto using MultiPar_Grade1.  
-  + induction H0; eauto using MultiPar_Grade2.
-    eapply MP_Step with (b:= a_App c psi0 b); eauto using MultiPar_Grade2.  
-Qed.    
-*)
 
 Lemma Joins_App : forall a a' b b' S psi psi0, 
       Joins S psi a b 

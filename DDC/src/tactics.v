@@ -65,58 +65,6 @@ Ltac spec y :=
 
 (* -------------------------------------------- *)
 
-(* Local closure: we know that Ott produced relations are always locally closed. So it does not 
-   hurt to axiomatize this fact. *)
-
-(*
-Lemma CEq_GEq_lc : 
-  (forall P phi phi0 a b,
-  CEq P phi phi0 a b -> lc_tm a /\ lc_tm b) /\
-  (forall P phi a b,
-  GEq P phi a b -> lc_tm a /\ lc_tm b).
-Proof. 
-  eapply CEq_GEq_mutual.
-  all: intros; split_hyp; split; eauto.
-*)
-
-
-Axiom Step_lc1 : forall {a b}, Step a b -> lc_tm a.
-Axiom Step_lc2 : forall {a b}, Step a b -> lc_tm b.
-
-Axiom Grade_lc : forall {P psi a}, Grade P psi a -> lc_tm a.
-Axiom GEq_lc1 : forall {W a psi b}, GEq W psi a b -> lc_tm a.
-Axiom GEq_lc2 : forall {W a psi b}, GEq W psi a b -> lc_tm b.
-Axiom DefEq_lc1 : forall {W a psi b}, DefEq W psi a b -> lc_tm a.
-Axiom DefEq_lc2 : forall {W a psi b}, DefEq W psi a b -> lc_tm b.
-Axiom Par_lc1 : forall {G a psi a'}, Par G psi a a' -> lc_tm a.
-Axiom Par_lc2 : forall {G a psi a'}, Par G psi a a' -> lc_tm a'.
-Axiom Typing_lc1 : forall {G psi a A}, Typing G psi a A -> lc_tm a.
-Axiom Typing_lc2 : forall {G psi a A}, Typing G psi a A -> lc_tm A.
-
-Axiom MultiPar_lc1 : forall {G a psi a'}, MultiPar G psi a a' -> lc_tm a.
-Axiom MultiPar_lc2 : forall {G a psi a'}, MultiPar G psi a a' -> lc_tm a'.
-Axiom ValueType_lc : forall {A}, ValueType A -> lc_tm A.
-Axiom Consistent_lc1 : forall {a b}, Consistent a b -> lc_tm a.
-Axiom Consistent_lc2 : forall {a b}, Consistent a b -> lc_tm b.
-Axiom Joins_lc1 : forall {G a psi a'}, Joins G psi a a' -> lc_tm a.
-Axiom Joins_lc2 : forall {G a psi a'}, Joins G psi a a' -> lc_tm a'.
-
-
-Axiom CGrade_lc : forall {P psi phi a}, CGrade P psi phi a -> lc_tm a.
-Axiom CEq_lc1 : forall {W a psi phi b}, CEq W psi phi a b -> lc_tm a.
-Axiom CEq_lc2 : forall {W a psi phi b}, CEq W psi phi a b -> lc_tm b.
-Axiom CDefEq_lc1 : forall {W a psi phi b}, CDefEq W psi phi a b -> lc_tm a. 
-Axiom CDefEq_lc2 : forall {W a psi phi b}, CDefEq W psi phi a b -> lc_tm b. 
-Axiom CPar_lc1 : forall {G a psi phi a'}, CPar G psi phi a a' -> lc_tm a.
-Axiom CPar_lc2 : forall {G a psi phi a'}, CPar G psi phi a a' -> lc_tm a'.
-Axiom CMultiPar_lc1 : forall {G a psi psi0 a'}, CMultiPar G psi psi0 a a' -> lc_tm a.
-Axiom CMultiPar_lc2 : forall {G a psi psi0 a'}, CMultiPar G psi psi0 a a' -> lc_tm a'.
-Axiom CTyping_lc1 : forall W q a A, CTyping W q a A -> lc_tm a. 
-Axiom CTyping_lc2 : forall W q a A, CTyping W q a A -> lc_tm A. 
-Axiom CJoins_lc1 : forall {G a psi phi a'}, CJoins G psi phi a a' -> lc_tm a.
-Axiom CJoins_lc2 : forall {G a psi phi a'}, CJoins G psi phi a a' -> lc_tm a'.
-
-
 
 (* Rewriting rules for subst *)
 
@@ -260,3 +208,203 @@ Ltac invert_GEq :=
       | [ H : GEq ?P ?psi (a_Proj1 ?a ?b) _ |- _ ] => inversion H ; clear H
       | [ H : GEq ?P ?psi (a_Proj2 ?a ?b) _ |- _ ] => inversion H ; clear H
     end.
+
+Ltac invert_lc := 
+  match goal with 
+      | [ H : lc_tm (a_Var_f ?x) |- _ ] => inversion H ; clear H
+      | [ H : lc_tm (a_Pi ?psi2 ?a ?b) |- _ ] => inversion H ; clear H
+      | [ H : lc_tm (a_WSigma ?psi2 ?a ?b)  |- _  ] => inversion H ; clear H
+      | [ H : lc_tm (a_SSigma ?psi2 ?a ?b)  |- _ ] => inversion H ; clear H
+      | [ H : lc_tm (a_Abs ?psi2 ?A ?b) |- _  ] => inversion H ; clear H
+      | [ H : lc_tm (a_LetPair ?psi2 ?a ?b) |- _ ] => inversion H ; clear H
+      | [ H : lc_tm (a_App ?a ?psi1 ?b) |- _ ] => inversion H ; clear H
+      | [ H : lc_tm (a_Sum ?a ?b) |- _ ] => inversion H ; clear H
+      | [ H : lc_tm (a_Inj1 ?a ) |- _ ] => inversion H ; clear H
+      | [ H : lc_tm (a_Inj2 ?a ) |- _ ] => inversion H ; clear H
+      | [ H : lc_tm (a_Case ?psi1 ?a ?b1 ?b2) |- _ ] => inversion H ; clear H  
+      | [ H : lc_tm (a_WPair ?a ?psi1 ?b) |- _ ] => inversion H ; clear H
+      | [ H : lc_tm (a_SPair ?a ?psi1 ?b) |- _ ] => inversion H ; clear H
+      | [ H : lc_tm (a_Proj1 ?a ?b) |- _ ] => inversion H ; clear H
+      | [ H : lc_tm (a_Proj2 ?a ?b) |- _ ] => inversion H ; clear H
+    end.
+
+
+
+(* -------------------------------------------------------- *)
+
+(* Local closure: we know that Ott produced relations are always locally closed. So it does not 
+   hurt to axiomatize this fact. *)
+
+
+Lemma CGrade_Grade_lc : 
+  (forall P phi phi0 a,
+  CGrade P phi phi0 a -> lc_tm a) /\
+  (forall P phi a,
+  Grade P phi a -> lc_tm a).
+Proof. 
+  eapply CGrade_Grade_mutual.
+  all: intros; split_hyp; eauto.
+Qed.
+
+Lemma Grade_lc : forall {P psi a}, Grade P psi a -> lc_tm a.
+Proof. intros. move: CGrade_Grade_lc => [h1 h2]. move: (h2 _ _ _ H) => h3. auto. Qed.
+Lemma CGrade_lc : forall {P psi phi a}, CGrade P psi phi a -> lc_tm a.
+Proof. intros. move: CGrade_Grade_lc => [h1 h2]. move: (h1 _ _ _ _ H) => h3. auto. Qed.
+
+
+Lemma CEq_GEq_lc : 
+  (forall P phi phi0 a b,
+  CEq P phi phi0 a b -> lc_tm a /\ lc_tm b) /\
+  (forall P phi a b,
+  GEq P phi a b -> lc_tm a /\ lc_tm b).
+Proof. 
+  eapply CEq_GEq_mutual.
+  all: intros; split_hyp; split; eauto.
+  all: pick fresh x; repeat spec x; split_hyp.
+  eapply lc_a_Pi_exists; eauto.
+  eapply lc_a_Pi_exists; eauto.
+  eapply lc_a_Abs_exists; eauto.
+  eapply lc_a_Abs_exists; eauto.
+  eapply lc_a_WSigma_exists; eauto.
+  eapply lc_a_WSigma_exists; eauto.
+  eapply lc_a_LetPair_exists; eauto.
+  eapply lc_a_LetPair_exists; eauto.
+  eapply lc_a_SSigma_exists; eauto.
+  eapply lc_a_SSigma_exists; eauto.
+Qed.
+
+Lemma GEq_lc1 : forall {W a psi b}, GEq W psi a b -> lc_tm a.
+Proof. intros. move: CEq_GEq_lc => [h1 h2]. move: (h2 _ _ _ _ H) => h3. split_hyp. auto. Qed.
+Lemma GEq_lc2 : forall {W a psi b}, GEq W psi a b -> lc_tm b.
+Proof. intros. move: CEq_GEq_lc => [h1 h2]. move: (h2 _ _ _ _ H) => h3. split_hyp. auto. Qed.
+Lemma CEq_lc1 : forall {W a psi phi b}, CEq W psi phi a b -> lc_tm a.
+Proof. intros. move: CEq_GEq_lc => [h1 h2]. move: (h1 _ _ _ _ _ H) => h3. split_hyp. auto. Qed.
+Lemma CEq_lc2 : forall {W a psi phi b}, CEq W psi phi a b -> lc_tm b.
+Proof. intros. move: CEq_GEq_lc => [h1 h2]. move: (h1 _ _ _ _ _ H) => h3. split_hyp. auto. Qed.
+
+Lemma Step_lc1 : forall {a b}, Step a b -> lc_tm a.
+Proof. intros. induction H; eauto. Qed.
+
+Lemma Step_lc2 : forall {a b}, Step a b -> lc_tm b.
+Proof. intros. induction H; eauto. 
+       all: invert_lc.
+       eapply lc_body_tm_wrt_tm; eauto.
+       eauto.
+       econstructor; eauto.
+       eapply lc_body_tm_wrt_tm; eauto.
+Qed.
+
+
+Lemma CDefEq_DefEq_lc : 
+  (forall P phi phi0 a b,
+  CDefEq P phi phi0 a b -> lc_tm a /\ lc_tm b) /\
+  (forall P phi a b,
+  DefEq P phi a b -> lc_tm a /\ lc_tm b).
+Proof.
+  eapply CDefEq_DefEq_mutual.
+  all: intros; split_hyp; split; repeat invert_lc; eauto using Grade_lc.
+  all: try solve [eapply lc_body_tm_wrt_tm; eauto using Grade_lc].
+  all: pick fresh x; repeat spec x; split_hyp.
+  eapply lc_a_Pi_exists; eauto.
+  eapply lc_a_Pi_exists; eauto.
+  eapply lc_a_Abs_exists; eauto.
+  eapply lc_a_Abs_exists; eauto.
+  eapply lc_a_WSigma_exists; eauto.
+  eapply lc_a_WSigma_exists; eauto.
+  eapply lc_a_LetPair_exists; eauto.
+  eapply lc_a_LetPair_exists; eauto.
+  eapply lc_a_SSigma_exists; eauto.
+  eapply lc_a_SSigma_exists; eauto.
+  rewrite (subst_tm_tm_intro x); auto.
+  eapply subst_tm_tm_lc_tm; auto.
+  rewrite (subst_tm_tm_intro x); auto.
+  eapply subst_tm_tm_lc_tm; auto.
+Qed.
+
+Lemma DefEq_lc1 : forall {W a psi b}, DefEq W psi a b -> lc_tm a.
+Proof. intros. move: CDefEq_DefEq_lc => [h1 h2]. move: (h2 _ _ _ _ H) => h3. split_hyp. auto. Qed.
+Lemma DefEq_lc2 : forall {W a psi b}, DefEq W psi a b -> lc_tm b.
+Proof. intros. move: CDefEq_DefEq_lc => [h1 h2]. move: (h2 _ _ _ _ H) => h3. split_hyp. auto. Qed.
+Lemma CDefEq_lc1 : forall {W a psi phi b}, CDefEq W psi phi a b -> lc_tm a.
+Proof. intros. move: CDefEq_DefEq_lc => [h1 h2]. move: (h1 _ _ _ _ _ H) => h3. split_hyp. auto. Qed.
+Lemma CDefEq_lc2 : forall {W a psi phi b}, CDefEq W psi phi a b -> lc_tm b.
+Proof. intros. move: CDefEq_DefEq_lc => [h1 h2]. move: (h1 _ _ _ _ _ H) => h3. split_hyp. auto. Qed.
+
+
+
+Lemma Typing_lc1 : 
+  (forall P phi a b,
+  Typing P phi a b -> lc_tm a).
+Proof.
+  induction 1.
+  all: intros; split_hyp; repeat invert_lc; eauto using Grade_lc.  
+  pick fresh x; repeat spec x.
+  pick fresh y; repeat spec y.
+  eapply lc_a_LetPair_exists; eauto.
+Qed.
+
+Lemma CTyping_lc1 : forall W q a A, CTyping W q a A -> lc_tm a. 
+Proof. intros. induction H; eauto using Typing_lc1. Qed.
+
+
+Lemma CPar_Par_lc : 
+  (forall P phi phi0 a b,
+  CPar P phi phi0 a b -> lc_tm a /\ lc_tm b) /\
+  (forall P phi a b,
+  Par P phi a b -> lc_tm a /\ lc_tm b).
+Proof.
+  eapply CPar_Par_mutual.
+  all: intros; split_hyp; split; repeat invert_lc; eauto using Grade_lc.
+  all: try solve [eapply lc_body_tm_wrt_tm; eauto using Grade_lc].  
+  all: pick fresh x; repeat spec x; split_hyp.
+  eapply lc_a_Pi_exists; eauto.
+  eapply lc_a_Pi_exists; eauto.
+  eapply lc_a_Abs_exists; eauto.
+  eapply lc_a_Abs_exists; eauto.
+  eapply lc_a_WSigma_exists; eauto.
+  eapply lc_a_WSigma_exists; eauto.
+  eapply lc_a_LetPair_exists; eauto.
+  econstructor; eauto.
+  rewrite (subst_tm_tm_intro x); auto.
+  eapply subst_tm_tm_lc_tm; auto.
+  eapply lc_a_LetPair_exists; eauto.
+  eapply lc_a_LetPair_exists; eauto.
+  eapply lc_a_SSigma_exists; eauto.
+  eapply lc_a_SSigma_exists; eauto.
+Qed.
+
+Lemma Par_lc1 : forall {W a psi b}, Par W psi a b -> lc_tm a.
+Proof. intros. move: CPar_Par_lc => [h1 h2]. move: (h2 _ _ _ _ H) => h3. split_hyp. auto. Qed.
+Lemma Par_lc2 : forall {W a psi b}, Par W psi a b -> lc_tm b.
+Proof. intros. move: CPar_Par_lc => [h1 h2]. move: (h2 _ _ _ _ H) => h3. split_hyp. auto. Qed.
+Lemma CPar_lc1 : forall {W a psi phi b}, CPar W psi phi a b -> lc_tm a.
+Proof. intros. move: CPar_Par_lc => [h1 h2]. move: (h1 _ _ _ _ _ H) => h3. split_hyp. auto. Qed.
+Lemma CPar_lc2 : forall {W a psi phi b}, CPar W psi phi a b -> lc_tm b.
+Proof. intros. move: CPar_Par_lc => [h1 h2]. move: (h1 _ _ _ _ _ H) => h3. split_hyp. auto. Qed.
+
+
+
+Lemma MultiPar_lc1 : forall {G a psi a'}, MultiPar G psi a a' -> lc_tm a.
+Proof. induction 1. eauto using Grade_lc. eauto using Par_lc1. Qed.
+Lemma MultiPar_lc2 : forall {G a psi a'}, MultiPar G psi a a' -> lc_tm a'.
+Proof. induction 1; eauto using Grade_lc. Qed.
+
+Lemma ValueType_lc : forall {A}, ValueType A -> lc_tm A.
+Proof. induction 1; eauto. Qed.
+
+Lemma Joins_lc1 : forall {G a psi a'}, Joins G psi a a' -> lc_tm a.
+Proof. induction 1; eauto using MultiPar_lc1. Qed.
+Lemma Joins_lc2 : forall {G a psi a'}, Joins G psi a a' -> lc_tm a'.
+Proof. induction 1; eauto using MultiPar_lc1. Qed.
+
+Lemma CMultiPar_lc1 : forall {G a psi psi0 a'}, CMultiPar G psi psi0 a a' -> lc_tm a.
+Proof. induction 1; eauto using MultiPar_lc1. Qed.
+
+Lemma CMultiPar_lc2 : forall {G a psi psi0 a'}, CMultiPar G psi psi0 a a' -> lc_tm a'.
+Proof. induction 1; eauto using MultiPar_lc2. Qed.
+
+Lemma CJoins_lc1 : forall {G a psi phi a'}, CJoins G psi phi a a' -> lc_tm a.
+Proof. induction 1; eauto using Joins_lc1. Qed.
+
+Lemma CJoins_lc2 : forall {G a psi phi a'}, CJoins G psi phi a a' -> lc_tm a'.
+Proof. induction 1; eauto using Joins_lc2. Qed.

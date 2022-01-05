@@ -241,7 +241,7 @@ Ltac subst_CTyping_ih :=
       specialize (H3 x psi0 A W1 ([(y, (q, A0))] ++ W2)) ; simpl_env in H3 ; 
       specialize (H3 ltac:(reflexivity) ltac:(eassumption)) ;
       unfold subst_ctx in H3; simpl_env in H3 ; specialize (H3 ltac:(solve_uniq));
-        repeat rewrite subst_tm_tm_open_tm_wrt_tm in H3; eauto using CTyping_lc1, CTyping_lc2;
+        repeat rewrite subst_tm_tm_open_tm_wrt_tm in H3; eauto using CTyping_lc1;
           rewrite subst_tm_tm_var_neq in H3; auto end.
 
 Lemma Typing_substitution_CTyping : forall x psi0 A W1 W2 psi b a B, 
