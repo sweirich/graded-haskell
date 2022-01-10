@@ -14,7 +14,7 @@ Download instructions
 
 The artifact is available as a [VirtualBox](https://www.virtualbox.org/) available for download from 
 
-https://www.cis.upenn.edu/~sweirich/esop2022-paper111.ova
+https://drive.google.com/file/d/1r7fiVdKiPF-cHD29mhkF9iWC-Mwj4ZyP/view?usp=sharing
 
 After starting VirtualBox, the machine can be loaded via 
 
