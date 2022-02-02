@@ -30,10 +30,12 @@ scripts is available.
 "A Dependent Dependency Calculus", paper by Pritam Choudhury, Harley Eades III, and Stephanie Weirich.  
 To appear in ESOP 2022.
 
-The draft paper is [available](ddc.pdf).
+The paper is [available](DDC/esop2022-paper111.pdf).
+
+The extended version of the paper, with the full appendix, is available from [arXiv](https://arxiv.org/abs/2201.11040).
 
 This [repository](DDC/) proves type soundness for DDC, including the
 consistency of a grade-indexed definitional equivalence.
 
-A [Virtual Box](https://www.cis.upenn.edu/~sweirich/esop2022-paper111.ova) containing the Coq proof
+A [Virtual Box](https://zenodo.org/record/5903727#.YfqZGvXMLUI) containing the Coq proof
 scripts is available.

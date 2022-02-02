@@ -1,6 +1,8 @@
 The [src](src/) directory includes a Coq specification of a dependently typed
 calculus with dependent functions, unit, products and sums.
 
+This development is also available via a virtual machine, available for download from [zenodo](https://zenodo.org/record/5903727#.YfqZGvXMLUI).
+
 System Specification 
 --------------------
 
