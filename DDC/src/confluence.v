@@ -1,4 +1,5 @@
-Require Import Omega.
+Require Import Lia.
+Require Import Coq.Program.Equality.
 Require Export Qual.geq.
 Require Export Qual.defeq.
 Require Export Qual.par.
@@ -12,7 +13,7 @@ Lemma Par_Abs_inv : forall {S D rho A1 a1 B}, Par S D (a_Abs rho A1 a1) B ->
       exists B1 b1, 
           B = (a_Abs rho B1 b1) 
         /\ forall x, x `notin` fv_tm_tm a1 \u fv_tm_tm b1 \u dom S ->
-               Par ([(x,rho)]++S) D (open_tm_wrt_tm a1 (a_Var_f x)) (open_tm_wrt_tm b1 (a_Var_f x))
+               Par ([(x,rho)]++S) D (open a1 (a_Var_f x)) (open b1 (a_Var_f x))
         /\ CPar S D q_Top A1 B1.
 Proof. 
   intros S D rho A1 a1 B h. 
@@ -87,28 +88,28 @@ Qed.
 (* ----------------------------------------------------------------------------------- *)
 
 Local Ltac use_size_induction a ac Par1 Par2 :=
-  match goal with
+  lazymatch goal with
   | [   IH : forall y: nat, ?T,
         H : Par ?G ?psi a ?b0,
         H4 : Par ?G ?psi a ?b1 |- _ ] =>
-      move: (@IH (size_tm a) ltac:(omega) a ltac:(auto) _ _ _ H _ H4) => [ ac [Par1 Par2]]
+      move: (@IH (size a) ltac:(lia) a ltac:(auto) _ _ _ H _ H4) => [ ac [Par1 Par2]]
   end.
 Local Ltac use_size_induction_open a0 x ac Par1 Par2 :=
    let h0 := fresh in
    let h1 := fresh in
    let EQ1 := fresh in
-   match goal with
+   lazymatch goal with
         | [  H : forall x : atom,
               x `notin` ?L
-              -> Par ?S ?psi (?open_tm_wrt_tm a0 (?a_Var_f x)) ?b
+              -> Par ?S ?psi (?open a0 (?a_Var_f x)) ?b
           ,  H4: forall x : atom,
               x `notin` ?L0
-              -> Par ?S ?psi (?open_tm_wrt_tm a0 (?a_Var_f x)) ?c
+              -> Par ?S ?psi (?open a0 (?a_Var_f x)) ?c
           |- _ ] =>
     move: (@H x ltac:(auto)) => h0; clear H;
     move: (@H4 x ltac:(auto)) => h1; clear H4;
-    move: (size_tm_open_tm_wrt_tm_var a0 x) => EQ1;
-    use_size_induction (open_tm_wrt_tm a0 (a_Var_f x)) ac Par1 Par2;
+    pose proof (EQ1 := size_open_var a0 x);
+    use_size_induction (open a0 (a_Var_f x)) ac Par1 Par2;
     clear h0; clear h1; clear EQ1
   end.
 
@@ -117,39 +118,42 @@ Local Ltac invert_equality :=
   | [ H : _ = _ |- _ ] => inversion H ; clear H
   end.
 
-Lemma confluence_size : forall n a, (size_tm a <= n)%nat -> forall S psi a1, Par S psi a a1 -> forall a2, Par S psi a a2 -> exists b, Par S psi a1 b /\ Par S psi a2 b.
+Lemma confluence_size : 
+  forall n (a:tm), (size a <= n)%nat -> forall S psi a1, 
+      Par S psi a a1 -> forall a2, Par S psi a a2 -> exists b, Par S psi a1 b /\ Par S psi a2 b.
 Proof.
   pose confluence_size_def n :=
-      forall a, (size_tm a <= n)%nat ->  forall S psi a1, Par S psi a a1 -> forall a2, Par S psi a a2 -> exists b, Par S psi a1 b /\ Par S psi a2 b.
-  intro n. fold (confluence_size_def n).  eapply (well_founded_induction_type lt_wf).
+      forall (a:tm), (size a <= n)%nat ->  forall S psi a1, Par S psi a a1 -> forall a2, Par S psi a a2 -> exists b, Par S psi a1 b /\ Par S psi a2 b.
+  intro n. fold (confluence_size_def ltac:(typeclasses eauto) n).  eapply (well_founded_induction_type lt_wf).
   clear n. intros n IH. unfold confluence_size_def in *. clear confluence_size_def.
   intros a SZ S psi a1 P1 a2 P2.
   inversion P1; inversion P2; subst.
-  (* 625 subgoals *)
+  (* 441 subgoals *)
   all: try solve [invert_equality].
 
-  (* 101 subgoals *)
+  (* 75 subgoals *)
   (* refl left *)
   all: try solve [
   match goal with
       | [ P2 : Par _ _ ?b ?b |- exists cc:tm, Par ?S ?D ?b cc /\ Par ?S ?D ?a2 cc ] =>
         exists a2 
       end; split; eauto using Par_Grade2].
-  (*  76 subgoals *)
+  (*  54 subgoals *)
   all: try solve [
   match goal with
       | [ P2 : Par _ _ ?b ?b |- exists cc:tm, Par ?S ?D ?a2 cc /\ Par ?S ?D ?b cc ] =>
         exists a2
       end;  split; eauto using Par_Grade2].
-  (* 52 subgoals *)
+  (* 34 subgoals *)
   all: try invert_equality; subst. 
-  all: simpl in SZ; destruct n; try solve [ inversion SZ ].
+  all: simp_syntax_in SZ; destruct n.
+  all: try solve [ inversion SZ ].
   all: try done.
   - (* pi cong / pi cong *)
     use_size_induction A1 ac Par1 Par2.
-    pick fresh x;
-    use_size_induction_open B1 x bc Par3 Par4;
-    exists (a_Pi psi1 ac (close_tm_wrt_tm x bc));
+    pick fresh x.
+    use_size_induction_open B1 x bc Par3 Par4.
+    exists (a_Pi psi1 ac (close x bc));
     split; eauto;
     exists_apply_Par x; eauto.
   - (* two betas *)
@@ -163,7 +167,7 @@ Proof.
       move: (Par_Abs_inv Par3) => [A'1 [a1' ?]].
       move: (Par_Abs_inv Par4) => [A'2 [a'2 ?]].
       split_hyp; subst; invert_equality; subst.
-      exists (open_tm_wrt_tm a'2 bc).
+      exists (open a'2 bc).
       pick fresh x. repeat spec x. split_hyp.
       split.
       eapply open2; eauto.
@@ -173,7 +177,7 @@ Proof.
       move: (Par_Abs_inv Par3) => [A'1 [a1' ?]].
       move: (Par_Abs_inv Par4) => [A'2 [a'2 ?]].
       split_hyp; subst; invert_equality; subst.
-      exists (open_tm_wrt_tm a'2 b').
+      exists (open a'2 b').
       pick fresh x. repeat spec x. split_hyp.
       split.
       eapply open2; eauto using Par_uniq, Par_lc1, Par_lc2.
@@ -188,7 +192,7 @@ Proof.
        use_size_induction b bc Par3 Par4.
        move: (Par_Abs_inv Par1) => [A'1 [a'1 ?]]; split_hyp; subst.
        pick fresh x. repeat spec x. split_hyp.
-       exists (open_tm_wrt_tm a'1 bc).
+       exists (open a'1 bc).
        split.
        eapply open2; eauto.
        eapply Par_AppBeta; eauto.
@@ -196,7 +200,7 @@ Proof.
        use_size_induction a0 a0c Par1 Par2.
        move: (Par_Abs_inv Par1) => [A'1 [a'1 ?]]; split_hyp; subst.
        pick fresh x. repeat spec x. split_hyp.
-       exists (open_tm_wrt_tm a'1 b').
+       exists (open a'1 b').
        split.
        eapply open2; eauto using Par_uniq.
        eapply Par_AppBeta; eauto.
@@ -210,7 +214,7 @@ Proof.
       use_size_induction b bc Par3 Par4.
       move: (Par_Abs_inv Par2) => [? [a'1 ?]]; split_hyp; subst.
       pick fresh x. repeat spec x. split_hyp.
-      exists (open_tm_wrt_tm a'1 bc).
+      exists (open a'1 bc).
       split.
       eapply Par_AppBeta; eauto.
       eapply open2; eauto.
@@ -218,7 +222,7 @@ Proof.
       use_size_induction a0 a0c Par1 Par2.
       move: (Par_Abs_inv Par2) => [? [a'1 ?]]; split_hyp; subst.
       pick fresh x. repeat spec x. split_hyp.
-      exists (open_tm_wrt_tm a'1 b').
+      exists (open a'1 b').
       split.
       eapply Par_AppBeta; eauto.
       eapply open2; eauto using Par_uniq.
@@ -245,11 +249,11 @@ Proof.
       try done.
     (* rel *)
     + use_size_induction A1 AC Par3 Par4.
-      exists (a_Abs psi1 AC (close_tm_wrt_tm x bc)).
+      exists (a_Abs psi1 AC (close x bc)).
       split.
       exists_apply_Par x.
       exists_apply_Par x.
-    + exists (a_Abs psi1 A1 (close_tm_wrt_tm x bc)).
+    + exists (a_Abs psi1 A1 (close x bc)).
       split.
       exists_apply_Par x.
       exists_apply_Par x.
@@ -257,7 +261,7 @@ Proof.
     use_size_induction A1 ac Par1 Par2.
     pick fresh x.
     use_size_induction_open B1 x bc Par3 Par4.
-    exists (a_WSigma psi1 ac (close_tm_wrt_tm x bc)).
+    exists (a_WSigma psi1 ac (close x bc)).
     split; exists_apply_Par x; eauto.
   - (* two wpair *)
     match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
@@ -279,10 +283,10 @@ Proof.
     move: (Par_WPair_inv Par1) => [a'1 [b1' ?]]; split_hyp; subst.
     move: (Par_WPair_inv Par2) => [a'2 [b2' ?]]; split_hyp; subst.
     invert_equality; subst.
-    exists (a_App (open_tm_wrt_tm (close_tm_wrt_tm x bc) a'2) q_Bot b2'). 
-    repeat rewrite <- subst_tm_tm_spec.
-    rewrite (subst_tm_tm_intro x b2); auto.
-    rewrite (subst_tm_tm_intro x b3); auto.
+    exists (a_App (open (close x bc) a'2) q_Bot b2'). 
+    repeat rewrite <- subst_spec.
+    rewrite (subst_intro x b2); auto.
+    rewrite (subst_intro x b3); auto.
     split. 
     + eapply Par_App; eauto using leq_Bot.
       eapply Par_subst3; try eassumption. 
@@ -293,24 +297,24 @@ Proof.
     pick fresh x.
     use_size_induction_open b1 x bc Par3 Par4.
     move: (Par_WPair_inv Par1) => [a'1 [b1' ?]]; split_hyp; subst.
-    exists (a_App (open_tm_wrt_tm (close_tm_wrt_tm x bc) a'1) q_Bot b1'). 
-    rewrite <- subst_tm_tm_spec.
-    rewrite (subst_tm_tm_intro x b2); auto.
+    exists (a_App (open (close x bc) a'1) q_Bot b1'). 
+    rewrite <- subst_spec.
+    rewrite (subst_intro x b2); auto.
     split.
     + eapply Par_App; eauto using leq_Bot.
       eapply Par_subst3; try eassumption. 
-    + rewrite subst_tm_tm_spec.
+    + rewrite subst_spec.
       exists_apply_Par x.
   - (* letpair cong / beta *)
     use_size_induction a0 ac Par1 Par2.
     pick fresh x.
     use_size_induction_open b1 x bc Par3 Par4.
     move: (Par_WPair_inv Par2) => [a'1 [b1' ?]]; split_hyp; subst.
-    exists (a_App (open_tm_wrt_tm (close_tm_wrt_tm x bc) a'1) q_Bot b1'). 
-    rewrite <- subst_tm_tm_spec.
-    rewrite (subst_tm_tm_intro x b3); auto.
+    exists (a_App (open (close x bc) a'1) q_Bot b1'). 
+    rewrite <- subst_spec.
+    rewrite (subst_intro x b3); auto.
     split.
-    + rewrite subst_tm_tm_spec.
+    + rewrite subst_spec.
       exists_apply_Par x.
     + eapply Par_App; eauto using leq_Bot.
       eapply Par_subst3; try eassumption. 
@@ -318,7 +322,7 @@ Proof.
     use_size_induction a0 ac Par1 Par2.
     pick fresh x.
     use_size_induction_open b1 x bc Par3 Par4.
-    exists (a_LetPair psi1 ac (close_tm_wrt_tm x bc)).
+    exists (a_LetPair psi1 ac (close x bc)).
     split.
     exists_apply_Par x.
     exists_apply_Par x.
@@ -326,7 +330,7 @@ Proof.
     use_size_induction A1 ac Par1 Par2.
     pick fresh x.
     use_size_induction_open B1 x bc Par3 Par4.
-    exists (a_SSigma psi1 ac (close_tm_wrt_tm x bc)).
+    exists (a_SSigma psi1 ac (close x bc)).
     split; exists_apply_Par x; eauto.
   - (* SPair cong / cong *)
     match goal with [ H : CPar ?S ?psi ?phi _ _ |- _ ] => inversion H; clear H end;
@@ -340,7 +344,10 @@ Proof.
     use_size_induction b1 bc Par3 Par4.
     exists (a_SPair a3 psi1 bc).
     split. eauto. eauto.
+Admitted. (* need more size rules *)
+(*
   - (* fst beta / fst beta *)
+    admit. 
     use_size_induction a0 ac Par1 Par2.
     move: (Par_SPair_inv Par1) => [a'1 [b1' ?]]; split_hyp; subst.
     move: (Par_SPair_inv Par2) => [a'2 [b2' ?]]; split_hyp; subst.
@@ -462,7 +469,7 @@ Proof.
     use_size_induction b2 b2c Par5 Par6.
     exists (a_Case psi1 ac b1c b2c).
     split; eauto.
-Qed.
+Qed. *)
 
 Lemma confluence : forall {S a psi a1}, Par S psi a a1 -> forall {a2}, Par S psi a a2 -> exists b, Par S psi a1 b /\ Par S psi a2 b.
 Proof.

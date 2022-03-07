@@ -16,7 +16,7 @@ Proof. intros. induction H; eauto.
        destruct IHP_sub. eauto. split_hyp. eexists. split; eauto.
 Qed.
 
-Hint Constructors P_sub : core.
+#[export] Hint Constructors P_sub : core.
 Lemma P_sub_refl : forall P, uniq P -> P_sub P P.
 Proof. induction 1; econstructor; eauto. reflexivity. Qed.
 
@@ -60,8 +60,8 @@ Hint Rewrite labels_one : rewr_list.
 Hint Rewrite labels_app : rewr_list.
 Hint Rewrite labels_dom : rewr_dom.
 
-Hint Resolve labels_uniq : core.
-Hint Resolve binds_labels_2 : core.
+#[export] Hint Resolve labels_uniq : core.
+#[export] Hint Resolve binds_labels_2 : core.
 
 (* ctx_sub *)
 
@@ -148,4 +148,4 @@ Hint Rewrite meet_ctx_l_one : rewr_list.
 Hint Rewrite meet_ctx_l_app : rewr_list.
 Hint Rewrite meet_ctx_l_subst_ctx : rewr_list.
 
-Hint Resolve meet_ctx_l_uniq : core.
+#[export] Hint Resolve meet_ctx_l_uniq : core.

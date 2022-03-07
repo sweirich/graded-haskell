@@ -1,6 +1,7 @@
 embed
 {{ coq-preamble
 Require Export Metalib.LibLNgen. 
+Require Export Qual.classes.
 Require Export Qual.grade_sig.
 Require Export Qual.sort_sig.
 }}
@@ -64,7 +65,7 @@ tm, a , b , c , A , B , C , u , v , t :: 'a_' ::= {{ com terms and types }}
 
    %% standard substitution, using open
    | a { b / x }      :: S :: Subst
-     {{ coq (open_tm_wrt_tm [[x a]] [[b]]) }}
+     {{ coq (open [[x a]] [[b]]) }}
 
    %% Ott parsing precedence is hard
    | (# a #)          :: S :: SecretParen
@@ -225,10 +226,10 @@ formula :: 'formula_' ::=
     {{ tex [[x]]\! :^{[[psi]]}\![[A]] \in [[ W ]] }}
     {{ coq binds [[x]] ([[psi]], [[A]]) [[W]] }}
   | x in fv a             ::   :: used
-    {{ coq [[x]] `in` fv_tm_tm_tm [[a]] }}
+    {{ coq [[x]] `in` fv [[a]] }}
     {{ tex [[x]]\ [[in]]\ [[fv]]\ [[a]] }}
   | x notin fv a             ::   :: fresh
-    {{ coq [[x]] `notin` fv_tm_tm_tm [[a]] }}
+    {{ coq [[x]] `notin` fv [[a]] }}
   | x notin dom W            ::   :: notInGx
     {{ coq ~ AtomSetImpl.In [[x]] (dom [[W]]) }}
   | x notin dom D            ::   :: notInDx
@@ -357,6 +358,21 @@ Fixpoint close_tm_wrt_tm_rec (n1 : nat) (x1 : tmvar) (a1 : tm) {struct a1} : tm 
   end.
 
 Definition close_tm_wrt_tm x1 a1 := close_tm_wrt_tm_rec 0 x1 a1.
+
+#[global]
+Instance Syntax_tm : Syntax tm := { 
+    fv := fv_tm_tm;
+    close := close_tm_wrt_tm;
+    lc := lc_tm;
+}.
+
+#[global] Opaque Syntax_tm.
+
+#[global] Instance Subst_tm : Subst tm tm := {
+    open := open_tm_wrt_tm;
+    subst := subst_tm_tm
+}.
+
 
 }}
 

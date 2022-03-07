@@ -6,7 +6,7 @@ Set Implicit Arguments.
 Open Scope grade_scope.
 
 
-Definition Ctx_Prop (W:context) := (forall x psi A, binds x (psi, A) W -> fv_tm_tm A [<=] dom W).
+Definition Ctx_Prop (W:context) := (forall x psi A, binds x (psi, A) W -> fv A [<=] dom W).
 
 Lemma Ctx_Prop_meet_ctx_l : forall W, Ctx_Prop W -> Ctx_Prop (meet_ctx_l q_C W).
 Proof. intros W. unfold Ctx_Prop. intros.
@@ -15,7 +15,7 @@ Proof. intros W. unfold Ctx_Prop. intros.
        rewrite -> dom_meet_ctx_l in *. invert_equality. eapply H. eauto.
 Qed.       
 
-Lemma Ctx_Prop_cons : forall x q A W, fv_tm_tm A [<=] dom W -> Ctx_Prop W -> Ctx_Prop ([(x, (q, A))] ++ W).
+Lemma Ctx_Prop_cons : forall x q A W, fv A [<=] dom W -> Ctx_Prop W -> Ctx_Prop ([(x, (q, A))] ++ W).
 Proof.
   intros.
   unfold Ctx_Prop in *.
@@ -25,12 +25,17 @@ Proof.
   simpl. rewrite H0. fsetdec. eauto.
 Qed.
 
+#[global] Opaque Syntax_tm. 
+#[global] Opaque Subst_tm.
+#[global] Opaque SubstOpen_tm.
 
-Lemma Typing_ctx_fv_helper : forall W psi a A, Typing W psi a A -> Ctx_Prop W -> fv_tm_tm a [<=] dom W /\ fv_tm_tm A [<=] dom W.
+
+Lemma Typing_ctx_fv_helper : forall W psi a A, Typing W psi a A -> Ctx_Prop W -> fv a [<=] dom W /\ fv A [<=] dom W.
 Proof.
   intros W psi a A H CTX. induction H.
-  all: split; simpl.
-  all: simpl in *.
+
+  all: split; simp_syntax. 
+
   all: try rewrite -> dom_meet_ctx_l in *. 
 
   all: repeat match goal with [ H : Ctx_Prop _ -> _ |- _ ] => specialize (H ltac:(eauto using Ctx_Prop_meet_ctx_l)) end.
@@ -49,12 +54,10 @@ Proof.
 
   all: try fsetdec.
 
-  all: try solve [simpl in *;
-                  rewrite fv_tm_tm_open_tm_wrt_tm_upper;
+  all: try solve [rewrite fv_open_upper;
                   fsetdec].
 
-  all: try solve [simpl in *;
-                  try rewrite <- fv_tm_tm_open_tm_wrt_tm_lower in *;
+  all: try solve [try rewrite <- fv_open_lower in *;
                   fsetdec].
 
   all: pick fresh z. 
@@ -62,20 +65,27 @@ Proof.
   all: pick fresh w.
   all: repeat spec w.
   all: move: (Ctx_Prop_meet_ctx_l CTX) => MCTX.
-  all: try match goal with [H : Ctx_Prop ?C -> fv_tm_tm (open_tm_wrt_tm _ _) [<=] _ /\ _ |- _ ] => 
-                            rewrite <- fv_tm_tm_open_tm_wrt_tm_lower in H end. 
+  all: try match goal with [H : Ctx_Prop ?C -> fv (open _ _) [<=] _ /\ _ |- _ ] => 
+                            rewrite <- fv_open_lower in H end. 
   all:  have lemma: forall x A B, A [<=] add x B -> x `notin` A ->  A [<=] B by clear; intros; fsetdec.
+
+
+Admitted.
+
+(* need more fv rewrites 
 
   - match goal with [ H4 : Ctx_Prop _ -> _ |- _ ] =>  specialize (H4 ltac:(eapply Ctx_Prop_cons; auto; try fsetdec)) end.
     split_hyp.
     move: (lemma z _ _ H0 ltac:(fsetdec)) => h.
     eapply AtomSetProperties.union_subset_3; auto.
 
-  - match goal with [ H4 : Ctx_Prop _ -> _ |- _ ] =>  specialize (H4 ltac:(eapply Ctx_Prop_cons; auto; try fsetdec)) end.
+  - admit. 
+    (* match goal with [ H4 : Ctx_Prop _ -> _ |- _ ] =>  specialize (H4 ltac:(eapply Ctx_Prop_cons; auto; try fsetdec)) end.
     split_hyp.
     move: (lemma z _ _ H ltac:(fsetdec)) => h.
     eapply AtomSetProperties.union_subset_3; auto.
-    fsetdec.
+    fsetdec. *)
+
 
   - match goal with [ H4 : Ctx_Prop _ -> _ |- _ ] =>  specialize (H4 ltac:(eapply Ctx_Prop_cons; auto; try fsetdec)) end.
     split_hyp.
@@ -89,10 +99,10 @@ Proof.
 
   - destruct H2.
     eapply Ctx_Prop_cons; auto. simpl. rewrite dom_meet_ctx_l. auto.
-    rewrite fv_tm_tm_open_tm_wrt_tm_upper.
-    rewrite <- fv_tm_tm_open_tm_wrt_tm_lower in H2.
+    rewrite fv_open_upper.
+    rewrite <- fv_open_lower in H2.
     rewrite dom_meet_ctx_l in H2.
-    have FC: z `notin` fv_tm_tm C.  clear Fr0. auto.
+    have FC: z `notin` fv C.  clear Fr0. auto.
     move: (lemma z _ _ H2 FC) => h.
     clear Fr Fr0. fsetdec.
 
@@ -105,12 +115,12 @@ Proof.
     clear Fr0.
     eapply Ctx_Prop_cons; auto. simpl. rewrite dom_meet_ctx_l. auto.
     rewrite -> dom_meet_ctx_l in H.
-    rewrite fv_tm_tm_open_tm_wrt_tm_upper.
-    have FC: z `notin` fv_tm_tm B.  clear Fr0. auto.
+    rewrite fv_open_upper.
+    have FC: z `notin` fv B.  clear Fr0. auto.
     move: (lemma z _ _ H FC) => h.
     eapply AtomSetProperties.union_subset_3; auto.
 
-Qed.    
+Qed.     *)
 
 Lemma Typing_ctx_fv_Ctx : forall W, Ctx W -> Ctx_Prop W.
 induction 1. unfold Ctx_Prop. intros. inversion H.
@@ -120,7 +130,7 @@ split_hyp.
 rewrite dom_meet_ctx_l in H2. auto. auto.
 Qed.
   
-Lemma Typing_ctx_fv : forall W psi a A, Typing W psi a A -> Ctx W -> fv_tm_tm a [<=] dom W /\ fv_tm_tm A [<=] dom W.
+Lemma Typing_ctx_fv : forall W psi a A, Typing W psi a A -> Ctx W -> fv a [<=] dom W /\ fv A [<=] dom W.
 Proof.
   intros.
   eapply Typing_ctx_fv_helper; eauto.

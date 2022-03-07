@@ -1,5 +1,6 @@
 Require Import Omega.
 Require Export Qual.geq.
+Require Import Coq.Program.Equality.
 
 Set Implicit Arguments.
 
@@ -94,20 +95,20 @@ Qed.
 Lemma MultiPar_subst3_CMultiPar : 
     forall P1 a a' x phi psi, MultiPar ([(x,phi)] ++ P1) psi a a' ->    
     forall b b', CMultiPar P1 psi phi b b' ->
-    MultiPar P1 psi (subst_tm_tm b x a) (subst_tm_tm b' x a').
+    MultiPar P1 psi (subst b x a) (subst b' x a').
 Proof.
   intros P1 a a' x phi psi MP.
   intros b b' CMP.
-  eapply MultiPar_trans with (b := subst_tm_tm b' x a).
+  eapply MultiPar_trans with (b := subst b' x a).
   + inversion CMP; subst.
     ++ induction H0. 
        eapply MP_Refl. 
        eapply Grade_substitution_same with (P2 := nil); eauto using MultiPar_Grade1.
-       eapply MP_Step with (b:= (subst_tm_tm b x a)).
+       eapply MP_Step with (b:= (subst b x a)).
        eapply Par_subst3; eauto. 
        eapply Par_Refl; eauto using MultiPar_Grade1.
        eapply IHMultiPar; eauto.
-    ++ eapply MP_Step with (b := subst_tm_tm b' x a).
+    ++ eapply MP_Step with (b := subst b' x a).
        eapply Par_subst3; eauto.
        eapply Par_Refl; eauto using MultiPar_Grade1.
        eapply MP_Refl.
@@ -119,7 +120,7 @@ Proof.
     dependent induction MP; intros.
     ++ eapply MP_Refl.
        eapply Grade_substitution_CGrade with (P2 := nil); eauto.
-    ++ eapply MP_Step with (b := subst_tm_tm b' x b).
+    ++ eapply MP_Step with (b := subst b' x b).
        eapply Par_substitution_CGrade with (P2 := nil); eauto.
        eapply IHMP; eauto.
 Qed.       
@@ -127,7 +128,7 @@ Qed.
 Lemma MultiPar_subst3 : 
     forall P1 a a' x phi psi, MultiPar ([(x,phi)] ++ P1) psi a a' ->    
     forall b b', MultiPar P1 psi b b' ->
-    MultiPar P1 psi (subst_tm_tm b x a) (subst_tm_tm b' x a').
+    MultiPar P1 psi (subst b x a) (subst b' x a').
 Proof.
   intros. eapply MultiPar_subst3_CMultiPar; eauto.
   destruct (q_leb phi psi) eqn: LE.
@@ -149,20 +150,20 @@ Qed.
 
 
 Lemma MultiPar_renaming : forall y x psi0 P psi b1 b2, 
-    x `notin` dom P \u fv_tm_tm b1 \u fv_tm_tm b2 -> 
-    y `notin` dom P \u fv_tm_tm b1 \u fv_tm_tm b2 \u {{x}} -> 
-    MultiPar ([(y, psi0)] ++ P) psi (open_tm_wrt_tm b1 (a_Var_f y)) (open_tm_wrt_tm b2 (a_Var_f y)) -> 
-    MultiPar ([(x, psi0)] ++ P) psi (open_tm_wrt_tm b1 (a_Var_f x)) (open_tm_wrt_tm b2 (a_Var_f x)).
+    x `notin` dom P \u fv b1 \u fv b2 -> 
+    y `notin` dom P \u fv b1 \u fv b2 \u {{x}} -> 
+    MultiPar ([(y, psi0)] ++ P) psi (open b1 (a_Var_f y)) (open b2 (a_Var_f y)) -> 
+    MultiPar ([(x, psi0)] ++ P) psi (open b1 (a_Var_f x)) (open b2 (a_Var_f x)).
 Proof.
   intros.
-  rewrite (subst_tm_tm_intro y b1); auto.
-  rewrite (subst_tm_tm_intro y b2); auto.
+  rewrite (subst_intro y b1); auto.
+  rewrite (subst_intro y b2); auto.
   move: (MultiPar_uniq H1) => u. 
   eapply MultiPar_subst3_CMultiPar.
   eapply MultiPar_weakening_middle; eauto.
   destruct (q_leb psi0 psi) eqn:LE.
   eapply CMP_Leq; eauto. eapply MP_Refl. eapply G_Var; eauto. solve_uniq.
-  eapply CMP_Nleq; eauto. rewrite LE. done. solve_uniq.
+  eapply CMP_Nleq; eauto with lc. rewrite LE. done. solve_uniq.
 Qed.
 
 
@@ -187,7 +188,7 @@ Qed.
 
 
 Local Ltac  Par_respects_ih b':= 
-  match goal with [H3 : forall a', GEq ([(?x, _)] ++ _) ?psi (open_tm_wrt_tm ?B1 (a_Var_f ?x)) a' -> _
+  match goal with [H3 : forall a', GEq ([(?x, _)] ++ _) ?psi (open ?B1 (a_Var_f ?x)) a' -> _
                    |- _ ] =>  move: (H3 _ ltac:(eassumption)) => [b' ?]; split_hyp end.  
 
 
@@ -210,28 +211,28 @@ Proof.
   - (* Pi *)
     pick fresh x; repeat spec x.
     Par_respects_ih b'.
-    exists (a_Pi psi1 a1' (close_tm_wrt_tm x b')).
+    exists (a_Pi psi1 a1' (close x b')).
     split.
     exists_apply_Par x.
     exists_apply_GEq x.
   - (* App Rel *)
     inversion GE1'; subst; clear GE1'.
     pick fresh y; repeat spec y.
-    exists (open_tm_wrt_tm b0 b2').
+    exists (open b0 b2').
     split.
     eapply Par_AppBeta; eauto.
     eapply GEq_open; eauto.
   - (* Abs cases *)    
     pick fresh x. repeat spec x.
     Par_respects_ih b'.
-    exists (a_Abs psi0 b2' (close_tm_wrt_tm x b')).
+    exists (a_Abs psi0 b2' (close x b')).
     split.
     exists_apply_Par x.
     exists_apply_GEq x.
   - (* WSigma *)
     pick fresh x; repeat spec x.
     Par_respects_ih b'.
-    exists (a_WSigma psi1 a1' (close_tm_wrt_tm x b')).
+    exists (a_WSigma psi1 a1' (close x b')).
     split.
     exists_apply_Par x.
     exists_apply_GEq x.
@@ -240,24 +241,24 @@ Proof.
     edestruct H as [a3 [Pa GE]]; eauto. invert_GEq. subst.
     pick fresh x.  repeat spec x.
     Par_respects_ih a4'.
-    exists (a_App (open_tm_wrt_tm (close_tm_wrt_tm x a4') a4) q_Bot b4).
+    exists (a_App (open (close x a4') a4) q_Bot b4).
     split.
     exists_apply_Par x.
     eapply GEq_App.
-    eapply GEq_open; eauto. rewrite fv_tm_tm_close_tm_wrt_tm. auto.
-    rewrite open_tm_wrt_tm_close_tm_wrt_tm. auto.
+    eapply GEq_open; eauto. rewrite fv_close. auto.
+    rewrite open_close. auto.
     eapply CEq_Leq; eauto using leq_Bot. 
   - (* LetPair Cong *)
     pick fresh x. repeat spec x.
     Par_respects_ih a4'.
-    exists (a_LetPair psi0 a1' (close_tm_wrt_tm x a4')).
+    exists (a_LetPair psi0 a1' (close x a4')).
     split.
     exists_apply_Par x. 
     exists_apply_GEq x. 
   - (* SSigma *)
     pick fresh x; repeat spec x.
     Par_respects_ih b'.
-    exists (a_SSigma psi1 a1' (close_tm_wrt_tm x b')).
+    exists (a_SSigma psi1 a1' (close x b')).
     split.
     exists_apply_Par x.
     exists_apply_GEq x.
@@ -295,27 +296,27 @@ Proof. intros. move: CPar_Par_respects_GEq => [_ h]. eauto. Qed.
 
 Lemma open2 :
   forall x b b' W a a' phi psi,
-    x `notin` fv_tm_tm a' \u fv_tm_tm a \u dom W ->
-    Par ([(x,phi)] ++ W) psi (open_tm_wrt_tm a (a_Var_f x)) (open_tm_wrt_tm a' (a_Var_f x)) ->
+    x `notin` fv a' \u fv a \u dom W ->
+    Par ([(x,phi)] ++ W) psi (open a (a_Var_f x)) (open a' (a_Var_f x)) ->
     CPar W psi phi b b' ->
-    Par W psi (open_tm_wrt_tm a b) (open_tm_wrt_tm a' b').
+    Par W psi (open a b) (open a' b').
 Proof.
   intros x b b'. intros.
-  rewrite (subst_tm_tm_intro x); auto.
-  rewrite [(_ _ b')] (subst_tm_tm_intro x); auto.
+  rewrite (subst_intro x); auto.
+  rewrite [(_ _ b')] (subst_intro x); auto.
   replace W with (nil ++ W); auto.
   eapply Par_subst3; eauto.
 Qed.
 
 
-Lemma Par_open_tm_wrt_tm_preservation: forall G B1 psi B2 x, 
-    Par G psi (open_tm_wrt_tm B1 (a_Var_f x)) B2 -> 
-    exists B', B2 = open_tm_wrt_tm B' (a_Var_f x) /\ 
-          Par G psi (open_tm_wrt_tm B1 (a_Var_f x)) (open_tm_wrt_tm B' (a_Var_f x)).
+Lemma Par_open_preservation: forall G B1 psi B2 x, 
+    Par G psi (open B1 (a_Var_f x)) B2 -> 
+    exists B', B2 = open B' (a_Var_f x) /\ 
+          Par G psi (open B1 (a_Var_f x)) (open B' (a_Var_f x)).
 Proof.
   intros G B1 psi B2 x H.
-  exists (close_tm_wrt_tm x B2).
-  have:open_tm_wrt_tm (close_tm_wrt_tm x B2) (a_Var_f x) = B2 by apply open_tm_wrt_tm_close_tm_wrt_tm.
+  exists (close x B2).
+  have:open (close x B2) (a_Var_f x) = B2 by apply open_close.
   move => h0.
   split; eauto.
   rewrite h0.

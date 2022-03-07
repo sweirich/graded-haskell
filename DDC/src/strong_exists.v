@@ -16,7 +16,7 @@ Definition wproj2 psi0 a B := a_LetPair psi0 a (a_Abs q_Bot B (a_Var_b 0)).
 Local Hint Resolve lc_body_tm_wrt_tm : core.
 
 Lemma wproj1_lc : forall a1 psi0 B, 
-    lc_tm a1 -> body_tm_wrt_tm B ->
+    lc_tm a1 -> (forall x, lc (open B (a_Var_f x)))  ->
     lc_tm (a_LetPair psi0 a1 (a_Abs q_Bot B (a_Var_b 1))).
 Proof.
   intros.

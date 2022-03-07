@@ -1,6 +1,7 @@
 -R . Qual 
 Qualitative_inf.v
 Qualitative_ott.v
+classes.v
 confluence.v
 consist.v
 defeq.v

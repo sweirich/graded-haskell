@@ -1,6 +1,7 @@
 Require Export Qual.metalib.
 Require Export Qual.tactics.
 Require Export Qual.labels. 
+Require Import Coq.Program.Equality.
 
 Set Implicit Arguments.
 Open Scope grade_scope.

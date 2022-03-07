@@ -1,4 +1,5 @@
-Require Import Omega.
+Require Import Coq.Program.Equality.
+
 Require Export Qual.geq.
 Require Export Qual.defeq.
 Require Export Qual.par.
@@ -137,18 +138,18 @@ Proof.
   move: (MultiPar_lc1 MSR) => lc2.
   move: (MultiPar_lc2 MSL) => lc3.
   destruct a1; try step_left; destruct a2; try step_right; auto.
-  (* 34 subgoals. At this point all cases have a value type form on both left and right. *)
+  (* 35 subgoals. At this point all cases have a value type form on both left and right. *)
   (* Resolve the MP of these type forms. *)
   all: try MultiPar_step EQ1.
   all: try MultiPar_step EQ2.
 
   all: subst; match goal with [H : GEq _ _ _ _ |- _ ] => inversion H; subst end.
 
-  (* 4 cases that actually are consistent. *)
-  all: repeat match goal with [H : lc_tm (_ _) |- _ ] => inversion H; subst; clear H end.
-  all: eauto.
-  
-Qed. 
+  (* 5 cases that actually are consistent. *)
+  all: repeat invert_lc; subst.
+  all: eauto with lc.
+  (* need _exists lemmas for last two. *)
+Admitted.
 
 
 (*
@@ -257,12 +258,11 @@ Qed.
 
 (* --------------------------------------------- *)
 
-
 Lemma MultiPar_Pi :  forall (L : atoms) (P : econtext) (psi psi1 : grade) (A1 B1 A2 B2 : tm),
     MultiPar P psi A1 A2 ->
     (forall x : atom,
         x `notin` L -> MultiPar ([(x, psi)] ++ P) psi 
-                               (open_tm_wrt_tm B1 (a_Var_f x)) (open_tm_wrt_tm B2 (a_Var_f x))) ->
+                               (open B1 (a_Var_f x)) (open B2 (a_Var_f x))) ->
     MultiPar P psi (a_Pi psi1 A1 B1) (a_Pi psi1 A2 B2).
 Proof.
   intros.
@@ -276,16 +276,16 @@ Proof.
        eapply Par_Refl; eauto using MultiPar_Grade1.
   + pick fresh x. repeat spec x.
     dependent induction H1.
-    ++ apply open_tm_wrt_tm_inj in x; auto. subst.
+    ++ apply open_inj in x; auto. subst.
        eapply MP_Refl; eauto.
        fresh_apply_Grade y; eauto 2 using MultiPar_Grade2.
        eapply (@Grade_renaming x0); auto.
-    ++ eapply MP_Step with (b := a_Pi psi1 A2 (close_tm_wrt_tm x b)).
+    ++ eapply MP_Step with (b := a_Pi psi1 A2 (close x b)).
        fresh_apply_Par y. eapply Par_Refl; eauto using MultiPar_Grade2.
-       rewrite <- (open_tm_wrt_tm_close_tm_wrt_tm b x) in H0.
-       eapply (@Par_renaming x); try rewrite fv_tm_tm_close_tm_wrt_tm; auto.
-       eapply IHMultiPar;  try rewrite fv_tm_tm_close_tm_wrt_tm; eauto 3.
-       rewrite (open_tm_wrt_tm_close_tm_wrt_tm b x).
+       rewrite <- (open_close b x) in H0.
+       eapply (@Par_renaming x); try rewrite fv_close; auto.
+       eapply IHMultiPar;  try rewrite fv_close; eauto 3.
+       rewrite (open_close b x).
        auto.
 Qed.
 
@@ -293,7 +293,7 @@ Lemma MultiPar_WSigma
      : forall (L : atoms) (P : econtext) (psi psi1 : grade) (A1 B1 A2 B2 : tm),
        MultiPar P psi A1 A2 ->
        (forall x : atom,
-        x `notin` L -> MultiPar ([(x,psi)] ++ P) psi (open_tm_wrt_tm B1 (a_Var_f x)) (open_tm_wrt_tm B2 (a_Var_f x))) ->
+        x `notin` L -> MultiPar ([(x,psi)] ++ P) psi (open B1 (a_Var_f x)) (open B2 (a_Var_f x))) ->
        MultiPar P psi (a_WSigma psi1 A1 B1) (a_WSigma psi1 A2 B2).
 Proof.
   intros.
@@ -307,16 +307,16 @@ Proof.
        eapply Par_Refl; eauto using MultiPar_Grade1.
   + pick fresh x. repeat spec x.
     dependent induction H1.
-    ++ apply open_tm_wrt_tm_inj in x; auto. subst.
+    ++ apply open_inj in x; auto. subst.
        eapply MP_Refl; eauto.
        fresh_apply_Grade y; eauto 2 using MultiPar_Grade2.
        eapply (@Grade_renaming x0); auto.
-    ++ eapply MP_Step with (b := a_WSigma psi1 A2 (close_tm_wrt_tm x b)).
+    ++ eapply MP_Step with (b := a_WSigma psi1 A2 (close x b)).
        fresh_apply_Par y. eapply Par_Refl; eauto using MultiPar_Grade2.
-       rewrite <- (open_tm_wrt_tm_close_tm_wrt_tm b x) in H0.
-       eapply (@Par_renaming x); try rewrite fv_tm_tm_close_tm_wrt_tm; auto.
-       eapply IHMultiPar;  try rewrite fv_tm_tm_close_tm_wrt_tm; eauto 3.
-       rewrite (open_tm_wrt_tm_close_tm_wrt_tm b x).
+       rewrite <- (open_close b x) in H0.
+       eapply (@Par_renaming x); try rewrite fv_close; auto.
+       eapply IHMultiPar;  try rewrite fv_close; eauto 3.
+       rewrite (open_close b x).
        auto.
 Qed.
 
@@ -325,7 +325,7 @@ Lemma MultiPar_SSigma
      : forall (L : atoms) (P : econtext) (psi psi1 : grade) (A1 B1 A2 B2 : tm),
        MultiPar P psi A1 A2 ->
        (forall x : atom,
-        x `notin` L -> MultiPar ([(x, psi)] ++ P) psi (open_tm_wrt_tm B1 (a_Var_f x)) (open_tm_wrt_tm B2 (a_Var_f x))) ->
+        x `notin` L -> MultiPar ([(x, psi)] ++ P) psi (open B1 (a_Var_f x)) (open B2 (a_Var_f x))) ->
        MultiPar P psi (a_SSigma psi1 A1 B1) (a_SSigma psi1 A2 B2).
 Proof.
   intros.
@@ -339,39 +339,39 @@ Proof.
        eapply Par_Refl; eauto using MultiPar_Grade1.
   + pick fresh x. repeat spec x.
     dependent induction H1.
-    ++ apply open_tm_wrt_tm_inj in x; auto. subst.
+    ++ apply open_inj in x; auto. subst.
        eapply MP_Refl; eauto.
        fresh_apply_Grade y; eauto 2 using MultiPar_Grade2.
        eapply (@Grade_renaming x0); auto.
-    ++ eapply MP_Step with (b := a_SSigma psi1 A2 (close_tm_wrt_tm x b)).
+    ++ eapply MP_Step with (b := a_SSigma psi1 A2 (close x b)).
        fresh_apply_Par y. eapply Par_Refl; eauto using MultiPar_Grade2.
-       rewrite <- (open_tm_wrt_tm_close_tm_wrt_tm b x) in H0.
-       eapply (@Par_renaming x); try rewrite fv_tm_tm_close_tm_wrt_tm; auto.
-       eapply IHMultiPar;  try rewrite fv_tm_tm_close_tm_wrt_tm; eauto 3.
-       rewrite (open_tm_wrt_tm_close_tm_wrt_tm b x).
+       rewrite <- (open_close b x) in H0.
+       eapply (@Par_renaming x); try rewrite fv_close; auto.
+       eapply IHMultiPar;  try rewrite fv_close; eauto 3.
+       rewrite (open_close b x).
        auto.
 Qed.
 
 Lemma MultiPar_Abs1 : forall (L : atoms) (P : econtext) (psi psi0 : grade) (A1 b1 b2 : tm),
        (forall x : atom,
-        x `notin` L -> MultiPar ([(x, psi0)] ++ P) psi (open_tm_wrt_tm b1 (a_Var_f x)) (open_tm_wrt_tm b2 (a_Var_f x))) ->
+        x `notin` L -> MultiPar ([(x, psi0)] ++ P) psi (open b1 (a_Var_f x)) (open b2 (a_Var_f x))) ->
        CGrade P psi q_Top A1 ->
        MultiPar P psi (a_Abs psi0 A1 b1) (a_Abs psi0 A1 b2).
 Proof.
   intros.
   pick fresh x. repeat spec x.
   dependent induction H1.
-    ++ apply open_tm_wrt_tm_inj in x; auto. subst.
+    ++ apply open_inj in x; auto. subst.
        eapply MP_Refl; eauto.
        fresh_apply_Grade y; eauto 2 using MultiPar_Grade2.
        eapply (@Grade_renaming x0); auto.
-    ++ eapply MP_Step with (b := a_Abs psi0 A1 (close_tm_wrt_tm x b)).
+    ++ eapply MP_Step with (b := a_Abs psi0 A1 (close x b)).
        fresh_apply_Par y. 
-       rewrite <- (open_tm_wrt_tm_close_tm_wrt_tm b x) in H.
-       eapply (@Par_renaming x); try rewrite fv_tm_tm_close_tm_wrt_tm; auto.       
+       rewrite <- (open_close b x) in H.
+       eapply (@Par_renaming x); try rewrite fv_close; auto.       
        inversion H0; eauto.
-       eapply IHMultiPar;  try rewrite fv_tm_tm_close_tm_wrt_tm; eauto 3.
-       rewrite (open_tm_wrt_tm_close_tm_wrt_tm b x).
+       eapply IHMultiPar;  try rewrite fv_close; eauto 3.
+       rewrite (open_close b x).
        auto.
 Qed.
 
@@ -382,11 +382,11 @@ Inductive CMultiPar : econtext -> grade -> grade -> tm -> tm -> Prop :=
                 lc_tm a1 ->
                 lc_tm a2 -> ~ psi0 <= psi -> uniq P -> CMultiPar P psi psi0 a1 a2.
 
-Hint Constructors CMultiPar : core.
+#[export] Hint Constructors CMultiPar : core.
 
 Lemma MultiPar_Abs : forall (L : atoms) (P : econtext) (psi psi0 : grade) (A1 A2 b1 b2 : tm),
        (forall x : atom,
-        x `notin` L -> MultiPar ([(x, psi0)] ++ P) psi (open_tm_wrt_tm b1 (a_Var_f x)) (open_tm_wrt_tm b2 (a_Var_f x))) ->
+        x `notin` L -> MultiPar ([(x, psi0)] ++ P) psi (open b1 (a_Var_f x)) (open b2 (a_Var_f x))) ->
        (CMultiPar P psi q_Top A1 A2) ->
        MultiPar P psi (a_Abs psi0 A1 b1) (a_Abs psi0 A2 b2).
 Proof.
@@ -406,31 +406,31 @@ Lemma MultiPar_WPairBeta
      : forall (L : atoms) (P : econtext) (psi psi0 phi : grade) (a1 b1 b2 a1' a2' : tm),
        MultiPar P psi a1 (a_WPair a1' psi0 a2') ->
        (forall x : atom,
-        x `notin` L -> MultiPar ([(x, psi0)] ++ P) psi (open_tm_wrt_tm b1 (a_Var_f x)) (open_tm_wrt_tm b2 (a_Var_f x))) ->
-       MultiPar P psi (a_LetPair psi0 a1 b1) (a_App (open_tm_wrt_tm b2 a1') q_Bot a2').
+        x `notin` L -> MultiPar ([(x, psi0)] ++ P) psi (open b1 (a_Var_f x)) (open b2 (a_Var_f x))) ->
+       MultiPar P psi (a_LetPair psi0 a1 b1) (a_App (open b2 a1') q_Bot a2').
 Proof.
   intros.
   eapply MultiPar_trans with (b := a_LetPair psi0 a1 b2).
   + pick fresh x. repeat spec x.
     dependent induction H1.
-    ++ apply open_tm_wrt_tm_inj in x; auto. subst.
+    ++ apply open_inj in x; auto. subst.
        eapply MP_Refl; eauto.
        fresh_apply_Grade y; eauto 2 using MultiPar_Grade1.
        eapply (@Grade_renaming x0); auto.
-    ++ eapply MP_Step with (b := a_LetPair psi0 a1 (close_tm_wrt_tm x b)).
+    ++ eapply MP_Step with (b := a_LetPair psi0 a1 (close x b)).
        fresh_apply_Par y. eapply Par_Refl; eauto using MultiPar_Grade1.
-       rewrite <- (open_tm_wrt_tm_close_tm_wrt_tm b x) in H0.
-       eapply (@Par_renaming x); try rewrite fv_tm_tm_close_tm_wrt_tm; auto.
-       eapply IHMultiPar;  try rewrite fv_tm_tm_close_tm_wrt_tm; eauto 3.
-       rewrite (open_tm_wrt_tm_close_tm_wrt_tm b x).
+       rewrite <- (open_close b x) in H0.
+       eapply (@Par_renaming x); try rewrite fv_close; auto.
+       eapply IHMultiPar;  try rewrite fv_close; eauto 3.
+       rewrite (open_close b x).
        auto.
   + dependent induction H; auto. 
-    ++ eapply MP_Step with (b :=  (a_App (open_tm_wrt_tm b2 a1') q_Bot a2')).
+    ++ eapply MP_Step with (b :=  (a_App (open b2 a1') q_Bot a2')).
        fresh_apply_Par x; auto. spec x.
        eapply Par_Refl.
        eapply MultiPar_Grade2; eauto.
        eapply MP_Refl; eauto.
-       have GA: (Grade P psi (open_tm_wrt_tm b2 a1')).
+       have GA: (Grade P psi (open b2 a1')).
        { 
          pick fresh x. spec x.
          invert_Grade; subst. invert_CGrade a1'; subst.
@@ -449,23 +449,23 @@ Lemma MultiPar_LetPair
      : forall (L : atoms) (P : econtext) (psi psi0 phi : grade) (a1 b1 a2 b2 : tm),
        MultiPar P psi a1 a2 ->
        (forall x : atom,
-        x `notin` L -> MultiPar ([(x, psi0)] ++ P) psi (open_tm_wrt_tm b1 (a_Var_f x)) (open_tm_wrt_tm b2 (a_Var_f x))) ->
+        x `notin` L -> MultiPar ([(x, psi0)] ++ P) psi (open b1 (a_Var_f x)) (open b2 (a_Var_f x))) ->
        MultiPar P psi (a_LetPair psi0 a1 b1) (a_LetPair psi0 a2 b2).
 Proof.
   intros.
   eapply MultiPar_trans with (b := a_LetPair psi0 a1 b2).
   + pick fresh x. repeat spec x.
     dependent induction H1.
-    ++ apply open_tm_wrt_tm_inj in x; auto. subst.
+    ++ apply open_inj in x; auto. subst.
        eapply MP_Refl; eauto.
        fresh_apply_Grade y; eauto 2 using MultiPar_Grade1.
        eapply (@Grade_renaming x0); auto.
-    ++ eapply MP_Step with (b := a_LetPair psi0 a1 (close_tm_wrt_tm x b)).
+    ++ eapply MP_Step with (b := a_LetPair psi0 a1 (close x b)).
        fresh_apply_Par y. eapply Par_Refl; eauto using MultiPar_Grade1.
-       rewrite <- (open_tm_wrt_tm_close_tm_wrt_tm b x) in H0.
-       eapply (@Par_renaming x); try rewrite fv_tm_tm_close_tm_wrt_tm; auto.
-       eapply IHMultiPar;  try rewrite fv_tm_tm_close_tm_wrt_tm; eauto 3.
-       rewrite (open_tm_wrt_tm_close_tm_wrt_tm b x).
+       rewrite <- (open_close b x) in H0.
+       eapply (@Par_renaming x); try rewrite fv_close; auto.
+       eapply IHMultiPar;  try rewrite fv_close; eauto 3.
+       rewrite (open_close b x).
        auto.
   + induction H.
     ++ eapply MP_Refl.
@@ -488,15 +488,15 @@ Ltac fresh_apply_MultiPar x :=
 Ltac exists_apply_MultiPar x :=
   let y := fresh in
   fresh_apply_MultiPar y; eauto;
-  eapply (@MultiPar_renaming x); try rewrite fv_tm_tm_close_tm_wrt_tm; auto;
-  rewrite open_tm_wrt_tm_close_tm_wrt_tm; auto.
+  eapply (@MultiPar_renaming x); try rewrite fv_close; auto;
+  rewrite open_close; auto.
 
 (*
 Lemma MultiPar_Pi_exists :  forall x (P : econtext) (psi psi1 : grade) (A1 B1 A2 B' : tm),
-    x `notin` fv_tm_tm B1 \u dom P -> 
+    x `notin` fv B1 \u dom P -> 
     MultiPar P psi A1 A2 ->
-    MultiPar ([(x, q_C)] ++ P) psi (open_tm_wrt_tm B1 (a_Var_f x)) B' ->
-    MultiPar P psi (a_Pi psi1 A1 B1) (a_Pi psi1 A2 (close_tm_wrt_tm x B')).
+    MultiPar ([(x, q_C)] ++ P) psi (open B1 (a_Var_f x)) B' ->
+    MultiPar P psi (a_Pi psi1 A1 B1) (a_Pi psi1 A2 (close x B')).
 Proof.
   intros x P psi psi1 A1 B1 A2 B' Fr MPA MPB.
   exists_apply_MultiPar x.
@@ -518,7 +518,7 @@ Qed.
 Lemma MultiPar_PiSnd : forall W rho (A B A' B' : tm) psi,
     MultiPar W psi (a_Pi rho A B) (a_Pi rho A' B') ->
     exists L, forall x, x `notin` L ->
-              MultiPar ([(x,psi)] ++ W) psi (open_tm_wrt_tm B (a_Var_f x)) (open_tm_wrt_tm B' (a_Var_f x)).
+              MultiPar ([(x,psi)] ++ W) psi (open B (a_Var_f x)) (open B' (a_Var_f x)).
 Proof.
   intros W rho A B A' B' R' h1.
   dependent induction h1; eauto.
@@ -873,9 +873,9 @@ Ltac invert_CJoins :=
 Ltac exists_apply_GEq x :=
   let y := fresh in 
   fresh_apply_GEq y; eauto;
-  eapply (@GEq_renaming x); repeat rewrite fv_tm_tm_close_tm_wrt_tm; eauto;
-  rewrite open_tm_wrt_tm_close_tm_wrt_tm;
-  rewrite open_tm_wrt_tm_close_tm_wrt_tm;
+  eapply (@GEq_renaming x); repeat rewrite fv_close; eauto;
+  rewrite open_close;
+  rewrite open_close;
   auto.
 
 
@@ -898,21 +898,21 @@ Proof.
   - (* Pi cong *)
     pick fresh x. repeat spec x.
     repeat invert_Joins.
-    eapply join with (b1 := a_Pi psi0 b0 (close_tm_wrt_tm x b1)) 
-                     (b2 := a_Pi psi0 b3 (close_tm_wrt_tm x b2)).
+    eapply join with (b1 := a_Pi psi0 b0 (close x b1)) 
+                     (b2 := a_Pi psi0 b3 (close x b2)).
     exists_apply_MultiPar x.
     exists_apply_MultiPar x.
     exists_apply_GEq x.
   - (* Abs cong *)
     pick fresh x. repeat spec x.
     repeat invert_Joins.
-    + eapply join with (b1 := a_Abs psi0 b4 (close_tm_wrt_tm x b0)) 
-                     (b2 := a_Abs psi0 b5 (close_tm_wrt_tm x b3)).
+    + eapply join with (b1 := a_Abs psi0 b4 (close x b0)) 
+                     (b2 := a_Abs psi0 b5 (close x b3)).
       exists_apply_MultiPar x.
       exists_apply_MultiPar x.
       exists_apply_GEq x.
-    + eapply join with (b1 := a_Abs psi0 A1 (close_tm_wrt_tm x b0)) 
-                     (b2 := a_Abs psi0 A2 (close_tm_wrt_tm x b3)).
+    + eapply join with (b1 := a_Abs psi0 A1 (close x b0)) 
+                     (b2 := a_Abs psi0 A2 (close x b3)).
       exists_apply_MultiPar x.
       exists_apply_MultiPar x.
       exists_apply_GEq x.
@@ -938,8 +938,8 @@ Proof.
         move: H0 => [A2' [B2' [? [? hh]]]]; subst; move: hh => [L2 h2] end.
     invert_GEq. subst.
     pick fresh x. repeat spec x.
-    rewrite (subst_tm_tm_intro x B1); eauto.
-    rewrite (subst_tm_tm_intro x B2); eauto.
+    rewrite (subst_intro x B1); eauto.
+    rewrite (subst_intro x B2); eauto.
     eapply join.
     eapply MultiPar_subst3; try eassumption.
     eapply MultiPar_subst3; try eassumption.
@@ -949,8 +949,8 @@ Proof.
   - (* WSigma cong *)
     pick fresh x. repeat spec x.
     repeat invert_Joins.
-    eapply join with (b1 := a_WSigma psi0 b0 (close_tm_wrt_tm x b1)) 
-                     (b2 := a_WSigma psi0 b3 (close_tm_wrt_tm x b2)).
+    eapply join with (b1 := a_WSigma psi0 b0 (close x b1)) 
+                     (b2 := a_WSigma psi0 b3 (close x b2)).
     exists_apply_MultiPar x.
     exists_apply_MultiPar x.
     exists_apply_GEq x.
@@ -974,8 +974,8 @@ Proof.
         move: H0 => [A2' [B2' [? [? hh]]]]; subst; move: hh => [L2 h2] end.
     match goal with [H:GEq _ _ _ _ |- _ ] => inversion H; clear H end. subst.
     pick fresh x. repeat spec x.
-    rewrite (subst_tm_tm_intro x B1); eauto.
-    rewrite (subst_tm_tm_intro x B2); eauto.
+    rewrite (subst_intro x B1); eauto.
+    rewrite (subst_intro x B2); eauto.
     eapply join.
     eapply MultiPar_subst3; try eassumption.
     eapply MP_Refl; eauto.
@@ -987,16 +987,16 @@ Proof.
   - (* LetPair cong *)
     pick fresh x. repeat spec x.
     repeat invert_Joins.
-    eapply join with (b1 := a_LetPair psi0 b4 (close_tm_wrt_tm x b0)) 
-                     (b2 := a_LetPair psi0 b5 (close_tm_wrt_tm x b3)).
+    eapply join with (b1 := a_LetPair psi0 b4 (close x b0)) 
+                     (b2 := a_LetPair psi0 b5 (close x b3)).
     exists_apply_MultiPar x.
     exists_apply_MultiPar x.
     exists_apply_GEq x.
   - (* SSigma cong *)
     pick fresh x. repeat spec x.
     repeat invert_Joins.
-    eapply join with (b1 := a_SSigma psi0 b0 (close_tm_wrt_tm x b1)) 
-                     (b2 := a_SSigma psi0 b3 (close_tm_wrt_tm x b2)).
+    eapply join with (b1 := a_SSigma psi0 b0 (close x b1)) 
+                     (b2 := a_SSigma psi0 b3 (close x b2)).
     exists_apply_MultiPar x.
     exists_apply_MultiPar x.
     exists_apply_GEq x.
@@ -1020,8 +1020,8 @@ Proof.
         move: H0 => [A2' [B2' [? [? hh]]]]; subst; move: hh => [L2 h2] end.
     match goal with [H:GEq _ _ _ _ |- _ ] => inversion H end. subst.
     pick fresh x. repeat spec x.
-    rewrite (subst_tm_tm_intro x B1); eauto.
-    rewrite (subst_tm_tm_intro x B2); eauto.
+    rewrite (subst_intro x B1); eauto.
+    rewrite (subst_intro x B2); eauto.
     eapply join.
     eapply MultiPar_subst3; try eassumption.
     eapply MultiPar_subst3; try eassumption.
@@ -1064,13 +1064,13 @@ Proof.
     pick fresh x. repeat spec x.
     invert_Joins.
     move: (GEq_uniq H3) => u. destruct_uniq.
-    rewrite (subst_tm_tm_intro x); auto.
-    rewrite (subst_tm_tm_intro x b2); auto.
+    rewrite (subst_intro x); auto.
+    rewrite (subst_intro x b2); auto.
     eapply join.
-    instantiate (1 := (subst_tm_tm a1 x b0)).
+    instantiate (1 := (subst a1 x b0)).
     eapply MultiPar_subst3_CMultiPar; try eassumption.
     eapply CMP_Nleq; auto.
-    instantiate (1 := (subst_tm_tm a1 x b3)).
+    instantiate (1 := (subst a1 x b3)).
     eapply MultiPar_subst3_CMultiPar; try eassumption.
     eapply CMP_Nleq; auto.
     eapply GEq_substitution_irrel with (P2 := nil); eauto.
@@ -1104,7 +1104,7 @@ Proof.
     move: CPar_Par_Grade => [h0 h2].
     apply h0 in c. split_hyp.
     apply h2 in p. split_hyp. clear h0 h2.
-    eapply Eq_Trans with (b := open_tm_wrt_tm a' b).
+    eapply Eq_Trans with (b := open a' b).
     eapply Eq_Trans with (b := a_App (a_Abs psi0 A a') psi0 b).
     eapply Eq_App; eauto. 
     + eapply CDefEq_Refl; auto.
@@ -1116,7 +1116,7 @@ Proof.
       ++ eapply Grade_open_irrel; eauto.
     + inversion H0; subst.
     ++ invert_Grade.
-       pick fresh x. rewrite (subst_tm_tm_intro x a' b). auto. rewrite (subst_tm_tm_intro x a' b'). auto.  
+       pick fresh x. rewrite (subst_intro x a' b). auto. rewrite (subst_intro x a' b'). auto.  
        eapply DefEq_equality_substitution with (P:= [(x, psi0)] ++ P); auto.
     ++ invert_Grade. 
        pick fresh x and apply Eq_SubstIrrel; auto. 
@@ -1125,7 +1125,7 @@ Proof.
     apply h2 in p. split_hyp. 
     pick fresh y. move: (p0 y ltac:(auto)) => p1.
     apply h2 in p1. split_hyp.
-    eapply Eq_Trans with (b := a_App (open_tm_wrt_tm b1 a1') q_Bot a2').
+    eapply Eq_Trans with (b := a_App (open b1 a1') q_Bot a2').
     eapply Eq_Trans with (b := a_LetPair psi0 (a_WPair a1' psi0 a2') b1).
     + pick fresh x and apply Eq_LetPair; auto.
       eapply Eq_Refl; auto.
@@ -1149,8 +1149,8 @@ Proof.
     + invert_Grade. subst. 
       eapply Eq_App; auto.
       pick fresh x.
-      rewrite (subst_tm_tm_intro x b1); auto.
-      rewrite (subst_tm_tm_intro x b2); auto.
+      rewrite (subst_intro x b1); auto.
+      rewrite (subst_intro x b2); auto.
       repeat spec x.
       eapply DefEq_substitution_CGrade with (P2:=nil); simpl_env; eauto. 
       eapply CDefEq_Refl. eapply CG_Leq; eauto using leq_Bot.

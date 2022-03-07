@@ -49,8 +49,8 @@ end.
 
 (* Erasure and locally nameless representation infrastructure lemmas *)
 
-Lemma erasure_open_tm_wrt_tm_rec : forall a b psi k, 
-  (erasure psi (open_tm_wrt_tm_rec k a b)) = open_tm_wrt_tm_rec k (erasure psi a) (erasure psi b).
+Lemma erasure_open_rec : forall a b psi k, 
+  (erasure psi (open_rec k a b)) = open_rec k (erasure psi a) (erasure psi b).
 Proof. 
   intros a b psi. induction b; intros; cbn; auto.
   all: try rewrite IHb1.
@@ -65,35 +65,44 @@ Proof.
   all: try (destruct s; simpl; auto).
 Qed.
 
-Lemma erasure_open_tm_wrt_tm : forall a b psi, 
-  erasure psi (open_tm_wrt_tm a b) = open_tm_wrt_tm (erasure psi a) (erasure psi b).
+Lemma erasure_open : forall a b psi, 
+  erasure psi (open a b) = open (erasure psi a) (erasure psi b).
 Proof. 
-  intros. unfold open_tm_wrt_tm. rewrite erasure_open_tm_wrt_tm_rec. auto.
+  intros. unfold open. rewrite erasure_open_rec. auto.
 Qed.
 
-Lemma erasure_lc_tm : forall psi a, lc_tm a -> lc_tm (erasure psi a).
+Section lc.
+
+#[local] Transparent Syntax_tm.
+
+Lemma erasure_lc : forall psi a, lc a -> lc (erasure psi a).
 Proof. 
-  intros. induction H; simpl; eauto.
-  all: try solve [destruct (q_leb psi0 psi) eqn:LE; eauto].
-  all:   destruct (q_leb q_Top psi) eqn:LT.
-  all: try solve [econstructor; eauto;
-    match goal with [H1 : forall x : tmvar, lc_tm (erasure _ _) |- _ ] => 
+  intros. induction H; simpl; eauto with lc.
+  all: try solve [destruct (q_leb psi0 psi) eqn:LE; eauto with lc].
+  all: destruct (q_leb q_Top psi) eqn:LT.
+  all: try solve [econstructor; eauto with lc;
+    match goal with [H1 : forall x : tmvar, lc (erasure _ _) |- _ ] => 
     intro x; specialize (H1 x);
-    rewrite erasure_open_tm_wrt_tm in H1; simpl in H1; auto end].
+    rewrite erasure_open in H1; simpl in H1; auto end].  
 Qed.
+End lc.
+
+#[local] Hint Resolve erasure_lc : lc.
+
+#[global] Opaque Syntax_tm.
 
 Lemma canonical_body : forall L B1 B2 psi, 
   (forall x : atom,
        x `notin` L ->
-       erasure psi (open_tm_wrt_tm B1 (a_Var_f x)) =
-       erasure psi (open_tm_wrt_tm B2 (a_Var_f x))) ->
+       erasure psi (open B1 (a_Var_f x)) =
+       erasure psi (open B2 (a_Var_f x))) ->
   erasure psi B1 = erasure psi B2.
 Proof.
   intros.
-  pick fresh x for (fv_tm_tm (erasure psi B1) \u fv_tm_tm (erasure psi B2) \u L). repeat spec x.
-  apply (open_tm_wrt_tm_inj _ _ x);  eauto.
-  rewrite erasure_open_tm_wrt_tm in H0.
-  rewrite erasure_open_tm_wrt_tm in H0.
+  pick fresh x for (fv (erasure psi B1) \u fv (erasure psi B2) \u L). repeat spec x.
+  apply (open_inj _ _ x);  eauto.
+  rewrite erasure_open in H0.
+  rewrite erasure_open in H0.
   simpl in H0. auto.
 Qed.
 
@@ -106,17 +115,17 @@ Lemma CGrade_Grade_fv_erasure : (forall P psi psi0 b,
         P = P2 ++ [(x,phi)] ++ P1 
         -> not (phi <= psi)
         -> psi0 <= psi
-        -> x `notin` fv_tm_tm (erasure psi b)) /\
+        -> x `notin` fv (erasure psi b)) /\
       (forall P psi b, 
           Grade P psi b -> forall P1 P2 x phi, 
             P = P2 ++ [(x,phi)] ++ P1 
             -> not (phi <= psi)
-            -> x `notin` fv_tm_tm (erasure psi b)).
+            -> x `notin` fv (erasure psi b)).
 Proof.
   apply CGrade_Grade_mutual. 
-  all: intros; subst; simpl; auto.
+  all: intros; subst; unfold erasure; fold erasure; simp_syntax; auto.
   all: try solve [destruct (x == x0) eqn:E; subst; auto;
-    apply binds_mid_eq in b; subst; auto; done].
+    apply binds_mid_eq in b; subst; auto; done].  
   all: try (eapply notin_union).
   all: eauto.
   all: try (destruct (q_leb psi0 psi) eqn:LE; try rewrite LE).
@@ -125,22 +134,23 @@ Proof.
   pick fresh y; repeat spec y;
   match goal with [ H3 : forall P3 P4 x0 phi0, _ |- _ ] => 
   specialize (H3 P1 ((y ~ psi) ++ P2) x phi ltac:(eauto) ltac:(auto));
-  rewrite erasure_open_tm_wrt_tm in H3; simpl in H3;
-  rewrite <- fv_tm_tm_open_tm_wrt_tm_lower in H3;
+  rewrite erasure_open in H3; simpl in H3;
+  rewrite <- fv_open_lower in H3;
   auto end].
 
   all: try (destruct (q_leb q_Top psi); simpl).
   all: try (eapply notin_union).
   all: eauto.
 
-  all: try solve [
-  pick fresh y; repeat spec y;
+  all: try solve [pick fresh y; repeat spec y;
   match goal with [ H3 : forall P3 P4 x0 phi0, _ |- _ ] => 
-  specialize (H3 P1 ((y ~ psi0) ++ P2) x phi ltac:(eauto) ltac:(auto));
-  rewrite erasure_open_tm_wrt_tm in H3; simpl in H3;
-  rewrite <- fv_tm_tm_open_tm_wrt_tm_lower in H3;
+  specialize (H3 P1 ((y ~ psi) ++ P2) _ _ ltac:(reflexivity) ltac:(assumption));
+  rewrite erasure_open in H3; simp_syntax_in H3;
+  rewrite <- fv_open_lower in H3;
   auto end].
-Qed.
+
+Admitted.
+(* fix up with more fv rewrite lemmas *)
   
   
 
@@ -149,27 +159,27 @@ Lemma Grade_substitution_erasure :
           Grade P psi b -> forall P1 P2 x phi, 
             P = P2 ++ [(x,phi)] ++ P1 
             -> not (phi <= psi)
-            -> forall a1, (subst_tm_tm a1 x (erasure psi b)) = (erasure psi b)).
+            -> forall a1, (subst a1 x (erasure psi b)) = (erasure psi b)).
 Proof.
   move: CGrade_Grade_fv_erasure => [_ h].
   intros. 
-  rewrite subst_tm_tm_fresh_eq; eauto.
+  rewrite subst_fresh_eq; eauto.
 Qed.
 
 
 Lemma open_erasure_irrel : 
   forall L P phi psi b, 
-    (forall x, x `notin` L -> Grade (x ~ phi ++ P) psi (open_tm_wrt_tm b (a_Var_f x))) -> 
+    (forall x, x `notin` L -> Grade (x ~ phi ++ P) psi (open b (a_Var_f x))) -> 
     not (phi <= psi) -> forall a1 a2, 
-    open_tm_wrt_tm (erasure psi b) a1 = open_tm_wrt_tm (erasure psi b) a2.
+    open (erasure psi b) a1 = open (erasure psi b) a2.
 Proof.
   intros.
-  pick fresh y for (fv_tm_tm (erasure psi b) \u L).
+  pick fresh y for (fv (erasure psi b) \u L).
   spec y.
-  rewrite (subst_tm_tm_intro y _ a1); auto.
-  rewrite (subst_tm_tm_intro y _ a2); auto.
+  rewrite (subst_intro y _ a1); auto.
+  rewrite (subst_intro y _ a2); auto.
   replace (a_Var_f y) with (erasure psi (a_Var_f y)). 2: { auto. }
-  rewrite <- erasure_open_tm_wrt_tm.
+  rewrite <- erasure_open.
   move: Grade_substitution_erasure => h2.
   move: (h2 _ _ _ H1) => h3.
   specialize (h3 P nil y _ ltac:(simpl; eauto) ltac:(eauto)).
@@ -206,39 +216,40 @@ Proof.
   all: intros; simpl; auto.
   all: eauto.
   all: try fresh_apply_GEq x; repeat spec x; eauto.
-  all: try (rewrite erasure_open_tm_wrt_tm in H1; simpl in H1; simpl_env in H1).
+  all: try (rewrite erasure_open in H1; simpl in H1; simpl_env in H1).
   all: auto.
+
+Admitted.
+(*
   all: try solve [
   destruct (q_leb psi0 psi) eqn: LT; auto;
-  econstructor; eauto; eapply CEq_Nleq; eauto using CGrade_lc, Grade_uniq;
+  econstructor; eauto; eapply CEq_Nleq; eauto using CGrade_lc, Grade_uniq with lc;
   rewrite LT; done].
 
   destruct (q_leb q_Top psi) eqn: LT; auto;
   try fresh_apply_GEq x; repeat spec x; eauto;
-  try (rewrite erasure_open_tm_wrt_tm in H1; simpl in H1; simpl_env in H1); auto.
-  eapply CEq_Nleq; eauto using CGrade_lc, Grade_uniq;
+  try (rewrite erasure_open in H1; simp_syntax_in H1; simpl_env in H1); auto.
+  eapply CEq_Nleq; eauto using CGrade_lc, Grade_uniq with lc.
   rewrite LT; done.
-
-  eapply CEq_Nleq; eauto using erasure_lc_tm.
+  eapply CEq_Nleq; eauto lc.
   Unshelve. exact psi.
-Qed.
+Qed. *)
 
 Lemma Value_erasure : forall a psi, Value a -> Value (erasure psi a).
 Proof.
   intros.
   inversion H; subst; simpl; eauto.
   + inversion H0; subst; simpl. 
-    all: eauto.
-    all: apply erasure_lc_tm with (psi := psi) in H2; simpl in H2.
-    all: econstructor; eauto.
-    all: econstructor; eauto using erasure_lc_tm.
-  + apply erasure_lc_tm with (psi := psi) in H1; simpl in H1.
-    destruct (q_leb q_Top psi) eqn:LE; eauto using erasure_lc_tm.
-  + destruct (q_leb psi0 psi) eqn:LE; eauto using erasure_lc_tm.
-  + destruct (q_leb psi0 psi) eqn:LE; eauto using erasure_lc_tm.
-  + eauto using erasure_lc_tm.
-  + eauto using erasure_lc_tm.
-Qed.
+    all: eauto with lc.
+    all: apply erasure_lc with (psi := psi) in H2; simpl in H2.
+    all: admit. (* econstructor; eauto using lc. *)
+  + apply erasure_lc with (psi := psi) in H1; simpl in H1.
+    destruct (q_leb q_Top psi) eqn:LE; eauto with lc.
+  + destruct (q_leb psi0 psi) eqn:LE; eauto with lc.
+  + destruct (q_leb psi0 psi) eqn:LE; eauto with lc.
+  + eauto using erasure_lc.
+  + eauto using erasure_lc.
+Admitted.
 
 
 
@@ -247,38 +258,36 @@ Proof.
   intros a b S. induction S; intros.
   all: try match goal with 
       [ H : Grade ?P ?phi ?b |- _ ] => inversion H ; clear H; subst end.
-  all: intros; simpl; eauto using erasure_lc_tm.
-  all: try solve [destruct (q_leb psi phi) eqn:LE; eauto using erasure_lc_tm].
-  all: try match goal with [ H : lc_tm (_ _) |- _ ] => 
-    apply erasure_lc_tm with (psi := phi) in H end.
+  all: intros; simpl; eauto using erasure_lc.
+  all: try solve [destruct (q_leb psi phi) eqn:LE; eauto using erasure_lc].
+  all: try match goal with [ H : lc (_ _) |- _ ] => 
+    apply erasure_lc with (psi := phi) in H end.
   all: try solve [simpl in *; eauto].
   all: destruct (q_leb psi phi) eqn:LE.
   all: try invert_CGrade b; try done. 
-  all: eauto using erasure_lc_tm. 
-  all: try rewrite erasure_open_tm_wrt_tm.
+  all: eauto with lc.
+  all: try rewrite erasure_open.
 
   + destruct (q_leb q_Top phi) eqn:LT.
-    eapply S_Beta; eauto using erasure_lc_tm.
+    eapply S_Beta; eauto with lc.
     simpl in H0. rewrite LT in H0. auto.
-    eapply S_Beta; eauto using erasure_lc_tm.
+    eapply S_Beta; eauto with lc.
     simpl in H0. rewrite LT in H0. auto.
   + rewrite LE in H2. done. 
   + invert_Grade; subst.
     simpl in H0.
     erewrite -> open_erasure_irrel with (a2 := a_TmUnit); eauto.
     destruct (q_leb q_Top phi) eqn:LT.
-    eapply S_Beta; eauto using erasure_lc_tm.
-    eapply S_Beta; eauto using erasure_lc_tm.
+    eapply S_Beta; eauto with lc.
+    eapply S_Beta; eauto with lc.
   + simpl in H. rewrite LE in H.
     destruct (q_leb q_Bot phi) eqn:LT.
-    eapply S_LetPairBeta; auto using erasure_lc_tm.
+    eapply S_LetPairBeta; auto with lc.
     move: (leq_Bot phi)  => h. rewrite LT in h. done.
   + simpl in H. rewrite LE in H.
     destruct (q_leb q_Bot phi) eqn:LT.
-    erewrite -> open_erasure_irrel with (a2 := a_TmUnit); eauto.
-    eapply S_LetPairBeta; auto using erasure_lc_tm.
+    erewrite -> open_erasure_irrel with (a2 := a_TmUnit); eauto with lc.
     rewrite LE. done.
-
     move: (leq_Bot phi)  => h. rewrite LT in h. done.
 Qed.    
       
