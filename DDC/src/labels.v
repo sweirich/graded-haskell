@@ -55,10 +55,10 @@ Proof.
   f_equal. auto.
 Qed.
 
-Hint Rewrite labels_subst_ctx : rewr_list.
-Hint Rewrite labels_one : rewr_list.
-Hint Rewrite labels_app : rewr_list.
-Hint Rewrite labels_dom : rewr_dom.
+#[export] Hint Rewrite labels_subst_ctx : rewr_list.
+#[export] Hint Rewrite labels_one : rewr_list.
+#[export] Hint Rewrite labels_app : rewr_list.
+#[export] Hint Rewrite labels_dom : rewr_dom.
 
 #[export] Hint Resolve labels_uniq : core.
 #[export] Hint Resolve binds_labels_2 : core.
@@ -143,9 +143,9 @@ destruct_uniq. econstructor; eauto.
 eapply leq_meet_r. unfold meet_ctx_l.  auto.
 Qed.
 
-Hint Rewrite meet_ctx_l_meet_ctx_l : rewr_list.
-Hint Rewrite meet_ctx_l_one : rewr_list.
-Hint Rewrite meet_ctx_l_app : rewr_list.
-Hint Rewrite meet_ctx_l_subst_ctx : rewr_list.
+#[export] Hint Rewrite meet_ctx_l_meet_ctx_l : rewr_list.
+#[export] Hint Rewrite meet_ctx_l_one : rewr_list.
+#[export] Hint Rewrite meet_ctx_l_app : rewr_list.
+#[export] Hint Rewrite meet_ctx_l_subst_ctx : rewr_list.
 
 #[export] Hint Resolve meet_ctx_l_uniq : core.

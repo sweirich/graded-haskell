@@ -236,8 +236,9 @@ Proof.
     + move => y Fry.
       clear H H0 H1 IHh.
       spec x. spec y.
-      specialize (H0 ([(x, (psi0 * psi,A))] ++ W2) W1 ltac:(simpl_env; auto) W).
-      simpl_env in H0. eapply H0. solve_uniq.
+      match goal with [ H0 : forall W3 W4, _ ~= _ -> _ |- _ ] =>
+           specialize (H0 ([(x, (psi0 * psi,A))] ++ W2) W1 ltac:(simpl_env; auto) W);
+           simpl_env in H0; eapply H0 end. solve_uniq.
 
   (* ssigma *)
   - subst; fresh_apply_Typing x; eauto 1; auto; repeat spec x;

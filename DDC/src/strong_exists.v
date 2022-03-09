@@ -13,11 +13,9 @@ Open Scope grade_scope.
 Definition wproj1 psi0 a B := a_LetPair psi0 a (a_Abs q_Bot B (a_Var_b 1)).
 Definition wproj2 psi0 a B := a_LetPair psi0 a (a_Abs q_Bot B (a_Var_b 0)).
 
-Local Hint Resolve lc_body_tm_wrt_tm : core.
-
 Lemma wproj1_lc : forall a1 psi0 B, 
-    lc_tm a1 -> (forall x, lc (open B (a_Var_f x)))  ->
-    lc_tm (a_LetPair psi0 a1 (a_Abs q_Bot B (a_Var_b 1))).
+    lc a1 -> (forall x, lc (open B (a_Var_f x)))  ->
+    lc (a_LetPair psi0 a1 (a_Abs q_Bot B (a_Var_b 1))).
 Proof.
   intros.
   eapply (lc_a_LetPair); auto.
@@ -33,8 +31,8 @@ Qed.
 
 
 Lemma wproj2_lc : forall a1 psi0 A, 
-    lc_tm a1 -> body_tm_wrt_tm A ->
-    lc_tm (a_LetPair psi0 a1  (a_Abs q_Bot A (a_Var_b 0))).
+    lc a1 -> body_tm_wrt_tm A ->
+    lc (a_LetPair psi0 a1  (a_Abs q_Bot A (a_Var_b 0))).
 Proof.
   intros.
   eapply (lc_a_LetPair); auto.
@@ -52,7 +50,7 @@ Local Hint Resolve wproj1_lc wproj2_lc : core.
 
 
 Lemma wproj1_beta : forall a1 a2 psi0 A, 
-    lc_tm a1 -> lc_tm a2 ->  body_tm_wrt_tm A ->
+    lc a1 -> lc a2 ->  body_tm_wrt_tm A ->
     exists b, Step (wproj1 psi0 (a_WPair a1 psi0 a2) A) b /\ Step b a1.
 Proof. 
   intros. unfold wproj1.
@@ -65,12 +63,12 @@ Proof.
     replace a1 with (open_tm_wrt_tm a1 a2) at 3.
     eapply S_Beta; eauto.
     eapply lc_a_Abs; eauto. intro x. 
-    rewrite open_tm_wrt_tm_lc_tm; auto.
-    rewrite open_tm_wrt_tm_lc_tm; auto.
+    rewrite open_tm_wrt_tm_lc; auto.
+    rewrite open_tm_wrt_tm_lc; auto.
 Qed.
 
 Lemma wproj2_beta : forall a1 a2 psi0 A, 
-    lc_tm a1 -> lc_tm a2 ->  body_tm_wrt_tm A ->
+    lc a1 -> lc a2 ->  body_tm_wrt_tm A ->
     exists b, Step (wproj2 psi0 (a_WPair a1 psi0 a2) A) b /\ Step b a2.
 Proof. 
   intros. unfold wproj2.

@@ -118,16 +118,16 @@ Class SubstTheory (exp : Set) (u : Set) (uvar : atom -> u) `{H: Subst exp u} := 
   }.
 
 
-Hint Rewrite @subst_open
+#[export] Hint Rewrite @subst_open
   using solve [auto; try typeclasses eauto] : syntax.
 
-Hint Rewrite @subst_close
+#[export] Hint Rewrite @subst_close
   using solve [auto; try typeclasses eauto] : syntax.
 
-Hint Rewrite @open_close
+#[export] Hint Rewrite @open_close
   using solve [auto; try typeclasses eauto] : syntax.
 
-Hint Rewrite @size_open_var
+#[export] Hint Rewrite @size_open_var
   using solve [auto; try typeclasses eauto] : syntax.
 
 #[export] Hint Resolve subst_lc : lc.

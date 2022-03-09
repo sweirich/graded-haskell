@@ -90,7 +90,8 @@ Proof.
   all: intros.
   all: eauto using Grade_narrowing, GEq_narrowing.
   all: try (fresh_apply_Par x; eauto; repeat spec x).
-  all: try solve [eapply H2; econstructor; eauto; try reflexivity].
+  all: try solve [eapply H0; econstructor; eauto; try reflexivity].
+  all: try solve [eapply H; econstructor; eauto; try reflexivity].
   eapply CPar_Nleq; eauto using P_sub_uniq1.
 Qed.
 
@@ -103,11 +104,13 @@ Proof with eauto using ctx_sub_meet_ctx_l.
   induction 1; intros...
   all: try  move: (ctx_sub_uniq ltac:(eassumption) ltac:(eassumption)) => uu. 
   all: eauto 3.
+
   all: try solve [
                  fresh_apply_Typing x; 
                  eauto using po_join_r, ctx_sub_meet_ctx_l;
                  repeat spec x;
-                 eapply H4;
+                 match goal with [H4 : forall W, _ -> Typing _ _ _ _ |- _ ] =>                  
+                 eapply H4 end;
                  econstructor; eauto;
                  reflexivity ].
   - (* conv *)
@@ -119,13 +122,6 @@ Proof with eauto using ctx_sub_meet_ctx_l.
     move: (ctx_sub_binds ltac:(eauto) ltac:(eauto)) => [psi1 [h1 h2]].
     eapply T_Var with (psi0 := psi1); eauto using ctx_sub_uniq.
     transitivity psi0; auto.
-  - (* Pi *)
-    fresh_apply_Typing x; 
-    eauto using po_join_r, ctx_sub_meet_ctx_l;
-    repeat spec x.
-    eapply H3;
-    econstructor; eauto;
-    reflexivity .
   - (* WPair *)
     eapply T_WPair...
   - (* WPairI *)
@@ -133,20 +129,20 @@ Proof with eauto using ctx_sub_meet_ctx_l.
   - (* LetPair *)
     fresh_apply_Typing x; 
     eauto using po_join_r, ctx_sub_meet_ctx_l.
-    + clear H2 H3. repeat spec x. eapply H2; econstructor; eauto. 
+    + clear H2 H3. repeat spec x. eapply H0; econstructor; eauto. 
       reflexivity. eapply ctx_sub_meet_ctx_l; auto.
       rewrite dom_meet_ctx_l. auto.
       rewrite dom_meet_ctx_l. auto.
     + move=> y Fry.
       clear H H0 H2.
       spec x. spec y.
-      eapply H0. econstructor; eauto. reflexivity.
+      eapply H3. econstructor; eauto. reflexivity.
   - (* SPair *)
     eapply T_SPair...
   - (* case *)
     fresh_apply_Typing x; eauto using po_join_r, ctx_sub_meet_ctx_l.
     repeat spec x.
-    eapply H2.
+    eapply H0.
     econstructor; eauto; try reflexivity.
     eapply ctx_sub_meet_ctx_l; auto.
     rewrite dom_meet_ctx_l. auto.

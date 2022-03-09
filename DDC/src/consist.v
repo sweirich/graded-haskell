@@ -275,18 +275,20 @@ Proof.
        fresh_apply_Par x; eauto; repeat spec x.
        eapply Par_Refl; eauto using MultiPar_Grade1.
   + pick fresh x. repeat spec x.
-    dependent induction H1.
+    match goal with [H0 : MultiPar (?x ~ ?psi ++ ?P) _ _ _ |- _ ] => 
+                      dependent induction H0; 
+                      [| rewrite <- (open_close b x) in H0] end.
     ++ apply open_inj in x; auto. subst.
        eapply MP_Refl; eauto.
        fresh_apply_Grade y; eauto 2 using MultiPar_Grade2.
        eapply (@Grade_renaming x0); auto.
-    ++ eapply MP_Step with (b := a_Pi psi1 A2 (close x b)).
-       fresh_apply_Par y. eapply Par_Refl; eauto using MultiPar_Grade2.
-       rewrite <- (open_close b x) in H0.
-       eapply (@Par_renaming x); try rewrite fv_close; auto.
+    ++
+       eapply MP_Step with (b := a_Pi psi1 A2 (close x b)).
+       fresh_apply_Par y. eapply Par_Refl; eauto using MultiPar_Grade2.       
+       eapply (@Par_renaming x); try rewrite fv_close; auto. 
+       simp_syntax. auto.
        eapply IHMultiPar;  try rewrite fv_close; eauto 3.
-       rewrite (open_close b x).
-       auto.
+       simp_syntax. auto.
 Qed.
 
 Lemma MultiPar_WSigma
@@ -306,18 +308,19 @@ Proof.
        fresh_apply_Par x; eauto; repeat spec x.
        eapply Par_Refl; eauto using MultiPar_Grade1.
   + pick fresh x. repeat spec x.
-    dependent induction H1.
+    match goal with [H0 : MultiPar (?x ~ ?psi ++ ?P) _ _ _ |- _ ] => 
+                      dependent induction H0; 
+                      [| rewrite <- (open_close b x) in H0] end.
     ++ apply open_inj in x; auto. subst.
        eapply MP_Refl; eauto.
        fresh_apply_Grade y; eauto 2 using MultiPar_Grade2.
        eapply (@Grade_renaming x0); auto.
     ++ eapply MP_Step with (b := a_WSigma psi1 A2 (close x b)).
        fresh_apply_Par y. eapply Par_Refl; eauto using MultiPar_Grade2.
-       rewrite <- (open_close b x) in H0.
        eapply (@Par_renaming x); try rewrite fv_close; auto.
+       simp_syntax. auto.
        eapply IHMultiPar;  try rewrite fv_close; eauto 3.
-       rewrite (open_close b x).
-       auto.
+       simp_syntax. auto.
 Qed.
 
 
@@ -338,18 +341,19 @@ Proof.
        fresh_apply_Par x; eauto; repeat spec x.
        eapply Par_Refl; eauto using MultiPar_Grade1.
   + pick fresh x. repeat spec x.
-    dependent induction H1.
+    match goal with [H0 : MultiPar (?x ~ ?psi ++ ?P) _ _ _ |- _ ] => 
+                      dependent induction H0; 
+                      [| rewrite <- (open_close b x) in H0] end.
     ++ apply open_inj in x; auto. subst.
        eapply MP_Refl; eauto.
        fresh_apply_Grade y; eauto 2 using MultiPar_Grade2.
        eapply (@Grade_renaming x0); auto.
     ++ eapply MP_Step with (b := a_SSigma psi1 A2 (close x b)).
-       fresh_apply_Par y. eapply Par_Refl; eauto using MultiPar_Grade2.
-       rewrite <- (open_close b x) in H0.
+       fresh_apply_Par y. eapply Par_Refl; eauto using MultiPar_Grade2.      
        eapply (@Par_renaming x); try rewrite fv_close; auto.
+       simp_syntax; auto.
        eapply IHMultiPar;  try rewrite fv_close; eauto 3.
-       rewrite (open_close b x).
-       auto.
+       simp_syntax; auto.
 Qed.
 
 Lemma MultiPar_Abs1 : forall (L : atoms) (P : econtext) (psi psi0 : grade) (A1 b1 b2 : tm),
@@ -360,18 +364,19 @@ Lemma MultiPar_Abs1 : forall (L : atoms) (P : econtext) (psi psi0 : grade) (A1 b
 Proof.
   intros.
   pick fresh x. repeat spec x.
-  dependent induction H1.
+  match goal with [H0 : MultiPar (?x ~ ?psi ++ ?P) _ _ _ |- _ ] => 
+                      dependent induction H0; 
+                      [| rewrite <- (open_close b x) in H0] end.
     ++ apply open_inj in x; auto. subst.
        eapply MP_Refl; eauto.
        fresh_apply_Grade y; eauto 2 using MultiPar_Grade2.
        eapply (@Grade_renaming x0); auto.
     ++ eapply MP_Step with (b := a_Abs psi0 A1 (close x b)).
        fresh_apply_Par y. 
-       rewrite <- (open_close b x) in H.
        eapply (@Par_renaming x); try rewrite fv_close; auto.       
-       inversion H0; eauto.
+       invert_CGrade A1; eauto.
        eapply IHMultiPar;  try rewrite fv_close; eauto 3.
-       rewrite (open_close b x).
+       simp_syntax.
        auto.
 Qed.
 
@@ -412,18 +417,19 @@ Proof.
   intros.
   eapply MultiPar_trans with (b := a_LetPair psi0 a1 b2).
   + pick fresh x. repeat spec x.
-    dependent induction H1.
+    match goal with 
+      [ H1 : MultiPar (?x ~ ?psi0 ++ ?P) _ _ _ |- _ ] => dependent induction H1;
+                                                       [| rewrite <- (open_close b x) in H1]  end.
     ++ apply open_inj in x; auto. subst.
        eapply MP_Refl; eauto.
        fresh_apply_Grade y; eauto 2 using MultiPar_Grade1.
        eapply (@Grade_renaming x0); auto.
     ++ eapply MP_Step with (b := a_LetPair psi0 a1 (close x b)).
        fresh_apply_Par y. eapply Par_Refl; eauto using MultiPar_Grade1.
-       rewrite <- (open_close b x) in H0.
        eapply (@Par_renaming x); try rewrite fv_close; auto.
+       simp_syntax; auto.
        eapply IHMultiPar;  try rewrite fv_close; eauto 3.
-       rewrite (open_close b x).
-       auto.
+       simp_syntax; auto.
   + dependent induction H; auto. 
     ++ eapply MP_Step with (b :=  (a_App (open b2 a1') q_Bot a2')).
        fresh_apply_Par x; auto. spec x.
@@ -455,18 +461,19 @@ Proof.
   intros.
   eapply MultiPar_trans with (b := a_LetPair psi0 a1 b2).
   + pick fresh x. repeat spec x.
-    dependent induction H1.
+        match goal with 
+      [ H1 : MultiPar (?x ~ ?psi0 ++ ?P) _ _ _ |- _ ] => dependent induction H1;
+                                                       [| rewrite <- (open_close b x) in H1]  end.
     ++ apply open_inj in x; auto. subst.
        eapply MP_Refl; eauto.
        fresh_apply_Grade y; eauto 2 using MultiPar_Grade1.
        eapply (@Grade_renaming x0); auto.
     ++ eapply MP_Step with (b := a_LetPair psi0 a1 (close x b)).
        fresh_apply_Par y. eapply Par_Refl; eauto using MultiPar_Grade1.
-       rewrite <- (open_close b x) in H0.
        eapply (@Par_renaming x); try rewrite fv_close; auto.
+       simp_syntax; auto.
        eapply IHMultiPar;  try rewrite fv_close; eauto 3.
-       rewrite (open_close b x).
-       auto.
+       simp_syntax; auto.
   + induction H.
     ++ eapply MP_Refl.
        fresh_apply_Grade x; eauto 3 using MultiPar_Grade2.
@@ -1063,7 +1070,9 @@ Proof.
   - (* SubstIrrel *)
     pick fresh x. repeat spec x.
     invert_Joins.
-    move: (GEq_uniq H3) => u. destruct_uniq.
+    match goal with [H3 : GEq _ _ _ _ |- _ ] => 
+    move: (GEq_uniq H3) => u end. 
+    destruct_uniq.
     rewrite (subst_intro x); auto.
     rewrite (subst_intro x b2); auto.
     eapply join.

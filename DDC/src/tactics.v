@@ -9,38 +9,15 @@ Set Implicit Arguments.
 Open Scope grade_scope.
 Open Scope general_if_scope.
 
-(* general purpose tactics *)
-
-Ltac split_hyp :=
-  repeat (
-      match goal with
-        | [ H : _ /\ _ |- _ ] => destruct H
-      end).
-
-Ltac invert_equality := 
-  repeat match goal with 
-    | [H : (_,_) = (_,_) |- _ ] => inversion H; subst; clear H
-    | [H : (_,_,_) = (_,_,_) |- _ ] => inversion H; subst; clear H
-    | [H : (_,_,_,_) = (_,_,_,_) |- _ ] => inversion H; subst; clear H
-    | [H : [_] ++ _ = [_] ++ _ |- _ ] => inversion H; subst; clear H
-    | [H : ( _ :: _ ) = ( _ :: _ )  |- _ ] => inversion H; subst; clear H
-  end.
-
-Ltac spec y := 
-  let h0 := fresh in 
-  match goal with [H0 : forall x : atom, x \notin ?L -> _ |- _ ] => 
-     move: (H0 y ltac:(auto)) => h0; clear H0 end.
-
-
 (* type classes *)
 
 #[local] Transparent Syntax_tm.
-Instance SyntaxTheory_tm : SyntaxTheory tm := {
+#[export] Instance SyntaxTheory_tm : SyntaxTheory tm := {
     fv_close := fv_tm_tm_close_tm_wrt_tm;
     close_inj := close_tm_wrt_tm_inj
 }.
 #[local] Transparent Subst_tm.
-Instance Subst_tm : SubstTheory tm tm a_Var_f := { 
+#[export] Instance Subst_tm : SubstTheory tm tm a_Var_f := { 
     subst_close := subst_tm_tm_close_tm_wrt_tm;
     fv_open_lower := fv_tm_tm_open_tm_wrt_tm_lower;
     fv_open_upper := fv_tm_tm_open_tm_wrt_tm_upper;
@@ -54,7 +31,7 @@ Instance Subst_tm : SubstTheory tm tm a_Var_f := {
     size_open_var := size_tm_open_tm_wrt_tm_var
 }.
 
-Instance SubstOpen_tm : SubstOpenTheory tm tm a_Var_f := {
+#[export] Instance SubstOpen_tm : SubstOpenTheory tm tm a_Var_f := {
     subst_open := subst_tm_tm_open_tm_wrt_tm;
 }.
 
@@ -106,7 +83,7 @@ Proof. reflexivity. Qed.
 Lemma fv_tm_a_LetPair : forall g a b, fv (a_LetPair g a b) = fv a \u fv b.
 Proof. reflexivity. Qed.
 
-Hint Rewrite fv_tm_a_Var_b fv_tm_a_Var_f fv_tm_a_Abs fv_tm_a_Pi fv_tm_a_App
+#[export] Hint Rewrite fv_tm_a_Var_b fv_tm_a_Var_f fv_tm_a_Abs fv_tm_a_Pi fv_tm_a_App
   fv_tm_a_TyUnit fv_tm_a_TmUnit fv_tm_a_Type fv_tm_a_Sum fv_tm_a_Inj1 
   fv_tm_a_Inj2 fv_tm_a_Case fv_tm_a_WSigma fv_tm_a_WPair fv_tm_a_LetPair : fv.
 
@@ -128,7 +105,7 @@ Proof. reflexivity. Qed.
 
 
 
-Hint Rewrite close_tm_a_Var_b close_tm_a_Var_f close_tm_a_Abs close_tm_a_App close_tm_a_Pi 
+#[export] Hint Rewrite close_tm_a_Var_b close_tm_a_Var_f close_tm_a_Abs close_tm_a_App close_tm_a_Pi 
   close_tm_a_WSigma close_tm_a_WPair : close.
 
 Lemma open_tm_a_Var_b : forall k (u:tm) nat, open_rec k u (a_Var_b nat) = match lt_eq_lt_dec nat k with
@@ -156,7 +133,7 @@ Lemma open_tm_a_WPair : forall k (u:tm) A g e,
     open_rec k u (a_WPair A g e) = a_WPair (open_rec k u A) g (open_rec k u e).
 Proof. reflexivity. Qed. 
 
-Hint Rewrite open_tm_a_Var_b open_tm_a_Var_f open_tm_a_Abs open_tm_a_App open_tm_a_Pi 
+#[export] Hint Rewrite open_tm_a_Var_b open_tm_a_Var_f open_tm_a_Abs open_tm_a_App open_tm_a_Pi 
   open_tm_a_WSigma open_tm_a_WPair : open.
 
 Lemma subst_tm_a_Var_b : forall (u:tm) (y:atom) (m: nat), 
@@ -201,7 +178,7 @@ Lemma subst_tm_a_Type : forall (u:tm) (y:atom) s,
     subst u y (a_Type s) = a_Type s.
 Proof. reflexivity. Qed.
 
-Hint Rewrite subst_tm_a_Var_b subst_tm_a_Abs subst_tm_a_App subst_tm_a_Pi
+#[export] Hint Rewrite subst_tm_a_Var_b subst_tm_a_Abs subst_tm_a_App subst_tm_a_Pi
   subst_tm_a_WSigma subst_tm_a_WPair subst_tm_a_LetPair subst_tm_a_SSigma subst_tm_a_SPair
   subst_tm_a_TmUnit subst_tm_a_TyUnit subst_tm_a_Type : subst.
 
@@ -213,7 +190,7 @@ Proof. intros. simpl. destruct (x == x) eqn:H; rewrite H. auto. done. Qed.
 Lemma subst_var_neq : forall a x y, y <> x -> subst a x (a_Var_f y) = a_Var_f y.
 Proof. intros. simpl. destruct (y == x) eqn:h; rewrite h. done. auto. Qed.
 
-Hint Rewrite subst_var : subst.
+#[export] Hint Rewrite subst_var : subst.
 
 (* This tactic looks for a variable substitution and does the case analysis
    for the two cases above. *)
@@ -276,7 +253,7 @@ Lemma size_tm_a_SPair :  forall  g A (e: tm),
     size (a_SPair A g e) = 1 + (size A) + 1 + (size e).
 Proof. reflexivity. Qed.
 
-Hint Rewrite size_tm_a_Var_b size_tm_a_Var_f size_tm_a_Abs size_tm_a_App size_tm_a_Pi
+#[export] Hint Rewrite size_tm_a_Var_b size_tm_a_Var_f size_tm_a_Abs size_tm_a_App size_tm_a_Pi
   size_tm_a_WSigma size_tm_a_WPair size_tm_a_SSigma size_tm_a_LetPair size_tm_a_SSigma size_tm_a_SPair
   size_tm_a_TmUnit size_tm_a_TyUnit size_tm_a_Type : size.
 

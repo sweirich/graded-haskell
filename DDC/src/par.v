@@ -1,4 +1,4 @@
-Require Import Omega.
+
 Require Export Qual.geq.
 Require Import Coq.Program.Equality.
 

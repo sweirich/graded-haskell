@@ -31,8 +31,9 @@ Proof.
     eapply G_Var with (psi0 := psi0); eauto using leq_join_r. 
   - (* Abs *)
     fresh_apply_Grade x; auto; repeat spec x.
-    simpl_env in H1.
-    move: (Grade_uniq H1) => u. destruct_uniq.
+    match goal with [H1 : Grade _ _ (open _ _) |- _ ] => 
+    simpl_env in H1;
+    move: (Grade_uniq H1) => u end. destruct_uniq.
     eapply Grade_narrowing; eauto. econstructor; eauto using leq_join_l, P_sub_refl, Typing_uniq. 
     inversion IHh. subst.
     pick fresh x. repeat spec x. 
@@ -40,7 +41,7 @@ Proof.
     destruct (q_leb q_Top psi) eqn: LE.
     + assert (q_Top = q_C). { apply q_leb_antisym; auto. transitivity psi; auto.      
                               eapply leq_Top. }
-      assert (q_C = psi).  { apply q_leb_antisym; auto. rewrite <- H. auto. }
+      assert (q_C = psi).  { apply q_leb_antisym; auto. rewrite <- H1. auto. }
       subst. 
       
 
@@ -50,13 +51,13 @@ Proof.
         rewrite meet_comm.
         rewrite meet_leq.
         eapply leq_Top. f_equal. auto. }
-      rewrite <- H in H5.
+      rewrite <- H1 in H5.
       rewrite Lemma in H5.
       eapply CG_Leq; eauto. 
-      rewrite <- H. auto.
+      rewrite <- H1. auto.
     + eapply CG_Nleq; eauto using Grade_lc.
       rewrite LE. done.
-      apply Grade_uniq in H2. simpl_env in H2. destruct_uniq. auto.
+      apply Grade_uniq in H0. simpl_env in H0. destruct_uniq. auto.
   - (* App *)
     eapply G_App; eauto.
     destruct (q_leb psi0 psi) eqn:LE.
@@ -111,8 +112,10 @@ Proof.
   - (* pi *)
     fresh_apply_Typing x; auto.
     repeat spec x.
-    specialize (H5 psi2 ltac:(auto) ltac:(auto)).
-    apply Typing_pumping with (psi1:=psi2) in H5; try reflexivity.
+    match goal with 
+      [ H5 : forall psi2, _ -> _ -> Typing (?x ~ ?y ++ ?W) ?p ?a ?A |- _ ] => 
+    specialize (H5 psi2 ltac:(auto) ltac:(auto));
+    apply Typing_pumping with (psi1:=psi2) in H5; try reflexivity end.
     eapply Typing_narrowing; eauto.
     econstructor; eauto using ctx_sub_refl, Typing_uniq.
     eapply leq_join_r.
@@ -120,10 +123,12 @@ Proof.
   - (* abs *)
     fresh_apply_Typing x; eauto.
     repeat spec x.
-    specialize (H4 psi2 ltac:(auto) ltac:(auto)).
-    apply Typing_pumping with (psi1:=psi2) in H4; try reflexivity.
-    rewrite <- join_assoc in H4.
-    rewrite (join_leq psi psi2) in H4. eauto.
+    match goal with 
+      [ H4 : forall psi2, _ -> _ -> Typing (?x ~ ?y ++ ?W) ?p ?a ?A |- _ ] => 
+    specialize (H4 psi2 ltac:(auto) ltac:(auto));
+    apply Typing_pumping with (psi1:=psi2) in H4; try reflexivity;
+    rewrite <- join_assoc in H4;
+    rewrite (join_leq psi psi2) in H4 end. eauto.
     eauto.
    
   - (* app *)
@@ -135,8 +140,10 @@ Proof.
   - (* wsigma *)
     fresh_apply_Typing x; eauto.
     repeat spec x.
-    specialize (H5 psi2 ltac:(auto) ltac:(auto)).
-    apply Typing_pumping with (psi1:=psi2) in H5; try reflexivity.
+    match goal with 
+      [ H5 : forall psi2, _ -> _ -> Typing (?x ~ ?y ++ ?W) ?p ?a ?A |- _ ] => 
+    specialize (H5 psi2 ltac:(auto) ltac:(auto));
+    apply Typing_pumping with (psi1:=psi2) in H5; try reflexivity end.
     eapply Typing_narrowing; eauto.
     econstructor; eauto using ctx_sub_refl, Typing_uniq.
     eapply leq_join_r.
@@ -151,17 +158,20 @@ Proof.
     move=> y FrY.
     clear H H0 H2.
     spec x. spec y.
-    specialize (H0 psi2 ltac:(auto) ltac:(auto)).
-    apply Typing_pumping with (psi1:=psi2) in H0; try reflexivity.
-    rewrite <- join_assoc in H0.
-    rewrite (join_leq psi psi2) in H0. auto.
-    auto.
+    match goal with 
+      [ H0 : forall psi2, _ -> _ -> Typing (?x ~ ?y ++ ?W) ?p ?a ?A |- _ ] => 
+    specialize (H0 psi2 ltac:(auto) ltac:(auto));
+    apply Typing_pumping with (psi1:=psi2) in H0; try reflexivity;
+    rewrite <- join_assoc in H0;
+    rewrite (join_leq psi psi2) in H0; auto end.
   - (* SSigma *)
     fresh_apply_Typing x; eauto.
     repeat spec x.
-    specialize (H5 psi2 ltac:(auto) ltac:(auto)).
-    apply Typing_pumping with (psi1:=psi2) in H5; try reflexivity.
-    eapply Typing_narrowing; eauto.
+    match goal with 
+      [ H5 : forall psi2, _ -> _ -> Typing (?x ~ ?y ++ ?W) ?p ?a ?A |- _ ] => 
+    specialize (H5 psi2 ltac:(auto) ltac:(auto));
+    apply Typing_pumping with (psi1:=psi2) in H5; try reflexivity;
+    eapply Typing_narrowing; eauto end.
     econstructor; eauto using ctx_sub_refl, Typing_uniq.
     eapply leq_join_r.
   - (* SPair *)
@@ -367,12 +377,13 @@ Proof.
     + instantiate (3 := subst a x A0).
       instantiate (2 := subst a x B).
       clear H H2 H3. spec y.
-      specialize (H x (q_C + psi0) A (meet_ctx_l q_C W1) ([(y, (q_C, a_WSigma psi1 A0 B))] ++ meet_ctx_l q_C W2)).
-      simp_syntax_in H. simpl_env in H.
-      specialize (H ltac:(eauto) ltac:(eauto using Ctx_meet_ctx_l) ltac:(eauto using meet_ctx_l_CTyping)).
-      rewrite subst_open in H; eauto using CTyping_lc1.
-      rewrite subst_var_neq in H; eauto. 
-      simpl_env. eapply H.
+      match goal with [H : forall x psi2 A1 W3 W4, _ ~ _ ++ _ ~= _ -> _ |- _ ] => 
+      specialize (H x (q_C + psi0) A (meet_ctx_l q_C W1) ([(y, (q_C, a_WSigma psi1 A0 B))] ++ meet_ctx_l q_C W2));
+      simp_syntax_in H; simpl_env in H;
+      specialize (H ltac:(eauto) ltac:(eauto using Ctx_meet_ctx_l) ltac:(eauto using meet_ctx_l_CTyping));
+      rewrite subst_open in H; eauto using CTyping_lc1;
+      rewrite subst_var_neq in H; eauto;
+      simpl_env; eapply H end.
       destruct_uniq.
       unfold subst_ctx in *. simpl_env. simp_syntax. unfold meet_ctx_l.
       solve_uniq.
@@ -380,6 +391,7 @@ Proof.
     + clear H H0 H2 IHTyping.
       move=> z Frz.
       spec y. spec z.
+      match goal with [H : forall x psi2 A1 W3 W4, _ ~ _ ++ _ ~= _ -> _ |- _ ] => rename H into H0 end.
       specialize (H0 x psi0 A W1 ([(y, (psi1 * psi, A0))] ++ W2)).
       simpl_env in H0.
       specialize (H0 ltac:(reflexivity) ltac:(eassumption) ltac:(auto)).
@@ -582,7 +594,7 @@ Proof.
   - (* Pi *) 
     pick fresh y.
     repeat spec y.  clear IHTyping. 
-    eapply (@Typing_rename_Type y) in H1; eauto.
+    eapply (@Typing_rename_Type y) in H3; eauto.
     repeat eexists.    
     eauto. eauto. eauto.
     eapply Eq_Refl; eauto.
@@ -639,7 +651,7 @@ Proof.
   - (* Pi *) 
     pick fresh y.
     repeat spec y.  clear IHTyping. 
-    eapply (@Typing_rename_Type y) in H1; eauto.
+    eapply (@Typing_rename_Type y) in H3; eauto.
     repeat eexists.    
     eauto. eauto. eauto.
     eapply Eq_Refl; eauto.
@@ -666,7 +678,7 @@ Proof.
   - (* Pi *) 
     pick fresh y.
     repeat spec y.  clear IHTyping. 
-    eapply (@Typing_rename_Type y) in H1; eauto.
+    eapply (@Typing_rename_Type y) in H3; eauto.
     repeat eexists. eauto. eauto. eauto.
     eapply Eq_Refl; eauto.
     econstructor.
@@ -827,7 +839,7 @@ Proof.
     move: HH => [s1 [s2 [s3 [r TH]]]].
     split_hyp.
     eapply Eq_Refl; eauto.
-    eapply Typing_Grade with (A := subst a x (a_Type s2)) ; eauto.
+    eapply Typing_Grade ;eauto.
     rewrite (subst_intro x); auto.
     eapply Typing_substitution; eauto using Ctx_meet_ctx_l.
     unfold meet_ctx_l; eauto.

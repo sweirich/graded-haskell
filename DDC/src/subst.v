@@ -396,11 +396,14 @@ Proof.
     eauto using subst_lc, CGrade_lc.    
     eauto using subst_lc, CGrade_lc.    
     repeat spec y.
-    specialize (H2 P1 ([(y, psi)] ++ P2) x psi0).
-    simpl_env in H2. specialize (H2 ltac:(auto)).
-    specialize (H2 _ ltac:(eassumption)).
-    repeat rewrite subst_open in H2; eauto 2 using CGrade_lc.
-    rewrite subst_var_neq in H2. auto.
+    match goal with 
+      [ H2 : forall P3 P4 x psi1, _ = _ -> _ |- _ ] => 
+        specialize (H2 P1 ([(y, psi)] ++ P2) x psi0);
+        simpl_env in H2;
+        specialize (H2 ltac:(auto));
+        specialize (H2 _ ltac:(eassumption));
+        repeat rewrite subst_open in H2; eauto 2 using CGrade_lc;
+        rewrite subst_var_neq in H2 end. auto.
     auto.
   - eapply CDefEq_Nleq; eauto using subst_lc, CGrade_lc.
 Qed.

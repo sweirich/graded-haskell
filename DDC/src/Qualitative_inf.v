@@ -346,7 +346,7 @@ forall a1 x1 n1,
 Proof. Admitted.
 
 #[export] Hint Resolve size_tm_close_tm_wrt_tm_rec : lngen.
-Hint Rewrite size_tm_close_tm_wrt_tm_rec using solve [auto] : lngen.
+#[export] Hint Rewrite size_tm_close_tm_wrt_tm_rec using solve [auto] : lngen.
 
 (* end hide *)
 
@@ -356,7 +356,7 @@ forall a1 x1,
 Proof. Admitted.
 
 #[export] Hint Resolve size_tm_close_tm_wrt_tm : lngen.
-Hint Rewrite size_tm_close_tm_wrt_tm using solve [auto] : lngen.
+#[export] Hint Rewrite size_tm_close_tm_wrt_tm using solve [auto] : lngen.
 
 (* begin hide *)
 
@@ -402,7 +402,7 @@ forall a1 x1 n1,
 Proof. Admitted.
 
 #[export] Hint Resolve size_tm_open_tm_wrt_tm_rec_var : lngen.
-Hint Rewrite size_tm_open_tm_wrt_tm_rec_var using solve [auto] : lngen.
+#[export] Hint Rewrite size_tm_open_tm_wrt_tm_rec_var using solve [auto] : lngen.
 
 (* end hide *)
 
@@ -412,7 +412,7 @@ forall a1 x1,
 Proof. Admitted.
 
 #[export] Hint Resolve size_tm_open_tm_wrt_tm_var : lngen.
-Hint Rewrite size_tm_open_tm_wrt_tm_var using solve [auto] : lngen.
+#[export] Hint Rewrite size_tm_open_tm_wrt_tm_var using solve [auto] : lngen.
 
 
 (* *********************************************************************** *)
@@ -626,7 +626,7 @@ forall a1 x1 n1,
 Proof. Admitted.
 
 #[export] Hint Resolve close_tm_wrt_tm_rec_open_tm_wrt_tm_rec : lngen.
-Hint Rewrite close_tm_wrt_tm_rec_open_tm_wrt_tm_rec using solve [auto] : lngen.
+#[export] Hint Rewrite close_tm_wrt_tm_rec_open_tm_wrt_tm_rec using solve [auto] : lngen.
 
 (* end hide *)
 
@@ -637,7 +637,7 @@ forall a1 x1,
 Proof. Admitted.
 
 #[export] Hint Resolve close_tm_wrt_tm_open_tm_wrt_tm : lngen.
-Hint Rewrite close_tm_wrt_tm_open_tm_wrt_tm using solve [auto] : lngen.
+#[export] Hint Rewrite close_tm_wrt_tm_open_tm_wrt_tm using solve [auto] : lngen.
 
 (* begin hide *)
 
@@ -656,7 +656,7 @@ forall a1 x1 n1,
 Proof. Admitted.
 
 #[export] Hint Resolve open_tm_wrt_tm_rec_close_tm_wrt_tm_rec : lngen.
-Hint Rewrite open_tm_wrt_tm_rec_close_tm_wrt_tm_rec using solve [auto] : lngen.
+#[export] Hint Rewrite open_tm_wrt_tm_rec_close_tm_wrt_tm_rec using solve [auto] : lngen.
 
 (* end hide *)
 
@@ -666,7 +666,7 @@ forall a1 x1,
 Proof. Admitted.
 
 #[export] Hint Resolve open_tm_wrt_tm_close_tm_wrt_tm : lngen.
-Hint Rewrite open_tm_wrt_tm_close_tm_wrt_tm using solve [auto] : lngen.
+#[export] Hint Rewrite open_tm_wrt_tm_close_tm_wrt_tm using solve [auto] : lngen.
 
 (* begin hide *)
 
@@ -952,7 +952,7 @@ forall a1 x1 n1,
 Proof. Admitted.
 
 #[export] Hint Resolve close_tm_wrt_tm_rec_degree_tm_wrt_tm : lngen.
-Hint Rewrite close_tm_wrt_tm_rec_degree_tm_wrt_tm using solve [auto] : lngen.
+#[export] Hint Rewrite close_tm_wrt_tm_rec_degree_tm_wrt_tm using solve [auto] : lngen.
 
 (* end hide *)
 
@@ -964,7 +964,7 @@ forall a1 x1,
 Proof. Admitted.
 
 #[export] Hint Resolve close_tm_wrt_tm_lc_tm : lngen.
-Hint Rewrite close_tm_wrt_tm_lc_tm using solve [auto] : lngen.
+#[export] Hint Rewrite close_tm_wrt_tm_lc_tm using solve [auto] : lngen.
 
 (* begin hide *)
 
@@ -985,7 +985,7 @@ forall a2 a1 n1,
 Proof. Admitted.
 
 #[export] Hint Resolve open_tm_wrt_tm_rec_degree_tm_wrt_tm : lngen.
-Hint Rewrite open_tm_wrt_tm_rec_degree_tm_wrt_tm using solve [auto] : lngen.
+#[export] Hint Rewrite open_tm_wrt_tm_rec_degree_tm_wrt_tm using solve [auto] : lngen.
 
 (* end hide *)
 
@@ -996,7 +996,7 @@ forall a2 a1,
 Proof. Admitted.
 
 #[export] Hint Resolve open_tm_wrt_tm_lc_tm : lngen.
-Hint Rewrite open_tm_wrt_tm_lc_tm using solve [auto] : lngen.
+#[export] Hint Rewrite open_tm_wrt_tm_lc_tm using solve [auto] : lngen.
 
 
 (* *********************************************************************** *)
@@ -1022,7 +1022,7 @@ forall a1 x1 n1,
 Proof. Admitted.
 
 #[export] Hint Resolve fv_tm_tm_close_tm_wrt_tm_rec : lngen.
-Hint Rewrite fv_tm_tm_close_tm_wrt_tm_rec using solve [auto] : lngen.
+#[export] Hint Rewrite fv_tm_tm_close_tm_wrt_tm_rec using solve [auto] : lngen.
 
 (* end hide *)
 
@@ -1032,7 +1032,7 @@ forall a1 x1,
 Proof. Admitted.
 
 #[export] Hint Resolve fv_tm_tm_close_tm_wrt_tm : lngen.
-Hint Rewrite fv_tm_tm_close_tm_wrt_tm using solve [auto] : lngen.
+#[export] Hint Rewrite fv_tm_tm_close_tm_wrt_tm using solve [auto] : lngen.
 
 (* begin hide *)
 
@@ -1105,7 +1105,7 @@ forall a1 a2 x1,
 Proof. Admitted.
 
 #[export] Hint Resolve fv_tm_tm_subst_tm_tm_fresh : lngen.
-Hint Rewrite fv_tm_tm_subst_tm_tm_fresh using solve [auto] : lngen.
+#[export] Hint Rewrite fv_tm_tm_subst_tm_tm_fresh using solve [auto] : lngen.
 
 (* begin hide *)
 
@@ -1234,7 +1234,7 @@ forall a2 a1 x1,
 Proof. Admitted.
 
 #[export] Hint Resolve subst_tm_tm_fresh_eq : lngen.
-Hint Rewrite subst_tm_tm_fresh_eq using solve [auto] : lngen.
+#[export] Hint Rewrite subst_tm_tm_fresh_eq using solve [auto] : lngen.
 
 (* begin hide *)
 
@@ -1470,7 +1470,7 @@ forall a1 x1 a2 n1,
 Proof. Admitted.
 
 #[export] Hint Resolve subst_tm_tm_intro_rec : lngen.
-Hint Rewrite subst_tm_tm_intro_rec using solve [auto] : lngen.
+#[export] Hint Rewrite subst_tm_tm_intro_rec using solve [auto] : lngen.
 
 Lemma subst_tm_tm_intro :
 forall x1 a1 a2,
