@@ -28,9 +28,11 @@ scripts is available.
 -----------
 
 "A Dependent Dependency Calculus", paper by Pritam Choudhury, Harley Eades III, and Stephanie Weirich.  
-To appear in ESOP 2022.
+Published in [ESOP 2022](https://etaps.org/2022/esop).
 
-The paper is [available](DDC/esop2022-paper111.pdf).
+Pritam's [ESOP 2022 video](https://www.youtube.com/watch?v=e_heE6IoN8Y) about this work (22 minutes).
+
+The paper is part of the [open-access proceedings](https://link.springer.com/book/10.1007/978-3-030-99336-8) (with a local copy [here](DDC/esop2022-paper111.pdf)).
 
 The extended version of the paper, with the full appendix, is available from [arXiv](https://arxiv.org/abs/2201.11040).
 
