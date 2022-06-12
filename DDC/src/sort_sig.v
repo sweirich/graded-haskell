@@ -1,6 +1,7 @@
 Parameter sort : Set.
 Parameter axiom : sort -> sort -> Prop.
-Parameter rule : sort -> sort -> sort -> Prop.
+Parameter rule_pi : sort -> sort -> sort -> Prop.
+Parameter rule_sig : sort -> sort -> sort -> Prop.
 
 Parameter star : sort.
 

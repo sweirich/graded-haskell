@@ -1,4 +1,3 @@
-Require Import Omega.
 Require Export Qual.geq.
 
 Set Implicit Arguments.

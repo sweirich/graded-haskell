@@ -22,7 +22,7 @@ Proof.
   intros.
   eapply binds_cons_1 in H1. destruct H1. split_hyp. invert_equality.
   simpl. rewrite H. fsetdec.
-  simpl. rewrite H0. fsetdec. eauto.
+  simpl. rewrite H0; eauto. fsetdec. 
 Qed.
 
 

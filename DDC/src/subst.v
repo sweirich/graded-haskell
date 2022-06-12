@@ -368,30 +368,30 @@ Proof.
   all: try solve [simpl; eauto 3].
   eapply Eq_Trans; eauto 2.
   all: try solve [simpl; eauto 4 using Grade_substitution_CGrade, Step_substitution, CGrade_lc].
-  - eapply Eq_PiFst; eauto 1. 
-    specialize (H _ _ _ _ ltac:(eauto) _ ltac:(eauto));
-    simpl in H; eauto.
+(*  - eapply Eq_PiFst; eauto 1. 
+    specialize (H _ _ _ _ ltac:(eauto) _ ltac:(eauto)).
+    simpl in H. *)
   - repeat rewrite subst_tm_tm_open_tm_wrt_tm; eauto 2 using CGrade_lc.
     match goal with [H2 : CGrade _ _ _ _|- _ ] => 
     specialize (H0 _ _ _ _ ltac:(eauto) _ H2);
     specialize (H _ _ _ _ ltac:(eauto) _ H2) end. simpl in H0.
     eapply Eq_PiSnd; eauto 3 using Grade_substitution_CGrade, subst_tm_tm_lc_tm, CGrade_lc.    
-  - repeat rewrite subst_tm_tm_open_tm_wrt_tm; eauto 2 using CGrade_lc.
-    specialize (H _ _ _ _ ltac:(eauto) _ H1); simpl in H; eauto.
+(*  - repeat rewrite subst_tm_tm_open_tm_wrt_tm; eauto 2 using CGrade_lc.
+    specialize (H _ _ _ _ ltac:(eauto) _ H1); simpl in H; eauto. *)
   - repeat rewrite subst_tm_tm_open_tm_wrt_tm; eauto 2 using CGrade_lc.
     specialize (H _ _ _ _ ltac:(eauto) _ H1); simpl in H.
     eapply Eq_WSigmaSnd; eauto using Grade_substitution_CGrade.
-  - specialize (H _ _ _ _ ltac:(eauto) _ H1); simpl in H.
-    eapply Eq_SSigmaFst; eauto using Grade_substitution_CGrade.
+(*  - specialize (H _ _ _ _ ltac:(eauto) _ H1); simpl in H.
+    eapply Eq_SSigmaFst; eauto using Grade_substitution_CGrade. *)
   - repeat rewrite subst_tm_tm_open_tm_wrt_tm; eauto 2 using CGrade_lc.
     specialize (H _ _ _ _ ltac:(eauto) _ H2); simpl in H.
     eapply Eq_SSigmaSnd; eauto using Grade_substitution_CGrade.
-  - eapply Eq_SumFst; eauto 1.  
+(*  - eapply Eq_SumFst; eauto 1.  
     specialize (H _ _ _ _ ltac:(eauto) _ ltac:(eauto));
     simpl in H; eauto.
   - eapply Eq_SumSnd; eauto 1.  
     specialize (H _ _ _ _ ltac:(eauto) _ ltac:(eauto));
-    simpl in H; eauto.
+    simpl in H; eauto. *)
   - simpl.
     eapply Eq_Case; eauto.
   - repeat invert_Grade; subst;

@@ -73,8 +73,8 @@ Proof. intros. simpl. destruct (x == x). auto. done. Qed.
 Lemma subst_tm_tm_var_neq : forall a x y, y <> x -> subst_tm_tm a x (a_Var_f y) = a_Var_f y.
 Proof. intros. simpl. destruct (y == x). done. auto. Qed.
 
-Hint Rewrite subst_tm_tm_var : subst.
-Hint Rewrite subst_tm_tm_open_tm_wrt_tm : subst.
+#[export] Hint Rewrite subst_tm_tm_var : subst.
+#[export] Hint Rewrite subst_tm_tm_open_tm_wrt_tm : subst.
 
 (* --------------------------------------------------- *)
 (* application tactics for binding forms *)

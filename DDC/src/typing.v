@@ -305,7 +305,6 @@ Proof.
          fsetdec.
   - (* pi *)
     fresh_apply_Typing y; eauto.
-    eapply IHTyping; eauto.
     repeat spec y.
     subst_CTyping_ih.
   - (* abs *)
@@ -318,13 +317,10 @@ Proof.
     unfold subst_ctx. simpl_env in u. solve_uniq.
   - (* App *)
     rewrite subst_tm_tm_open_tm_wrt_tm; eauto using CTyping_lc1.
-    eapply T_App; eauto.
-    eapply IHTyping1; eauto.
   - (* AppI *)
     rewrite subst_tm_tm_open_tm_wrt_tm; eauto using CTyping_lc1.
     simpl_env in H0. 
     eapply T_AppIrrel; eauto.
-    eapply IHTyping1; eauto.
     fold subst_tm_tm.
     simpl_env.
     eapply IHTyping2; eauto using Ctx_meet_ctx_l. simpl_env. eauto.
@@ -334,7 +330,6 @@ Proof.
       eapply uniq_app; eauto.
   - (* WSigma *)
     fresh_apply_Typing y; eauto.
-    eapply IHTyping; eauto.
     repeat spec y.
     subst_CTyping_ih.
   - (* WPair *)
@@ -397,7 +392,6 @@ Proof.
       solve_uniq.
   - (* SSigma *)
     fresh_apply_Typing y; eauto. 
-    eapply IHTyping; eauto.
     repeat spec y.
     subst_CTyping_ih.
   - (* SPair *)
@@ -411,11 +405,9 @@ Proof.
       rewrite subst_tm_tm_open_tm_wrt_tm in IHTyping3; eauto using CTyping_lc1.
   - (* Proj1 *)
     eapply T_Proj1; eauto.
-    simpl in IHTyping; eauto.
   - (* Proj2 *)
     rewrite subst_tm_tm_open_tm_wrt_tm; eauto using CTyping_lc1.    
-    eapply T_Proj2; eauto. fold subst_tm_tm.
-    simpl in IHTyping; eauto.
+    eapply T_Proj2; eauto. 
   - (* Sum *)
     eauto.
   - (* Inj1 *)
@@ -569,7 +561,7 @@ Lemma T_Pi_inversion: forall (x : atom) W (psi psi1 : grade) (A B C : tm),
     x `notin` dom W \u fv_tm_tm B ->
     Typing W psi (a_Pi psi1 A B) C ->
     Ctx W -> 
-    exists s1, exists s2, exists s3, rule s1 s2 s3 /\
+    exists s1, exists s2, exists s3, rule_pi s1 s2 s3 /\
   Typing W psi A (a_Type s1) /\ 
   Typing ([(x, (psi, A))] ++ W) psi (open_tm_wrt_tm B (a_Var_f x)) (a_Type s2) /\
   DefEq (labels (meet_ctx_l q_C W)) q_C  C (a_Type s3).
@@ -626,7 +618,7 @@ Lemma T_SSigma_inversion: forall (x : atom) W (psi psi1 : grade) (A B C : tm),
     x `notin` dom W \u fv_tm_tm B ->
     Typing W psi (a_SSigma psi1 A B) C ->
     Ctx W ->
-     exists s1, exists s2, exists s3, rule s1 s2 s3 /\
+     exists s1, exists s2, exists s3, rule_sig s1 s2 s3 /\
     Typing W psi A (a_Type s1) /\ 
     Typing ([(x, (psi, A))] ++ W) psi (open_tm_wrt_tm B (a_Var_f x)) (a_Type s2) /\
     DefEq (labels (meet_ctx_l q_C W)) q_C C (a_Type s3).
@@ -653,7 +645,7 @@ Lemma T_WSigma_inversion: forall (x : atom) W (psi psi1 : grade) (A B C : tm),
    x `notin` dom W \u fv_tm_tm B ->
    Typing W psi (a_WSigma psi1 A B) C ->
    Ctx W ->
-   exists s1, exists s2, exists s3, rule s1 s2 s3 /\
+   exists s1, exists s2, exists s3, rule_sig s1 s2 s3 /\
    Typing W psi A (a_Type s1) /\ 
    Typing ([(x, (psi, A))] ++ W) psi (open_tm_wrt_tm B (a_Var_f x)) (a_Type s2) /\
    DefEq (labels (meet_ctx_l q_C W)) q_C C (a_Type s3).

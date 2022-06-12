@@ -1,4 +1,3 @@
-Require Import Omega.
 Require Export Qual.grade.
 
 Set Implicit Arguments.

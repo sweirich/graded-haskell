@@ -1,4 +1,4 @@
-Require Import Omega.
+Require Import Lia.
 Require Export Qual.geq.
 Require Export Qual.defeq.
 Require Export Qual.par.
@@ -91,7 +91,7 @@ Local Ltac use_size_induction a ac Par1 Par2 :=
   | [   IH : forall y: nat, ?T,
         H : Par ?G ?psi a ?b0,
         H4 : Par ?G ?psi a ?b1 |- _ ] =>
-      move: (@IH (size_tm a) ltac:(omega) a ltac:(auto) _ _ _ H _ H4) => [ ac [Par1 Par2]]
+      move: (@IH (size_tm a) ltac:(lia) a ltac:(auto) _ _ _ H _ H4) => [ ac [Par1 Par2]]
   end.
 Local Ltac use_size_induction_open a0 x ac Par1 Par2 :=
    let h0 := fresh in

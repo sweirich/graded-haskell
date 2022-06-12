@@ -87,9 +87,9 @@ coq: $(COQMKFILENAME) $(VFILES)
 	ott -i $(OTT_LOC)/Qualitative.ott  $(OTTOFLAGS) -coq_lngen true -coq_expand_list_types true
 	make PATCH_TYPING_$*_ott
 
-%_inf.v: $(OTT_LOC)/%.ott  
+%_inf.v: $(OTT_LOC)/%.ott  Makefile
 	$(LNGEN) --coq-no-proofs --coq $*_inf.v --coq-ott $*_ott $(OTT_LOC)/$*.ott 
-	make GRADE.FIX_$*_inf
+#	make GRADE.FIX_$*_inf
 
 %_inf_proofs.v: $(OTT_LOC)/%.ott Makefile
 	$(LNGEN) --coq $*_inf_proofs.v --coq-ott $*_ott $(OTT_LOC)/$*.ott 

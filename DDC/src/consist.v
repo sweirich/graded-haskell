@@ -1,4 +1,3 @@
-Require Import Omega.
 Require Export Qual.geq.
 Require Export Qual.defeq.
 Require Export Qual.par.
@@ -382,7 +381,7 @@ Inductive CMultiPar : econtext -> grade -> grade -> tm -> tm -> Prop :=
                 lc_tm a1 ->
                 lc_tm a2 -> ~ psi0 <= psi -> uniq P -> CMultiPar P psi psi0 a1 a2.
 
-Hint Constructors CMultiPar : core.
+#[export] Hint Constructors CMultiPar : core.
 
 Lemma MultiPar_Abs : forall (L : atoms) (P : econtext) (psi psi0 : grade) (A1 A2 b1 b2 : tm),
        (forall x : atom,

@@ -125,7 +125,7 @@ Lemma T_Pi_exists
           (a_Type s2) ->
        Ctx ([(x, (psi0 * psi, A))] ++ W) ->
        x `notin` fv_tm_tm A \u fv_tm_tm B ->
-       rule s1 s2 s3 -> Typing W psi (a_Pi psi0 A B) (a_Type s3).
+       rule_pi s1 s2 s3 -> Typing W psi (a_Pi psi0 A B) (a_Type s3).
 Proof. 
   intros.
   move: (Typing_uniq H0) => u.

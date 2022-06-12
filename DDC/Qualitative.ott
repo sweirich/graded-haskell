@@ -304,8 +304,10 @@ formula :: 'formula_' ::=
 
   | axiom s1 s2 ::  :: axiom
      {{ coq axiom [[s1]] [[s2]] }}
-  | rule s1 s2 s3 ::   :: rule
-     {{ coq rule [[s1]] [[s2]] [[s3]] }}
+  | rule_pi s1 s2 s3 ::   :: rule_pi
+     {{ coq rule_pi [[s1]] [[s2]] [[s3]] }}
+  | rule_sig s1 s2 s3 ::   :: rule_sig
+     {{ coq rule_sig [[s1]] [[s2]] [[s3]] }}
 
 
 embed {{ coq 
@@ -951,7 +953,7 @@ W |-- psi x : A
 
 W |-- psi A : type s1
 W ++ x : psi A |-- psi B : type s2
-rule s1 s2 s3
+rule_pi s1 s2 s3
 --------------------------------------- :: Pi
 W |-- psi Pi x :psi0 A. B : type s3
 
@@ -978,7 +980,7 @@ W |-- psi b psi0 a : B {a/x}
 
 W |-- psi A : type s1
 W ++ x : psi A |-- psi B : type s2
-rule s1 s2 s3
+rule_sig s1 s2 s3
 ---------------------------------------- :: WSigma
 W |-- psi Sigma x :psi0 A . B : type s3
 
@@ -1013,7 +1015,7 @@ W |-- psi let (x psi0 , ) = a in c : C
 
 W |-- psi A : type s1
 W ++ x : psi A |-- psi B : type s2
-rule s1 s2 s3
+rule_sig s1 s2 s3
 ---------------------------------------- :: SSigma
 W |-- psi x :psi0 A && B : type s3
 
