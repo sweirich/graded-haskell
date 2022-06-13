@@ -7,7 +7,7 @@ System Specification
 --------------------
 
 The full specification of the DDC type system is in the file
-[Qualitative_ott.v](src/Qualitative_ott.v]. This file has been mechanically
+[Qualitative_ott.v](src/Qualitative_ott.v). This file has been mechanically
 generated from the Ott specification in [Qualitative.ott](Qualitative.ott),
 but then slightly edited. For convenience, we also provide the file
 [spec.pdf](spec.pdf) that contains a typeset version of the system, also
