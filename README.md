@@ -16,6 +16,8 @@ Published in [ESOP 2022](https://etaps.org/2022/esop). The paper is part of the 
 
 Pritam's [ESOP 2022 video](https://www.youtube.com/watch?v=e_heE6IoN8Y) about this work (22 minutes).
 
+Stephanie's [Edinburgh seminar talk](DDC/edinburgh.pdf) (June 2022).
+
 The extended version of the paper, with the full appendix, is available from [arXiv](https://arxiv.org/abs/2201.11040).
 
 This [repository](DDC/) proves type soundness for DDC, including the
