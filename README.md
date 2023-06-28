@@ -24,7 +24,7 @@ This [repository](DDC/) proves type soundness for DDC, including the
 consistency of a grade-indexed definitional equivalence.
 
 A [Virtual Box](https://zenodo.org/record/5903727#.YfqZGvXMLUI) containing the Coq proof
-scripts is available.
+scripts is archived on Zenodo.
 
 [GraD](GraD/)
 -------------
