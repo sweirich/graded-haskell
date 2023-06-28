@@ -42,6 +42,8 @@ The extended version of the paper is available from [arXiv](https://arxiv.org/ab
 This [repository](GraD/src) proves type soundness for GraD, assuming the consistency of an
 unspecified definitional equivalence.
 
+The artifact has been [archived in the ACM digital library](https://dl.acm.org/do/10.1145/3410265/full/).
+
 A [Virtual Box](https://www.cis.upenn.edu/~sweirich/popl2021-paper408.ova) containing the Coq proof
 scripts is available.
 
